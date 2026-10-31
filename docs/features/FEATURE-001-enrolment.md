@@ -20,6 +20,24 @@ The tenant always comes from the staff login, never from a request field (CCTV D
 
 202 is durable: every photo is stored and the job committed, so the app discards local images on 202. A rejected job means a retake under a new key.
 
+## Server and storage
+
+Source: CCTV session, 2026-10-31. A proposal. Certificate pinning, the KES timing, the grace period, and the withdrawal contact wording need owner confirmation.
+
+- The API host differs per client, so the app hardcodes none. Client-dedicated: the client's own server. Centralized: one HTTPS hostname per client.
+- Setup happens once, by QR code with a typed fallback. Payload: `{base_url, client_id}`.
+- `GET /api/v1/server-info` returns `{client_id, client_name, notice_version, notice_url}`. If `client_id` differs from the stored one, the app refuses and asks for setup again.
+- HTTPS only. A private CA is allowed only for the dedicated LAN case.
+- The enrolment contract is identical in both options. Storage is the server's concern: one bucket per client, with a separate encryption key per client.
+- The app fetches the notice text and version from the server and never hardcodes them.
+- Staff see `Uploading to: <client_name> (<host>)` at sign in and capture, and a full-screen warning if the stored client or host changes.
+
+## Rejected jobs
+
+A rejection means retaking the full set under a new `Idempotency-Key`, because the app clears photos on 202 and the server deletes a rejected set. CCTV confirmed this for v1. Revisit only if a measured rejection rate makes retakes hurt; then add `retake_of: <job_id>` with a short server-side hold.
+
+The new job cites the same `consent_id`. Consent stays valid across retakes until it is withdrawn, the person leaves, or its notice version is superseded.
+
 ## Pose set
 
 Required, each exactly once: `front`, `chin_up`, `chin_down`, `left_30`, `right_30`. Optional, all or none: the 5 `<pose>_glasses` photos. Anything else is rejected.
@@ -48,3 +66,4 @@ Agreed with Codex on 2026-10-31. Login and consent ship before capture.
 ## Log
 
 - 2026-10-31: plan agreed, contract received from CCTV.
+- 2026-10-31: storage design and full-retake rule received from CCTV. UI design drafted: https://claude.ai/artifact/Lb5vSuHUeweB1KDiGdHGfD
