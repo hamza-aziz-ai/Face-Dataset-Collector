@@ -24,6 +24,7 @@ Broken or risky:
 Next:
 - Owner: notice text sign-off before any live-face run, named test person, legal basis, `CONSTRAINTS.md` review.
 - Owner: fix GitHub billing so CI can run.
+- Audit ML Kit telemetry traffic (`transport-backend-cct`), see `THREAT.md`.
 - PR for login, person selection, consent, and the local mock.
 
 Do not touch:
