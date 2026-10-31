@@ -37,4 +37,4 @@ Aggregate technical timings only, with no subject or session identifiers. Per-pe
 
 ## Mock server
 
-Photos and consent rows are held in memory with an expiry and are lost on restart. Nothing is written to disk or logged.
+`tools/mock_server/mock_server.py` checks photos and discards them at once, so it keeps pose names and a body hash only. Consent rows and jobs are in memory and are lost on restart. Nothing is written to disk. Logs carry method, path, and status only.
