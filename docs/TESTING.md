@@ -30,4 +30,6 @@ Run `python tools/mock_server/mock_server.py`, then `adb reverse tcp:8081 tcp:80
 
 Set a failure with `POST /mock/scenario` and `{"scenario": "..."}`. Values: `normal`, `reject`, `server_error`, `slow`, `drop`.
 
+Connect with `http://127.0.0.1:8081`, in debug builds only.
+
 Do not screenshot the camera preview, because it shows a real face.
