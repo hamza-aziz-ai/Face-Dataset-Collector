@@ -48,7 +48,38 @@ flowchart TD
 7. `isSameClient` compares `client_id`.
 8. A full-screen stop. The only way out is setting up again.
 9. A wrong password or unreachable server stays on this screen with a message from `messageFor`.
-10. Losing the process signs staff out. The old preview stands in until the roster screen lands.
+10. Losing the process signs staff out. Sign-in leads to F0b.
+
+## F0b: Select a person and record consent
+
+```mermaid
+flowchart TD
+    classDef way fill:#dbeafe,stroke:#1d4ed8,color:#111827
+    classDef step fill:#dcfce7,stroke:#15803d,color:#111827
+    classDef choice fill:#fef3c7,stroke:#b45309,color:#111827
+    classDef seen fill:#ede9fe,stroke:#6d28d9,color:#111827
+    classDef outside fill:#f3f4f6,stroke:#4b5563,color:#111827
+    A["`**1** Search the roster`"]:::way --> B{"`**2** Not enrolled?`"}:::choice
+    B -->|Enrolled or checking| C["`**3** Shown, not selectable`"]:::seen
+    B -->|Yes| D["`**4** Fetch notice from server`"]:::outside
+    D --> E["`**5** Show notice`"]:::seen
+    E --> F{"`**6** Person agrees?`"}:::choice
+    F -->|Declined| G["`**7** Nothing recorded`"]:::seen
+    F -->|Yes| H["`**8** Record consent on server`"]:::outside
+    H --> I["`**9** Go to capture`"]:::step
+```
+
+1. `search` waits for a pause in typing, and cancels any older search.
+2. `PersonRow` allows only `none`.
+3. The contract defines no re-enrolment yet.
+4. Text and version always come from the server, so each deployment shows its own wording.
+5. Rendered natively.
+6. Needs the checkbox and a glasses answer.
+7. `personDeclined` clears the selection and sends nothing.
+8. `POST /api/v1/consents` cites the notice version. The server takes staff from the session.
+9. The old preview stands in until the capture flow lands.
+
+A `401` on any of these calls signs staff out and shows `Your session ended. Sign in again.`
 
 ## F1: App start and camera permission
 

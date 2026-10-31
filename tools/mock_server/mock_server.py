@@ -51,7 +51,7 @@ def sample_client(client_id, client_name, destination, processor):
                 {"heading": "What we collect", "body": "5 face photos, or 10 if you wear glasses."},
                 {"heading": "Why", "body": f"To recognise you for attendance at {client_name}."},
                 {"heading": "Where they go", "body": destination},
-                {"heading": "How long", "body": "While you are enrolled. Deleted when you withdraw or leave, within [GRACE PERIOD]."},
+                {"heading": "How long", "body": "While you are enrolled. Deleted within 30 days after you withdraw or leave."},
                 {"heading": "Your choice", "body": "You can refuse. You can withdraw later through the contact below, and your photos and face data are then removed."},
             ],
         },

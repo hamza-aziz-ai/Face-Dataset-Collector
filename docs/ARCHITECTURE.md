@@ -10,7 +10,7 @@ There is one Gradle module, `:app`.
 |---|---|
 | `MainActivity.kt` | App entry and system bars |
 | `ui/EnrolmentViewModel.kt` | Navigation and the session |
-| `ui/AppRoot.kt`, `ui/ConnectScreens.kt`, `ui/Components.kt` | Screens and shared controls |
+| `ui/AppRoot.kt`, `ui/ConnectScreens.kt`, `ui/RosterScreens.kt`, `ui/Components.kt` | Screens and shared controls |
 | `ui/SessionRules.kt` | Client check and staff-facing error messages |
 | `data/ServerStore.kt` | The server this device is bound to |
 | `ui/CameraPreview.kt` | Permission, camera binding, lifecycle, banner |

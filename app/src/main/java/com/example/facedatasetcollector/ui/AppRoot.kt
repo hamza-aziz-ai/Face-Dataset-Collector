@@ -1,5 +1,6 @@
 package com.example.facedatasetcollector.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
@@ -7,6 +8,9 @@ import androidx.compose.ui.Modifier
 @Composable
 fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
     val server = model.server
+    val person = model.selectedPerson
+    val notice = model.notice
+    BackHandler(enabled = model.screen == Screen.Consent) { model.personDeclined() }
     when (model.screen) {
         Screen.Connect -> ConnectScreen(model.busy, model.error, model::connect, modifier)
         Screen.SignIn -> SignInScreen(
@@ -20,7 +24,22 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
             modifier = modifier,
         )
         Screen.ClientChanged -> ClientChangedScreen(server?.clientName.orEmpty(), model::resetServer, modifier)
-        // ponytail: the old preview stands in until the roster screen lands.
-        Screen.SignedIn -> CameraPreview(modifier)
+        Screen.SelectPerson -> PersonScreen(
+            persons = model.persons,
+            hasMore = model.hasMorePersons,
+            isMock = model.isMock,
+            busy = model.busy,
+            error = model.error,
+            onSearch = model::search,
+            onLoadMore = model::loadMorePersons,
+            onSelect = model::selectPerson,
+            onSignOut = model::signOut,
+            modifier = modifier,
+        )
+        Screen.Consent -> if (person != null && notice != null) {
+            ConsentScreen(person, notice, model.busy, model.error, model::recordConsent, model::personDeclined, modifier)
+        }
+        // ponytail: the old preview stands in until the capture flow lands.
+        Screen.Capture -> CameraPreview(modifier)
     }
 }

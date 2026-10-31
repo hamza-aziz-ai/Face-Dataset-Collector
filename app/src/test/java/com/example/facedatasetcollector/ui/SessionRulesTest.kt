@@ -1,6 +1,7 @@
 package com.example.facedatasetcollector.ui
 
 import com.example.facedatasetcollector.data.ApiFailure
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -12,6 +13,12 @@ class SessionRulesTest {
         assertFalse(isSameClient("client-a", "client-b"))
         assertFalse(isSameClient("client-a", "Client-A"))
         assertFalse(isSameClient("client-a", ""))
+    }
+
+    @Test
+    fun timestampIsUtcIso8601() {
+        assertEquals("1970-01-01T00:00:00Z", utcTimestamp(0))
+        assertEquals("2026-10-31T10:30:00Z", utcTimestamp(1_793_442_600_000))
     }
 
     @Test

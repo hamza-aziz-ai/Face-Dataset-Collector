@@ -22,7 +22,7 @@ The tenant always comes from the staff login, never from a request field (CCTV D
 
 ## Server and storage
 
-Source: CCTV session, 2026-10-31. A proposal. Certificate pinning, the KES timing, the grace period, and the withdrawal contact wording need owner confirmation.
+Source: CCTV session, 2026-10-31. Owner decisions, relayed by that session: no certificate pinning for now, with normal HTTPS validation and a private CA only for the dedicated LAN case. One server-side encryption key for now, with per-client keys a gap to close before a real client. Photos, vectors, and crops are deleted 30 days after withdrawal or leaving. Each client supplies its own withdrawal contact, which the app shows as served.
 
 - The API host differs per client, so the app hardcodes none. Client-dedicated: the client's own server. Centralized: one HTTPS hostname per client.
 - Setup happens once, by QR code with a typed fallback. Payload: `{base_url, client_id}`.
@@ -84,5 +84,6 @@ Agreed with Codex on 2026-10-31. Login and consent ship before capture.
 ## Log
 
 - 2026-10-31: plan agreed, contract received from CCTV.
+- 2026-10-31: roster and consent screens built.
 - 2026-10-31: connect and sign-in built and checked on the phone against the mock. QR setup not built yet.
 - 2026-10-31: storage design and full-retake rule received from CCTV. UI design drafted: https://claude.ai/artifact/Lb5vSuHUeweB1KDiGdHGfD
