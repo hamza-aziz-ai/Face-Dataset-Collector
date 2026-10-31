@@ -38,11 +38,21 @@ A rejection means retaking the full set under a new `Idempotency-Key`, because t
 
 The new job cites the same `consent_id`. Consent stays valid across retakes until it is withdrawn, the person leaves, or its notice version is superseded.
 
+## Re-enrolment
+
+Source: CCTV session, 2026-10-31. Not built yet.
+
+- Allowed for `enrolled`, behind an explicit `Re-enrol` action with a confirm step and a reason: `appearance_changed | poor_photos | other`. Roles: `client_admin`, `enrolment_operator`.
+- Same `POST /api/v1/enrolments`, plus an optional `reason` field. The server treats the job as a replacement.
+- The old vectors stay in service until the new job is accepted. A rejected or expired re-enrolment leaves the old enrolment untouched.
+- `pending` stays blocked: one open job per person. The server returns 409 with the open `job_id`.
+- An expired job returns the person to their previous status: `none` or `enrolled`.
+
 ## Pose set
 
 Required, each exactly once: `front`, `chin_up`, `chin_down`, `left_30`, `right_30`. Optional, all or none: the 5 `<pose>_glasses` photos. Anything else is rejected.
 
-Limits: JPEG, at most 2 MB each, short side at least 480 px, 10 photos per job. The server checks exactly 1 face, detection confidence at least 0.7, and re-checks pose and blur.
+Limits: JPEG, at most 2 MB each, short side at least 480 px, 10 photos per job. Aspect ratio does not matter to the server. The server checks exactly 1 face, detection confidence at least 0.7, and re-checks pose and blur.
 
 Face detail: pupils at least 28 px apart in the received image. The app aims for 60 px or more.
 
