@@ -3,10 +3,12 @@ package com.example.facedatasetcollector.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,35 +22,72 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.facedatasetcollector.ui.theme.ErrorRed
-import com.example.facedatasetcollector.ui.theme.Surface
-import com.example.facedatasetcollector.ui.theme.WarningFill
-import com.example.facedatasetcollector.ui.theme.WarningText
+import com.example.facedatasetcollector.ui.theme.LocalStatusColors
 
-/** Page frame for staff screens. Scrolls with the keyboard open, and keeps a readable width on a tablet. */
+private val TabletWidth = 600.dp
+private val WideWidth = 840.dp
+
+/** True on a large screen held sideways, where two panes fit better than one long column. */
+fun isWideLayout(width: Dp, height: Dp): Boolean = width >= WideWidth && width > height
+
+fun isTabletLayout(width: Dp): Boolean = width >= TabletWidth
+
+/** Larger text on bigger screens, because a tablet is held further away and is often shown to the person. Keeps the user's own font size setting. */
+fun tabletFontScale(smallestWidth: Dp): Float = when {
+    smallestWidth >= 800.dp -> 1.3f
+    smallestWidth >= TabletWidth -> 1.15f
+    else -> 1f
+}
+
+/**
+ * Page frame for staff screens. Scrolls with the keyboard open, and keeps a readable width on a tablet.
+ *
+ * @param maxContentWidth the widest the content may grow.
+ * @param centred on a tablet, sits the content in the middle of the screen. Short forms use this, so they do not leave the lower half empty.
+ */
 @Composable
-fun StaffPage(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(
-        modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .imePadding(),
-        contentAlignment = Alignment.TopCenter,
-    ) {
-        Column(
-            Modifier
-                .widthIn(max = 480.dp)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) { content() }
+fun StaffPage(
+    modifier: Modifier = Modifier,
+    maxContentWidth: Dp = 560.dp,
+    centred: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    val density = LocalDensity.current
+    val scale = tabletFontScale(LocalConfiguration.current.smallestScreenWidthDp.dp)
+    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale * scale)) {
+        BoxWithConstraints(
+            modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .imePadding(),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            val inMiddle = centred && isTabletLayout(maxWidth)
+            Column(
+                Modifier
+                    .widthIn(max = maxContentWidth)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = if (inMiddle) maxHeight else 0.dp)
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                verticalArrangement = if (inMiddle) {
+                    Arrangement.spacedBy(20.dp, Alignment.CenterVertically)
+                } else {
+                    Arrangement.spacedBy(20.dp)
+                },
+            ) { content() }
+        }
     }
 }
 
@@ -57,12 +96,12 @@ fun PrimaryButton(text: String, busy: Boolean, enabled: Boolean = true, onClick:
     Button(
         onClick = onClick,
         enabled = enabled && !busy,
-        modifier = Modifier.fillMaxWidth().height(52.dp),
+        modifier = Modifier.fillMaxWidth().height(if (LocalConfiguration.current.smallestScreenWidthDp >= 600) 64.dp else 52.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
     ) {
         if (busy) {
-            CircularProgressIndicator(Modifier.size(22.dp), color = Surface, strokeWidth = 2.dp)
+            CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
         } else {
             Text(text, style = MaterialTheme.typography.labelLarge)
         }
@@ -75,7 +114,7 @@ fun ErrorMessage(message: String?) {
     if (message == null) return
     Text(
         message,
-        color = ErrorRed,
+        color = MaterialTheme.colorScheme.error,
         style = MaterialTheme.typography.bodyMedium,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     )
@@ -88,10 +127,10 @@ fun MockChip(visible: Boolean) {
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         Text(
             "MOCK SERVER",
-            color = WarningText,
+            color = LocalStatusColors.current.warningText,
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier
-                .background(WarningFill, RoundedCornerShape(6.dp))
+                .background(LocalStatusColors.current.warningFill, RoundedCornerShape(6.dp))
                 .padding(horizontal = 10.dp, vertical = 6.dp),
         )
     }

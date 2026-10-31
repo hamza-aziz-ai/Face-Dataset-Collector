@@ -1,9 +1,7 @@
 package com.example.facedatasetcollector
 
 import android.os.Bundle
-import android.graphics.Color
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -20,9 +18,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // WHY fixed: the theme is always light, so bar icons must stay dark even when the phone is in dark mode.
-        val lightBars = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-        enableEdgeToEdge(statusBarStyle = lightBars, navigationBarStyle = lightBars)
+        enableEdgeToEdge()
         setContent {
             FaceDatasetCollectorTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) {

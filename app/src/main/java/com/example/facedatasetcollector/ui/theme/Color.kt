@@ -12,11 +12,24 @@ val LineStrong = Color(0xFFA9B4BE)
 val Accent = Color(0xFF0B5F63)
 val ErrorRed = Color(0xFFA32019)
 
+// Staff screens, dark theme.
+val DarkAccent = Color(0xFF7FD6D0)
+val OnDarkAccent = Color(0xFF06292A)
+val DarkOutline = Color(0xFF7D8C99)
+val DarkError = Color(0xFFFFB4AB)
+val OnDarkError = Color(0xFF690005)
+
 // Status chips.
 val WarningFill = Color(0xFFFCE9C8)
 val WarningText = Color(0xFF7A3E00)
 val SuccessFill = Color(0xFFD3F1E5)
 val SuccessText = Color(0xFF0A4D3C)
+
+// Status chips, dark theme.
+val DarkWarningFill = Color(0xFF4A3212)
+val DarkWarningText = Color(0xFFFCE9C8)
+val DarkSuccessFill = Color(0xFF12392C)
+val DarkSuccessText = Color(0xFFB7EBD7)
 
 // Capture screen: dark, so attention stays on the guide.
 val Night = Color(0xFF0E151C)
