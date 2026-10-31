@@ -89,6 +89,27 @@ class MockServerTest(unittest.TestCase):
         status, _ = self.call("POST", "/api/v1/consents", {"person_id": "other-client"}, token)
         self.assertEqual(404, status)
 
+    def test_roster_pages_and_status(self):
+        token = self.login()
+        _, first = self.call("GET", "/api/v1/persons?query=&limit=2", token=token)
+        self.assertEqual(2, len(first["persons"]))
+        self.assertEqual("2", first["next_cursor"])
+        _, second = self.call("GET", "/api/v1/persons?query=&limit=2&cursor=2", token=token)
+        self.assertEqual(["p-0431"], [person["person_id"] for person in second["persons"]])
+        self.assertIsNone(second["next_cursor"])
+        self.assertNotIn("department", second["persons"][0])
+
+    def test_status_is_pending_during_checks(self):
+        mock_server.CHECK_SECONDS = 30
+        token = self.login()
+        self.upload(token, self.consent(token))
+        _, body = self.call("GET", "/api/v1/persons?query=0412", token=token)
+        self.assertEqual("pending", body["persons"][0]["enrolment_status"])
+
+    def test_notice_names_a_processor_only_when_central(self):
+        self.assertNotIn("processor", self.call("GET", "/api/v1/notice")[1])
+        self.assertIn("processor", mock_server.central_client()["notice"])
+
     def test_full_enrolment_is_accepted(self):
         token = self.login()
         status, body = self.upload(token, self.consent(token))

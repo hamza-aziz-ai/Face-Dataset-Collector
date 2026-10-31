@@ -120,3 +120,19 @@ Why: dynamic color changes contrast per device, and the design was drawn in one 
 Trade-off: three font files add about 600 KB. Dark mode is not offered, except the capture screen, which is always dark.
 Source: `@ibm/plex-sans` 1.1.0 release from `github.com/IBM/plex`, OFL 1.1, licence shipped in `assets/licenses/`. Weights 400, 500, 600.
 Revisit if: staff ask for dark mode.
+
+## D-009: Use OkHttp, refuse redirects, and retry uploads with one key
+
+Date: 2026-10-31. Model: Claude Opus 5.5 (claude-opus-5-5).
+Context: the app needs multipart upload, timeouts, and retries against a provisional API, and a wrong destination would send faces to the wrong place.
+Options:
+
+1. OkHttp 5.5.1 with `org.json` from the platform.
+2. `HttpURLConnection` with hand-written multipart.
+3. Retrofit with a JSON library.
+
+Chosen: 1.
+Why: multipart and timeouts by hand are bug farms, and Retrofit adds more than a dozen small calls need. OkHttp is maintained by Square and widely used.
+Trade-off: one more runtime dependency. `org.json` needs a test-only copy on the JVM.
+Also: redirects are refused so photos cannot move to a host staff never saw. Uploads retry only on an unknown outcome or a 5xx, 3 attempts with 1 s and 2 s backoff, always with the same `Idempotency-Key`. Retry and poll limits are not measured yet.
+Revisit if: the API grows past a few calls.

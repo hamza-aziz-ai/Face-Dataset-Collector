@@ -15,6 +15,9 @@ There is one Gradle module, `:app`.
 | `ui/QualityPolicy.kt` | Every quality threshold and the policy version |
 | `ui/QualityState.kt` | The possible frame results |
 | `ui/theme/` | Colours and typography |
+| `data/EnrolmentApi.kt` | HTTP calls, upload retry, job polling. The UI does not use it yet |
+| `data/ServerSetup.kt` | Validates the server address and setup code |
+| `data/Pose.kt` | The pose set and its contract names |
 | `tools/ci/` | Image allowlist and its check |
 | `tools/mock_server/` | Mock enrolment server for development, never deployed |
 
@@ -36,7 +39,7 @@ flowchart TD
     D -.->|Result posted| C
 ```
 
-The app is a single process with no network code of its own and no server today. Its own manifest declares only `CAMERA`, but the merged manifest also has `INTERNET` and `ACCESS_NETWORK_STATE`, added by `com.google.android.datatransport:transport-backend-cct`, which ML Kit brings in for telemetry. What that library sends has not been measured.
+The app is a single process. `EnrolmentApi` exists but no screen calls it yet, so the app makes no calls of its own today. The manifest declares `CAMERA` and `INTERNET`. Separately, `com.google.android.datatransport:transport-backend-cct`, which ML Kit brings in for telemetry, also uses the network, and what it sends has not been measured.
 
 ## A2: How a change reaches a device
 
