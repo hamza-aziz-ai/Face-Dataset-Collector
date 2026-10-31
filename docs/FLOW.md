@@ -1,8 +1,8 @@
 # FLOW
 
-How execution travels through the app. App version 1.0 (`versionCode` 1). Checked against branch `feat/capture-screen`.
+How execution travels through the app. App version 1.0 (`versionCode` 1). Checked against branch `feat/upload`.
 
-The app connects to a server and signs staff in, then guides 5 or 10 poses and holds the photos in memory for review. Upload is not connected yet. The enrolment plan is in `features/FEATURE-001-enrolment.md`.
+The app connects to a server and signs staff in, then guides 5 or 10 poses, holds the photos in memory for review, and uploads them. The enrolment plan is in `features/FEATURE-001-enrolment.md`.
 
 ## How to read the diagrams
 
@@ -122,6 +122,38 @@ All limits are in `QualityPolicy.kt` and are not calibrated yet.
 ## F2: Review and leaving
 
 Staff see every photo and can retake one pose, which returns to F1 for that pose only. Nothing is sent until they upload. Cancel and the back key ask first, then clear the photos, and the consent stays on record. After more than `BACKGROUND_LIMIT_MS` away from the app, photos are cleared and staff are signed out. `FLAG_SECURE` blocks screenshots and the recents thumbnail on capture and review.
+
+## F2b: Upload and result
+
+```mermaid
+flowchart TD
+    classDef way fill:#dbeafe,stroke:#1d4ed8,color:#111827
+    classDef step fill:#dcfce7,stroke:#15803d,color:#111827
+    classDef choice fill:#fef3c7,stroke:#b45309,color:#111827
+    classDef seen fill:#ede9fe,stroke:#6d28d9,color:#111827
+    classDef bad fill:#fee2e2,stroke:#b91c1c,color:#111827
+    classDef outside fill:#f3f4f6,stroke:#4b5563,color:#111827
+    A["`**1** Upload tapped`"]:::way --> B["`**2** POST with Idempotency-Key`"]:::outside
+    B --> C{"`**3** 202 received?`"}:::choice
+    C -->|No| D["`**4** Back to review, photos kept`"]:::bad
+    C -->|Yes| E["`**5** Clear photos from device`"]:::step
+    E --> F["`**6** Poll job, bounded`"]:::outside
+    F --> G{"`**7** Result`"}:::choice
+    G -->|accepted| H["`**8** Accepted`"]:::seen
+    G -->|rejected| I["`**9** Advice, then retake all`"]:::bad
+    G -->|Limit or lost connection| J["`**10** Still checking`"]:::seen
+```
+
+1. `upload` reuses `uploadKey` for this exact set. Any changed photo clears it.
+2. `EnrolmentApi.upload` retries an unknown outcome or a 5xx, 3 attempts, always with the same key.
+3. 202 is durable, so only this answer clears photos.
+4. Every photo stays in memory, with a message. Trying again reuses the key.
+5. `photos.clear()`.
+6. `awaitJob`, every 2 s, up to 30 polls.
+7. A poll that loses the connection is not a failed enrolment, because the server already has the photos.
+8. `Enrol next person` returns to a refreshed roster.
+9. The server deleted the set. `retakeAll` restarts capture under a new key with the same consent.
+10. The result appears on the roster.
 
 ## F3: Teardown
 

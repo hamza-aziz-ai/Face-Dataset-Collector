@@ -11,6 +11,10 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
     val person = model.selectedPerson
     val notice = model.notice
     BackHandler(enabled = model.screen == Screen.Consent) { model.personDeclined() }
+    // While photos are on their way, back does nothing. After that the flow is finished, so back goes to the roster.
+    BackHandler(enabled = model.screen == Screen.Upload) {
+        if (model.uploadState != UploadState.Sending) model.finishEnrolment()
+    }
     when (model.screen) {
         Screen.Connect -> ConnectScreen(model.busy, model.error, model::connect, modifier)
         Screen.SignIn -> SignInScreen(
@@ -53,6 +57,26 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                 )
             }
         }
+        Screen.Upload -> when (val state = model.uploadState) {
+            null -> Unit
+            is UploadState.Rejected -> RejectedScreen(
+                personName = person?.name.orEmpty(),
+                photoCount = model.poseSet.size,
+                problems = state.problems,
+                onRetakeAll = model::retakeAll,
+                onBackToRoster = model::finishEnrolment,
+                modifier = modifier,
+            )
+            else -> UploadScreen(
+                personName = person?.name.orEmpty(),
+                photoCount = model.poseSet.size,
+                noticeVersion = notice?.version.orEmpty(),
+                state = state,
+                isMock = model.isMock,
+                onDone = model::finishEnrolment,
+                modifier = modifier,
+            )
+        }
         Screen.Review -> {
             SecureWindow()
             ReviewScreen(
@@ -63,8 +87,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                 busy = model.busy,
                 error = model.error,
                 onRetake = model::retake,
-                // ponytail: upload lands in the next PR. Until then this only clears the photos.
-                onUpload = model::finishEnrolment,
+                onUpload = model::upload,
                 onCancel = model::cancelCapture,
                 modifier = modifier,
             )

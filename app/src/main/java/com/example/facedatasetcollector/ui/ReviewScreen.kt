@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -115,15 +116,33 @@ fun ReviewScreen(
             hasGlasses -> set.filter { it.withGlasses == showGlasses }
             else -> set
         }
-        StaffPage(maxContentWidth = 1400.dp) {
+        StaffPage(maxContentWidth = if (wide) 1160.dp else 1400.dp) {
             MockChip(isMock)
-            Column {
-                Text("Review photos", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
-                Text(
-                    "$personName. Nothing is sent until you upload.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            val title = @Composable { titleModifier: Modifier ->
+                Column(titleModifier) {
+                    Text("Review photos", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+                    Text(
+                        "$personName. Nothing is sent until you upload.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            val actions = @Composable {
+                ErrorMessage(error)
+                PrimaryButton("Upload ${set.size} photos", busy, onClick = onUpload)
+                TextButton(onClick = { confirmCancel = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Cancel and delete all", color = MaterialTheme.colorScheme.error)
+                }
+            }
+            if (wide) {
+                // Beside the title, so the upload button is never below the fold.
+                Row(horizontalArrangement = Arrangement.spacedBy(32.dp), verticalAlignment = Alignment.CenterVertically) {
+                    title(Modifier.weight(1f))
+                    Column(Modifier.width(420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { actions() }
+                }
+            } else {
+                title(Modifier)
             }
             if (hasGlasses && !wide) {
                 Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -142,11 +161,7 @@ fun ReviewScreen(
                     }
                 }
             }
-            ErrorMessage(error)
-            PrimaryButton("Upload ${set.size} photos", busy, onClick = onUpload)
-            TextButton(onClick = { confirmCancel = true }, modifier = Modifier.fillMaxWidth()) {
-                Text("Cancel and delete all", color = MaterialTheme.colorScheme.error)
-            }
+            if (!wide) actions()
         }
     }
 }

@@ -32,6 +32,21 @@ class SessionRulesTest {
     }
 
     @Test
+    fun poseNamesAndAdviceStayReadable() {
+        assertEquals("Left 30", poseNameFor("left_30"))
+        assertEquals("Chin up, with glasses", poseNameFor("chin_up_glasses"))
+        assertEquals("something_new", poseNameFor("something_new"))
+        assertEquals("Face too small. Move closer to the camera.", adviceFor("face_too_small"))
+        assertTrue(adviceFor("a_code_added_later").endsWith("."))
+    }
+
+    @Test
+    fun onlyKnownCodesGetASpecificMessage() {
+        assertTrue(messageForCode("no_active_consent")!!.contains("consent"))
+        assertEquals(null, messageForCode("anything_else"))
+    }
+
+    @Test
     fun timestampIsUtcIso8601() {
         assertEquals("1970-01-01T00:00:00Z", utcTimestamp(0))
         assertEquals("2026-10-31T10:30:00Z", utcTimestamp(1_793_442_600_000))

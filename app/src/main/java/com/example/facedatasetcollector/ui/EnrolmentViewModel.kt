@@ -1,6 +1,8 @@
 package com.example.facedatasetcollector.ui
 
 import android.app.Application
+import android.os.SystemClock
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -13,9 +15,12 @@ import com.example.facedatasetcollector.data.ApiException
 import com.example.facedatasetcollector.data.ApiFailure
 import com.example.facedatasetcollector.data.EnrolmentApi
 import com.example.facedatasetcollector.data.InvalidServerAddress
+import com.example.facedatasetcollector.data.JobResult
+import com.example.facedatasetcollector.data.JobStatus
 import com.example.facedatasetcollector.data.Notice
 import com.example.facedatasetcollector.data.Person
 import com.example.facedatasetcollector.data.Pose
+import com.example.facedatasetcollector.data.PoseProblem
 import com.example.facedatasetcollector.data.ServerStore
 import com.example.facedatasetcollector.data.StoredServer
 import com.example.facedatasetcollector.data.normalizeBaseUrl
@@ -23,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 sealed interface Screen {
     data object Connect : Screen
@@ -33,6 +39,17 @@ sealed interface Screen {
 
     data object Capture : Screen
     data object Review : Screen
+    data object Upload : Screen
+}
+
+sealed interface UploadState {
+    data object Sending : UploadState
+    data object Checking : UploadState
+    data object Accepted : UploadState
+
+    /** The bounded wait ended first. The result is safe on the server and appears on the roster. */
+    data object StillChecking : UploadState
+    data class Rejected(val problems: List<PoseProblem>) : UploadState
 }
 
 /** Owns navigation and the session. The session lives only here, so losing the process signs staff out (docs/DATA.md). */
@@ -71,6 +88,11 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     var capturePose by mutableStateOf<Pose?>(null)
         private set
 
+    var uploadState by mutableStateOf<UploadState?>(null)
+        private set
+
+    /** One per attempt at this exact set. A retry after an unknown outcome must reuse it, and a changed set must not. */
+    private var uploadKey: String? = null
     private var retaking = false
     private var backgroundedAt: Long? = null
     private var nextCursor: String? = null
@@ -169,15 +191,21 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun startCapture() {
         photos.clear()
+        uploadKey = null
+        uploadState = null
         retaking = false
         capturePose = poseSet.firstOrNull()
         screen = Screen.Capture
     }
 
+    /** After a rejection. The server already deleted the set, and the consent stays valid, so only the photos are redone. */
+    fun retakeAll() = startCapture()
+
     /** Ignores a stale photo: one that arrives after cancel or for a pose no longer being captured. */
     fun onPhoto(pose: Pose, jpeg: ByteArray) {
         if (screen != Screen.Capture || pose != capturePose) return
         photos[pose] = jpeg
+        uploadKey = null
         val next = if (retaking) null else poseSet.getOrNull(poseSet.indexOf(pose) + 1)
         capturePose = next
         if (next == null) {
@@ -190,6 +218,58 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         retaking = true
         capturePose = pose
         screen = Screen.Capture
+    }
+
+    /**
+     * Sends the set, then waits for the checks. Photos clear only once the server answers 202, which is durable. Until then a failure returns to review with every photo intact.
+     */
+    fun upload() = run {
+        val client = api ?: return@run
+        val person = selectedPerson ?: return@run
+        val consent = consentId ?: return@run
+        val key = uploadKey ?: UUID.randomUUID().toString()
+        var set: Map<Pose, ByteArray> = emptyMap()
+        onMain {
+            uploadKey = key
+            set = photos.toMap()
+            uploadState = UploadState.Sending
+            screen = Screen.Upload
+        }
+
+        val started = SystemClock.elapsedRealtime()
+        val jobId = try {
+            client.upload(person.personId, consent, set, key)
+        } catch (e: ApiException) {
+            onMain {
+                uploadState = null
+                screen = Screen.Review
+            }
+            throw e
+        }
+        // Aggregate timing only, with no person or job in the line.
+        Log.d(TAG, "uploadMs=${SystemClock.elapsedRealtime() - started} photos=${set.size}")
+        onMain {
+            photos.clear()
+            uploadKey = null
+            uploadState = UploadState.Checking
+        }
+
+        val checkStarted = SystemClock.elapsedRealtime()
+        val result = try {
+            client.awaitJob(jobId)
+        } catch (e: ApiException) {
+            // The photos are safely with the server, so a lost connection here is not a failed enrolment.
+            if (e.failure == ApiFailure.UNAUTHORIZED) throw e
+            JobResult(JobStatus.PENDING, emptyList())
+        }
+        Log.d(TAG, "checkMs=${SystemClock.elapsedRealtime() - checkStarted} status=${result.status}")
+        onMain {
+            uploadState = when (result.status) {
+                JobStatus.ACCEPTED -> UploadState.Accepted
+                JobStatus.REJECTED -> UploadState.Rejected(result.problems)
+                JobStatus.PENDING -> UploadState.StillChecking
+            }
+        }
     }
 
     /** Clears the photos. The consent stays on record, so returning to this person needs no new notice flow beyond the roster. */
@@ -261,7 +341,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     private fun onFailure(e: ApiException) {
         val sessionEnded = e.failure == ApiFailure.UNAUTHORIZED && screen != Screen.SignIn
         if (sessionEnded) signOut()
-        error = if (sessionEnded) "Your session ended. Sign in again." else messageFor(e.failure)
+        error = if (sessionEnded) "Your session ended. Sign in again." else e.code?.let(::messageForCode) ?: messageFor(e.failure)
     }
 
     private fun clearEnrolment() {
@@ -273,7 +353,13 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         poseSet = emptyList()
         capturePose = null
         retaking = false
+        uploadKey = null
+        uploadState = null
     }
 
     private suspend fun onMain(block: () -> Unit) = withContext(Dispatchers.Main) { block() }
+
+    private companion object {
+        const val TAG = "Enrolment"
+    }
 }

@@ -24,6 +24,10 @@ Devices: CPH2381 API 34 and OPD2203 API 36.
 
 Pass for step 4: `OK (1 test)` and 0 crash lines.
 
+## Whole flow, no camera
+
+With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (6 tests)`.
+
 ## Simulating server trouble
 
 Run `python tools/mock_server/mock_server.py`, then `adb reverse tcp:8081 tcp:8081` and `adb reverse tcp:8082 tcp:8082`. Port 8081 is a client-dedicated sample and 8082 a central sample. Sign in with `enrol.operator` and `mock-only-password`.

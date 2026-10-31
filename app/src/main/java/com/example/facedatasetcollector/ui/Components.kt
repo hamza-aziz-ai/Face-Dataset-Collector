@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,6 +69,8 @@ fun StaffPage(
     content: @Composable () -> Unit,
 ) {
     TabletScaledText {
+        // WHY: text with no colour of its own otherwise falls back to black, which is unreadable in the dark theme.
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onBackground) {
         BoxWithConstraints(
             modifier
                 .fillMaxSize()
@@ -89,6 +92,7 @@ fun StaffPage(
                     Arrangement.spacedBy(20.dp)
                 },
             ) { content() }
+        }
         }
     }
 }
