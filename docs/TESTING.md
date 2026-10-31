@@ -20,4 +20,8 @@ Devices: CPH2381 API 34 and OPD2203 API 36.
 2. Confirm 0 entries for the app in `adb logcat -b crash`.
 3. Confirm the app shows the preview and a quality hint.
 
+4. Run `CameraLifecycleTest` with `am instrument` after `adb install`, not `connectedDebugAndroidTest`, which uninstalls the app and loses the camera permission. Camera permission must already be granted, and `pm grant` is blocked on these OnePlus devices.
+
+Pass for step 4: `OK (1 test)` and 0 crash lines.
+
 Do not screenshot the camera preview, because it shows a real face.

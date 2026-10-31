@@ -4,7 +4,6 @@ import android.Manifest
 import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,12 +32,11 @@ import androidx.lifecycle.LifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import java.util.concurrent.Executors
 
 
-@androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun CameraPreview(modifier: Modifier = Modifier) {
@@ -45,7 +44,7 @@ fun CameraPreview(modifier: Modifier = Modifier) {
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
     // Remember our quality state
-    var quality by remember { mutableStateOf<QualityState>(QualityState.Good) }
+    var quality by remember { mutableStateOf<QualityState>(QualityState.NoFaceDetected) }
 
     // Request permission on first compose
     LaunchedEffect(Unit) {
@@ -64,12 +63,41 @@ fun CameraPreview(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize()) {
         val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
         // Configure fast, on-device face detection
-        val faceOptions = FaceDetectorOptions.Builder()
-            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
-            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
-            .build()
-        val faceDetector = FaceDetection.getClient(faceOptions)
+        val faceDetector = remember {
+            val faceOptions = FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+                .build()
+            FaceDetection.getClient(faceOptions)
+        }
+        // One thread, so frames are judged in order and never on the main thread
+        val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
+
+        // Set up Analysis
+        val analysisUseCase = remember {
+            val mainExecutor = ContextCompat.getMainExecutor(context)
+            ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+                .also { analysis ->
+                    analysis.setAnalyzer(
+                        analysisExecutor,
+                        FaceQualityAnalyzer(faceDetector) { result ->
+                            mainExecutor.execute { quality = result }
+                        }
+                    )
+                }
+        }
+
+        // Order matters: stop new frames, let the running frame finish, then close the detector on the same thread
+        DisposableEffect(Unit) {
+            onDispose {
+                analysisUseCase.clearAnalyzer()
+                analysisExecutor.execute { faceDetector.close() }
+                analysisExecutor.shutdown()
+            }
+        }
 
         AndroidView(
             modifier = modifier,
@@ -82,53 +110,6 @@ fun CameraPreview(modifier: Modifier = Modifier) {
                         val previewUseCase = Preview.Builder().build().also {
                             it.surfaceProvider = previewView.surfaceProvider
                         }
-
-                        // Set up Analysis
-                        val analysisUseCase = ImageAnalysis.Builder()
-                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                            .build()
-                            .also { analysis ->
-                                analysis.setAnalyzer(
-                                    ContextCompat.getMainExecutor(ctx)
-                                ) { imageProxy: ImageProxy ->
-                                    val mediaImage = imageProxy.image
-                                    if (mediaImage != null) {
-                                        val inputImage = InputImage.fromMediaImage(
-                                            mediaImage,
-                                            imageProxy.imageInfo.rotationDegrees
-                                        )
-
-                                        faceDetector.process(inputImage)
-                                            .addOnSuccessListener { faces ->
-                                                quality = when {
-                                                    faces.isEmpty() -> QualityState.NoFaceDetected
-                                                    faces.size > 1 -> QualityState.MultipleFaces
-                                                    else -> {
-                                                        // Exactly one face → fallback to brightness
-                                                        val buffer = imageProxy.planes[0].buffer
-                                                        val data = ByteArray(buffer.remaining()).also(buffer::get)
-                                                        val pixelSum = data.fold(0L) { sum, byte -> sum + (byte.toInt() and 0xFF) }
-                                                        val avg = pixelSum / data.size
-
-                                                        when {
-                                                            avg < 100 -> QualityState.TooDark
-                                                            avg > 220 -> QualityState.TooBright
-                                                            else -> QualityState.Good
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            .addOnFailureListener {
-                                                quality = QualityState.NoFaceDetected
-                                            }
-                                            .addOnCompleteListener {
-                                                imageProxy.close()
-                                            }
-                                    } else {
-                                        imageProxy.close()
-                                    }
-                                }
-                            }
 
                         try {
                             cameraProvider.unbindAll()
@@ -152,6 +133,7 @@ fun CameraPreview(modifier: Modifier = Modifier) {
             is QualityState.TooBright -> QualityWarning("Too bright — lower brightness")
             is QualityState.NoFaceDetected -> QualityWarning("No face detected – please position your face in view")
             is QualityState.MultipleFaces -> QualityWarning("Multiple faces detected – use only one face at a time")
+            is QualityState.DetectorFailed -> QualityWarning("Face check failed – please restart the app")
             else -> { /* nothing to show */ }
         }
     }
