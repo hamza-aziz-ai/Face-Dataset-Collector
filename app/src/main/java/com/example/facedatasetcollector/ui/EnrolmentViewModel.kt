@@ -2,6 +2,7 @@ package com.example.facedatasetcollector.ui
 
 import android.app.Application
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
@@ -14,6 +15,7 @@ import com.example.facedatasetcollector.data.EnrolmentApi
 import com.example.facedatasetcollector.data.InvalidServerAddress
 import com.example.facedatasetcollector.data.Notice
 import com.example.facedatasetcollector.data.Person
+import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.ServerStore
 import com.example.facedatasetcollector.data.StoredServer
 import com.example.facedatasetcollector.data.normalizeBaseUrl
@@ -29,8 +31,8 @@ sealed interface Screen {
     data object SelectPerson : Screen
     data object Consent : Screen
 
-    // Stand-in until the capture flow lands.
     data object Capture : Screen
+    data object Review : Screen
 }
 
 /** Owns navigation and the session. The session lives only here, so losing the process signs staff out (docs/DATA.md). */
@@ -62,6 +64,15 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     var wearsGlasses = false
         private set
 
+    /** JPEG bytes, in memory only (D-002). Never written to disk, and lost if the process dies. */
+    val photos = mutableStateMapOf<Pose, ByteArray>()
+    var poseSet by mutableStateOf<List<Pose>>(emptyList())
+        private set
+    var capturePose by mutableStateOf<Pose?>(null)
+        private set
+
+    private var retaking = false
+    private var backgroundedAt: Long? = null
     private var nextCursor: String? = null
     private var lastQuery = ""
     private var searchJob: Job? = null
@@ -151,7 +162,52 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         onMain {
             consentId = id
             wearsGlasses = glasses
-            screen = Screen.Capture
+            poseSet = Pose.setFor(glasses)
+            startCapture()
+        }
+    }
+
+    private fun startCapture() {
+        photos.clear()
+        retaking = false
+        capturePose = poseSet.firstOrNull()
+        screen = Screen.Capture
+    }
+
+    /** Ignores a stale photo: one that arrives after cancel or for a pose no longer being captured. */
+    fun onPhoto(pose: Pose, jpeg: ByteArray) {
+        if (screen != Screen.Capture || pose != capturePose) return
+        photos[pose] = jpeg
+        val next = if (retaking) null else poseSet.getOrNull(poseSet.indexOf(pose) + 1)
+        capturePose = next
+        if (next == null) {
+            retaking = false
+            screen = Screen.Review
+        }
+    }
+
+    fun retake(pose: Pose) {
+        retaking = true
+        capturePose = pose
+        screen = Screen.Capture
+    }
+
+    /** Clears the photos. The consent stays on record, so returning to this person needs no new notice flow beyond the roster. */
+    fun cancelCapture() {
+        finishEnrolment()
+    }
+
+    fun onBackgrounded(nowMs: Long) {
+        backgroundedAt = nowMs
+    }
+
+    /** Protects a device left unattended: the photos and the session go after [QualityPolicy.BACKGROUND_LIMIT_MS]. */
+    fun onForegrounded(nowMs: Long) {
+        val since = backgroundedAt ?: return
+        backgroundedAt = null
+        if (nowMs - since > QualityPolicy.BACKGROUND_LIMIT_MS && screen != Screen.SignIn && screen != Screen.Connect) {
+            signOut()
+            error = "Signed out after time away. Any photos were deleted."
         }
     }
 
@@ -213,6 +269,10 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         notice = null
         consentId = null
         wearsGlasses = false
+        photos.clear()
+        poseSet = emptyList()
+        capturePose = null
+        retaking = false
     }
 
     private suspend fun onMain(block: () -> Unit) = withContext(Dispatchers.Main) { block() }

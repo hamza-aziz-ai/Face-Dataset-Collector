@@ -1,6 +1,7 @@
 package com.example.facedatasetcollector
 
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,6 +16,16 @@ import com.example.facedatasetcollector.ui.theme.FaceDatasetCollectorTheme
 
 class MainActivity : ComponentActivity() {
     private val model: EnrolmentViewModel by viewModels()
+
+    override fun onStart() {
+        super.onStart()
+        model.onForegrounded(SystemClock.elapsedRealtime())
+    }
+
+    override fun onStop() {
+        super.onStop()
+        model.onBackgrounded(SystemClock.elapsedRealtime())
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

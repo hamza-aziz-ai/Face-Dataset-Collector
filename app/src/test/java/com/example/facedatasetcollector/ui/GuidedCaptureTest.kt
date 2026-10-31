@@ -100,6 +100,15 @@ class GuidedCaptureTest {
     }
 
     @Test
+    fun pupilDistanceAppliesOnlyToFrontPoses() {
+        val small = policy.MIN_PUPIL_PIXELS - 1
+        assertEquals("Move closer", fix(good(0).copy(pupilDistance = small)))
+        val turn = (policy.TURN_MIN + policy.TURN_MAX) / 2 * policy.YAW_SIGN
+        assertTrue(PoseGuide(Pose.LEFT_30).onFrame(good(0, yaw = turn).copy(pupilDistance = small)) is Guidance.Hold)
+        assertTrue(PoseGuide(Pose.FRONT).onFrame(good(0).copy(pupilDistance = null)) is Guidance.Hold)
+    }
+
+    @Test
     fun explainsEachQualityProblem() {
         val base = good(0)
         assertEquals("Place your face inside the oval", fix(base.copy(faceCount = 0)))

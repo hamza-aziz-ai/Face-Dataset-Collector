@@ -33,6 +33,9 @@ object QualityPolicy {
     const val MAX_FACE_WIDTH = 0.75f
     const val MAX_CENTRE_OFFSET = 0.15f
 
+    // Face detail in the kept photo. CCTV needs 28 px and asks the app to aim for 60.
+    const val MIN_PUPIL_PIXELS = 60f
+
     // Variance of Laplacian on a fixed-size sample, so the score does not change with distance.
     const val BLUR_SAMPLE_SIZE = 128
     const val MIN_BLUR_SCORE = 60.0
@@ -40,4 +43,11 @@ object QualityPolicy {
     // The kept 4:5 photo, from the reference set: the face fills about 45% of the width, with space above the hair.
     const val CROP_FACE_FRACTION = 0.45f
     const val CROP_TOP_MARGIN = 0.14f
+
+    // Server limit is 2 MB per photo. Tried in order until a photo fits.
+    const val MAX_PHOTO_BYTES = 2 * 1024 * 1024
+    val JPEG_QUALITIES = listOf(90, 80, 70)
+
+    // Leaving the app for longer than this clears photos and signs staff out.
+    const val BACKGROUND_LIMIT_MS = 2 * 60 * 1000L
 }

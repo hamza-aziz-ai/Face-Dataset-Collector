@@ -32,4 +32,4 @@ Set a failure with `POST /mock/scenario` and `{"scenario": "..."}`. Values: `nor
 
 Connect with `http://127.0.0.1:8081`, in debug builds only.
 
-Do not screenshot the camera preview, because it shows a real face.
+Do not screenshot the camera, because it shows a real face. Tell the owner before any run that opens the camera, because auto-capture fires on a real face in view. Check screen text with `uiautomator dump`.
