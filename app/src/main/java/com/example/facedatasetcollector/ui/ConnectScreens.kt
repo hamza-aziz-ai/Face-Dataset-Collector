@@ -162,7 +162,7 @@ fun SignInScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        TextButton(onClick = onChangeServer, modifier = Modifier.height(44.dp)) { Text("Use a different server") }
+        TextButton(onClick = onChangeServer, enabled = !busy, modifier = Modifier.height(44.dp)) { Text("Use a different server") }
     }
 }
 

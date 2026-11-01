@@ -365,5 +365,5 @@ private fun ConsentActions(
     PrimaryButton("Record consent and continue", busy, enabled = agreed && wearsGlasses != null) {
         if (wearsGlasses != null) onRecord(wearsGlasses)
     }
-    TextButton(onClick = onDeclined, modifier = Modifier.fillMaxWidth()) { Text("Person declined") }
+    TextButton(onClick = onDeclined, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Person declined") }
 }

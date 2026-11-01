@@ -155,6 +155,8 @@ class EnrolmentApi(
 
         var attempt = 1
         while (true) {
+            // Signed out while waiting: staff were told the photos are gone, so nothing more goes out.
+            if (token == null) throw ApiException(ApiFailure.UNAUTHORIZED)
             try {
                 return send(call).let { json -> parsed { json.getString("job_id") } }
             } catch (e: ApiException) {

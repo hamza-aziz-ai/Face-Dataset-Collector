@@ -10,7 +10,7 @@ Draft 2026-10-31 by Claude Opus 5.5, reviewed with Codex gpt-6.1-sol. It describ
 - Size: per-image and total byte limits are set in the quality policy file, once measured on both devices.
 - Location: memory only, held in a ViewModel. Never on disk, in the gallery, or in a backup.
 - Written by: the app only.
-- Lifetime: cleared on a durable 202, cancel, logout, and background timeout. A failed upload keeps them. Process death loses the batch, so staff retake.
+- Lifetime: cleared on a durable 202, cancel, logout, and background timeout. The timeout fires while the app is in the background, unless the device has frozen the process, in which case it is applied on return. A failed upload keeps them. Process death loses the batch, so staff retake.
 - Trade-off: no persistent file means no leftovers and no disk cleanup, but an upload cannot survive process death.
 
 ## Stored frame

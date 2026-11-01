@@ -247,3 +247,18 @@ Why: it keeps the data rule intact, and the numbers leave no trace once the scre
 Trade-off: exact values must be read off the screen, because `FLAG_SECURE` blocks screenshots.
 Also: the readout and the tally appear only when `isMock` is true, meaning a debug build on loopback, so a real server never shows them.
 Revisit if: tuning needs values the screen cannot show fast enough.
+
+## D-017: Stop work when an enrolment ends, and block decline during a consent call
+
+Date: 2026-11-01. Model: Claude Opus 5.5 (claude-opus-5-5). Found by Codex, by a separate review, and by the Codex PR bot.
+Context: a call started for one enrolment could finish after staff left it. A consent answer could open the camera for someone who had declined, a late upload failure could jump a signed-out device to an empty review, and a late photo could reach the next person's capture.
+Options:
+
+1. Cancel running work when an enrolment or session ends, and refuse decline and server change while a call is running.
+2. Tag every call with a generation number and compare it at each step.
+3. Let decline win, and withdraw the consent afterwards.
+
+Chosen: 1.
+Why: one cancel in `clearEnrolment` covers every path, and a coroutine cancelled during a blocking call stops at its next step. Option 3 needs `DELETE /consents`, which the app does not call yet.
+Trade-off: a blocking call still runs to its end, so `busy` stays set until then, and a decline waits for the consent answer. After that, staff cancel on the capture screen, and that consent stays on record.
+Revisit if: the app gains consent withdrawal.

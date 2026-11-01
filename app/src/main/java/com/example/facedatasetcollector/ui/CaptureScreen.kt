@@ -97,6 +97,8 @@ fun CaptureCamera(
     val currentPhoto by rememberUpdatedState(onPhoto)
     val currentFailure by rememberUpdatedState(onFailure)
     val currentReading by rememberUpdatedState(onReading)
+    // Main thread only. WHY: a photo encoded just as this screen closed must not reach the next person's capture.
+    val onScreen = remember { mutableStateOf(true) }
 
     // Configure fast, on-device face detection
     val faceDetector = remember {
@@ -114,7 +116,7 @@ fun CaptureCamera(
         CaptureAnalyzer(
             faceDetector,
             onGuidance = { guidance -> main.execute { currentGuidance(guidance) } },
-            onPhoto = { pose, bytes -> main.execute { currentPhoto(pose, bytes) } },
+            onPhoto = { pose, bytes -> main.execute { if (onScreen.value) currentPhoto(pose, bytes) } },
             onFailure = { main.execute { currentFailure() } },
             onReading = if (onReading == null) null else { frame -> main.execute { currentReading?.invoke(frame) } },
         )
@@ -138,6 +140,7 @@ fun CaptureCamera(
     // Order matters: stop new frames, let the running frame finish, then close the detector on the same thread
     DisposableEffect(Unit) {
         onDispose {
+            onScreen.value = false
             analyzer.target = null
             analysisUseCase.clearAnalyzer()
             analysisExecutor.execute { faceDetector.close() }
@@ -164,7 +167,8 @@ fun BoundCamera(selector: CameraSelector, analysis: ImageAnalysis, onFailure: ()
     DisposableEffect(Unit) {
         onDispose {
             onScreen.value = false
-            if (cameraProviderFuture.isDone) cameraProviderFuture.get().unbindAll()
+            // A provider that failed to start has nothing to unbind.
+            if (cameraProviderFuture.isDone) runCatching { cameraProviderFuture.get().unbindAll() }
         }
     }
 
@@ -174,14 +178,14 @@ fun BoundCamera(selector: CameraSelector, analysis: ImageAnalysis, onFailure: ()
             PreviewView(ctx).also { previewView ->
                 cameraProviderFuture.addListener({
                     if (!onScreen.value) return@addListener
-                    val cameraProvider = cameraProviderFuture.get()
-
-                    // Set up Preview
-                    val previewUseCase = Preview.Builder().build().also {
-                        it.surfaceProvider = previewView.surfaceProvider
-                    }
-
                     try {
+                        val cameraProvider = cameraProviderFuture.get()
+
+                        // Set up Preview
+                        val previewUseCase = Preview.Builder().build().also {
+                            it.surfaceProvider = previewView.surfaceProvider
+                        }
+
                         cameraProvider.unbindAll()
                         cameraProvider.bindToLifecycle(ctx as LifecycleOwner, selector, previewUseCase, analysis)
                     } catch (exc: Exception) {

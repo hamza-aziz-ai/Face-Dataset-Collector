@@ -29,6 +29,8 @@ import com.example.facedatasetcollector.data.normalizeBaseUrl
 import com.example.facedatasetcollector.data.parseSetupCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -107,6 +109,8 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     private var nextCursor: String? = null
     private var lastQuery = ""
     private var searchJob: Job? = null
+    private var runJob: Job? = null
+    private var timeoutJob: Job? = null
 
     init {
         api = server?.let { EnrolmentApi(it.baseUrl) }
@@ -169,6 +173,9 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         val client = api ?: return
         searchJob?.cancel()
         lastQuery = query
+        // The old cursor belongs to the old query, so paging waits for this answer.
+        nextCursor = null
+        hasMorePersons = false
         searchJob = viewModelScope.launch {
             try {
                 val page = withContext(Dispatchers.IO) { client.persons(query) }
@@ -185,8 +192,11 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     fun loadMorePersons() = run {
         val client = api ?: return@run
         val cursor = nextCursor ?: return@run
-        val page = client.persons(lastQuery, cursor)
+        val query = lastQuery
+        val page = client.persons(query, cursor)
         onMain {
+            // A search started meanwhile owns the list now.
+            if (query != lastQuery) return@onMain
             persons = persons + page.persons
             nextCursor = page.nextCursor
             hasMorePersons = page.nextCursor != null
@@ -208,6 +218,8 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** Nothing is recorded when a person declines. */
     fun personDeclined() {
+        // WHY: a consent already on its way cannot be recalled, so declining waits for its answer.
+        if (busy) return
         clearEnrolment()
         screen = Screen.SelectPerson
     }
@@ -243,7 +255,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         if (screen != Screen.Capture || pose != capturePose) return
         // Timing and size only, with no person in the line.
         val now = SystemClock.elapsedRealtime()
-        Log.d(TAG, "pose=${pose.wireName} poseMs=${now - poseStartedAt} photoBytes=${jpeg.size}")
+        if (isMock) Log.d(TAG, "pose=${pose.wireName} poseMs=${now - poseStartedAt} photoBytes=${jpeg.size}")
         poseStartedAt = now
         photos[pose] = jpeg
         uploadKey = null
@@ -319,19 +331,28 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         finishEnrolment()
     }
 
+    /** Protects a device left unattended: the photos and the session go after [QualityPolicy.BACKGROUND_LIMIT_MS], without waiting for staff to come back. */
     fun onBackgrounded(nowMs: Long) {
         backgroundedAt = nowMs
+        timeoutJob = viewModelScope.launch {
+            delay(QualityPolicy.BACKGROUND_LIMIT_MS)
+            expireSession()
+        }
     }
 
-    /** Protects a device left unattended: the photos and the session go after [QualityPolicy.BACKGROUND_LIMIT_MS]. */
+    /** WHY the elapsed check as well: a frozen process never runs the timer. */
     fun onForegrounded(nowMs: Long) {
+        timeoutJob?.cancel()
         val since = backgroundedAt ?: return
         backgroundedAt = null
+        if (nowMs - since > QualityPolicy.BACKGROUND_LIMIT_MS) expireSession()
+    }
+
+    private fun expireSession() {
         // WHY server != null: with no server set up there is no session to end, and signing out would strand setup on a blank sign-in screen.
-        if (nowMs - since > QualityPolicy.BACKGROUND_LIMIT_MS && screen != Screen.SignIn && server != null) {
-            signOut()
-            error = "Signed out after time away. Any photos were deleted."
-        }
+        if (screen == Screen.SignIn || server == null) return
+        signOut()
+        error = "Signed out after time away. Any photos were deleted."
     }
 
     /** Leaves the current enrolment and returns to a fresh roster. */
@@ -342,6 +363,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun signOut() {
         api?.signOut()
+        searchJob?.cancel()
         clearEnrolment()
         persons = emptyList()
         hasMorePersons = false
@@ -352,6 +374,8 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** Forgets this device's server, so that setup starts again. */
     fun resetServer() {
+        // WHY: a sign-in on its way would otherwise finish against a server that is gone.
+        if (busy) return
         signOut()
         api = null
         store.clear()
@@ -368,12 +392,14 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         if (busy) return
         busy = true
         error = null
-        viewModelScope.launch {
+        runJob = viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { block() }
             } catch (e: InvalidServerAddress) {
+                ensureActive()
                 error = e.message
             } catch (e: ApiException) {
+                ensureActive()
                 onFailure(e)
             } finally {
                 busy = false
@@ -387,7 +413,9 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         error = if (sessionEnded) "Your session ended. Sign in again." else e.code?.let(::messageForCode) ?: messageFor(e.failure)
     }
 
+    /** Also stops whatever is running: work started for this enrolment must not touch state once it has ended. */
     private fun clearEnrolment() {
+        runJob?.cancel()
         selectedPerson = null
         notice = null
         consentId = null

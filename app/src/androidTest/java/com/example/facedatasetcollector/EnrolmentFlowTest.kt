@@ -202,6 +202,32 @@ class EnrolmentFlowTest {
     }
 
     @Test
+    fun declineWhileConsentIsOnItsWay_isIgnored() {
+        val person = read { model.persons[0] }
+        onMain { model.selectPerson(person) }
+        awaitUntil { model.screen == Screen.Consent && !model.busy }
+        onMain {
+            model.recordConsent(false)
+            model.personDeclined()
+        }
+        awaitUntil { model.screen == Screen.Capture && !model.busy }
+        assertEquals(person, read { model.selectedPerson })
+    }
+
+    @Test
+    fun signOutDuringUpload_staysSignedOutWithNoPhotos() {
+        scenario("slow")
+        signInAndCapture(personIndex = 0, glasses = false)
+        onMain { model.upload() }
+        awaitUntil { model.uploadState == UploadState.Sending }
+        onMain { model.signOut() }
+        awaitUntil(seconds = 60) { !model.busy }
+        assertEquals(Screen.SignIn, read { model.screen })
+        assertTrue(read { model.photos.isEmpty() })
+        assertNull(read { model.uploadState })
+    }
+
+    @Test
     fun lostConnectionAfterAcceptance_isNotAFailedEnrolment() {
         signInAndCapture(personIndex = 0, glasses = false)
         scenario("poll_drop")
