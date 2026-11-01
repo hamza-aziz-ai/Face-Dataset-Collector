@@ -18,6 +18,8 @@ private val LightColorScheme = lightColorScheme(
     background = Ground,
     onBackground = Ink,
     surface = Surface,
+    // Dialogs use this slot. Unset, it falls back to Material's default lavender.
+    surfaceContainerHigh = Surface,
     onSurface = Ink,
     onSurfaceVariant = InkMuted,
     outline = LineStrong,
@@ -45,6 +47,7 @@ private val DarkColorScheme = darkColorScheme(
     background = Night,
     onBackground = NightText,
     surface = NightPanel,
+    surfaceContainerHigh = NightPanel,
     onSurface = NightText,
     onSurfaceVariant = NightMuted,
     outline = DarkOutline,

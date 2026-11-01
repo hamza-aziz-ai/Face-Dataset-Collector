@@ -2,7 +2,37 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-11-01, re-enrol (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-11-01, light theme and slow server (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- Light theme checked by screenshot on review, upload, accepted, and rejected: phone, and tablet in both orientations. The wide roster rows now match in height.
+- Dialogs were Material's default lavender in the light theme. Fixed once in the theme, through `surfaceContainerHigh`.
+- Mock `slow` scenario tested, and a new `timeout` scenario: the job commits and the answer comes after the app gives up. The retry reuses the key and finds the one job.
+- `EnrolmentFlowTest`: 2 of 2 runs `OK (12 tests)` on each device, 0 crash lines.
+
+In progress:
+- Nothing.
+
+Broken or risky:
+- The app's upload timeouts are still first guesses, and the mock runs on loopback. Real networks are not tested.
+- The cancel dialogs on capture and review take the same theme fix, but were not seen, because they need the camera flow.
+- CCTV confirmed `enrolment_open` and `reason_required` for the provisional 8c contract. The server is not built.
+- A new consent per re-enrolment is the cautious default, agreed with CCTV. The owner has not ruled on it yet.
+- Nothing compares a re-enrolled face with the old one. See `THREAT.md`.
+- Setup codes are not signed. They must be before the first outside client (D-014). Until then the owner hands out codes.
+- ML Kit telemetry stays, by owner decision (D-013). It reaches Google with device details and a per-install ID.
+
+Next:
+- Owner sign-off: notice text, including Google's ML Kit metrics (D-013), legal basis, named test person, new consent per re-enrolment.
+- Owner's real-face test against the mock, then threshold tuning. Tell the owner before anything opens the camera. Also tap through re-enrol by hand, and scan a QR code on the tablet.
+- Release build: signing, plus private CA if the server sits on a LAN.
+
+Do not touch:
+- `QualityPolicy.kt` values, until the real-face test gives measurements.
+
+Read first: `CONSTRAINTS.md`, `features/FEATURE-001-enrolment.md`, `TESTING.md`.
+
+## Earlier session: 2026-11-01, re-enrol (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - Re-enrol with a reason (D-012): a button on enrolled rows, a confirm dialog, then the normal notice, new consent, capture, review, and upload with `reason`. A rejected re-enrolment keeps the old enrolment.

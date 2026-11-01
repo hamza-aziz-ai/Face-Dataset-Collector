@@ -26,7 +26,7 @@ Pass for step 4: `OK (1 test)` and 0 crash lines.
 
 ## Whole flow, no camera
 
-With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (10 tests)`. Each test starts with `POST /mock/reset`. The test keeps an empty activity open, because these OnePlus devices freeze a process with nothing on screen after about 27 s, and the run then hangs with no failure.
+With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (12 tests)`, in about 100 s. Each test starts with `POST /mock/reset`. The test keeps an empty activity open, because these OnePlus devices freeze a process with nothing on screen after about 27 s, and the run then hangs with no failure.
 
 ## Setup QR code, camera on
 
@@ -40,7 +40,7 @@ A code with a different `client_id` must return to the connect screen with a mes
 
 Run `python tools/mock_server/mock_server.py`, then `adb reverse tcp:8081 tcp:8081` and `adb reverse tcp:8082 tcp:8082`. Port 8081 is a client-dedicated sample and 8082 a central sample. Sign in with `enrol.operator` and `mock-only-password`.
 
-Set a failure with `POST /mock/scenario` and `{"scenario": "..."}`. Values: `normal`, `reject`, `server_error`, `slow`, `drop`. `POST /mock/reset` restores the sample roster.
+Set a failure with `POST /mock/scenario` and `{"scenario": "..."}`. Values: `normal`, `reject`, `server_error`, `slow`, `drop`, `timeout`. `slow` waits 20 s before reading the upload. `timeout` commits the job, then answers after 35 s, past the app's 30 s read timeout, so the app retries with the same key and finds the one job. `POST /mock/reset` restores the sample roster.
 
 Connect with `http://127.0.0.1:8081`, in debug builds only.
 

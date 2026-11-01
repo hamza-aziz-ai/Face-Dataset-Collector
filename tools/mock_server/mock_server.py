@@ -35,9 +35,11 @@ MAX_PHOTO_BYTES = 2 * 1024 * 1024
 MAX_BODY_BYTES = 25 * 1024 * 1024
 TOKEN_SECONDS = 8 * 60 * 60
 CHECK_SECONDS = 2.0
-SCENARIOS = {"normal", "reject", "server_error", "slow", "drop"}
+SCENARIOS = {"normal", "reject", "server_error", "slow", "drop", "timeout"}
 REENROL_REASONS = {"appearance_changed", "poor_photos", "other"}
 SLOW_SECONDS = 20
+# Longer than the app's 30 s read timeout.
+TIMEOUT_SECONDS = 35
 
 
 def sample_client(client_id, client_name, destination, processor):
@@ -346,7 +348,14 @@ class Handler(BaseHTTPRequestHandler):
         person["enrolment_status"] = "pending"
         with self.state.lock:
             self.state.idempotency[key] = {"digest": digest, "job_id": job_id}
-        self.reply(202, {"job_id": job_id})
+        if self.state.scenario == "timeout":
+            # The job is committed and the answer is late, so the client gives up with the outcome unknown.
+            time.sleep(TIMEOUT_SECONDS)
+        try:
+            self.reply(202, {"job_id": job_id})
+        except OSError:
+            # The client already left, which is the point of the timeout scenario.
+            self.close_connection = True
 
     def job_status(self, job_id):
         self.session()

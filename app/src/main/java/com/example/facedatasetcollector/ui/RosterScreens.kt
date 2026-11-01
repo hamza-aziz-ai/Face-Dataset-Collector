@@ -114,7 +114,6 @@ fun ReEnrolDialog(person: Person, onContinue: (ReEnrolReason) -> Unit, onDismiss
     var reason by rememberSaveable { mutableStateOf<ReEnrolReason?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("Re-enrol ${person.name}?") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
