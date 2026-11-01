@@ -26,7 +26,15 @@ Pass for step 4: `OK (1 test)` and 0 crash lines.
 
 ## Whole flow, no camera
 
-With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (6 tests)`.
+With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (8 tests)`.
+
+## Setup QR code, camera on
+
+Opens the back camera. Tell the owner first. Show a code for `{"base_url":"http://127.0.0.1:8081","client_id":"mock-dedicated"}` on another screen, tap `Scan setup QR code`, and point the device at it. Pass: the app reaches sign-in showing the mock client, and `adb shell dumpsys media.camera` shows no active client on that screen.
+
+A code with a different `client_id` must return to the connect screen with a message and store nothing.
+
+`ScreenGalleryTest` with `-e screen connect` or `-e screen scan` checks these layouts with no camera.
 
 ## Simulating server trouble
 

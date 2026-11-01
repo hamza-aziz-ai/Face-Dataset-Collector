@@ -73,4 +73,7 @@ dependencies {
 
     // Enrolment API client
     implementation(libs.okhttp)
+
+    // Setup QR code decoding, on-device (D-011)
+    implementation(libs.zxing.core)
 }

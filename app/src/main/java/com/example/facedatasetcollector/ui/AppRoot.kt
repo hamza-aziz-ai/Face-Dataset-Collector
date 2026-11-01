@@ -11,12 +11,18 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
     val person = model.selectedPerson
     val notice = model.notice
     BackHandler(enabled = model.screen == Screen.Consent) { model.personDeclined() }
+    BackHandler(enabled = model.screen == Screen.ScanCode) { model.cancelScan() }
     // While photos are on their way, back does nothing. After that the flow is finished, so back goes to the roster.
     BackHandler(enabled = model.screen == Screen.Upload) {
         if (model.uploadState != UploadState.Sending) model.finishEnrolment()
     }
     when (model.screen) {
-        Screen.Connect -> ConnectScreen(model.busy, model.error, model::connect, modifier)
+        Screen.Connect -> ConnectScreen(model.busy, model.error, model::startScan, model::connect, modifier)
+        Screen.ScanCode -> {
+            // A bystander can be in view of the preview, even though no frame is kept.
+            SecureWindow()
+            QrScanScreen(model::connectWithCode, model::scanFailed, model::cancelScan, modifier)
+        }
         Screen.SignIn -> SignInScreen(
             clientName = server?.clientName.orEmpty(),
             host = model.serverHost.orEmpty(),

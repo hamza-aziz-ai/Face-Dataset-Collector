@@ -2,7 +2,32 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-11-01 (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-11-01, QR setup (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- QR setup with ZXing core 3.5.4 (D-011). Typed address stays as the fallback. A scanned code must name the client that answers, or nothing is stored.
+- The camera now unbinds when its screen leaves, for capture too. It used to stay open behind later screens.
+- Real scan on CPH2381 against the mock: matching code reached sign-in, wrong-client code was refused, no active camera client afterwards. `CameraLifecycleTest` and `EnrolmentFlowTest` pass on both devices.
+
+In progress:
+- Nothing.
+
+Broken or risky:
+- Setup codes are not signed, so a forged code can point a device at another HTTPS server. See `THREAT.md`.
+- Real scan not run on OPD2203, or in poor light, or at an angle. `ImageAnalysis` uses its default resolution.
+
+Next:
+- Re-enrol action with a reason (contract in `features/FEATURE-001-enrolment.md`).
+- Audit ML Kit telemetry, and disable it if possible.
+- Light theme and slow-server checks.
+- Owner's real-face test, then threshold tuning. Tell the owner before anything opens the camera.
+
+Do not touch:
+- `QualityPolicy.kt` values, until the real-face test gives measurements.
+
+Read first: `CONSTRAINTS.md`, `features/FEATURE-001-enrolment.md`, `TESTING.md`.
+
+## Earlier session: 2026-11-01 (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - PRs #1 to #15 merged into `main` with merge commits, 0 conflicts, after a local rehearsal. `main` matches #15 exactly. Tag `pre-merge-2026-11-01` marks the old `main`. Plan and evidence: `Face-Dataset-Collector-merge-plan/MERGE-PLAN.md`, beside the repo.

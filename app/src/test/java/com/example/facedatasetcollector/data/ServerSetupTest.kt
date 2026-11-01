@@ -44,6 +44,14 @@ class ServerSetupTest {
     }
 
     @Test
+    fun aCodeBindsTheClientAndATypedAddressDoesNot() {
+        val scanned = ServerSetup("https://client.example.com", "client-a")
+        scanned.requireClient("client-a")
+        assertThrows(InvalidServerAddress::class.java) { scanned.requireClient("client-b") }
+        ServerSetup("https://client.example.com", null).requireClient("client-b")
+    }
+
+    @Test
     fun refusesBadSetupCodes() {
         listOf(
             "plain text",
