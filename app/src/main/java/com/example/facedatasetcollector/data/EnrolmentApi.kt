@@ -139,6 +139,11 @@ class EnrolmentApi(
         return parsed { json.getString("consent_id") }
     }
 
+    /** The server deletes whatever this consent covers, as long as it holds any. */
+    fun withdrawConsent(consentId: String) {
+        send(authorized(request("/api/v1/consents/$consentId")).delete().build())
+    }
+
     /**
      * Uploads one set and retries only when the outcome is unknown or the server failed. Every retry reuses the same key, so a request that did land cannot create a second job.
      *

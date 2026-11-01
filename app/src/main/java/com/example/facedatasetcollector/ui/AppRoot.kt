@@ -39,7 +39,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
             hasMore = model.hasMorePersons,
             isMock = model.isMock,
             busy = model.busy,
-            error = model.error,
+            error = model.withdrawalError ?: model.error,
             onSearch = model::search,
             onLoadMore = model::loadMorePersons,
             onSelect = model::selectPerson,
@@ -61,6 +61,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                     showReadout = model.isMock,
                     onPhoto = model::onPhoto,
                     onCancel = model::cancelCapture,
+                    onWithdraw = model::withdrawConsent,
                     modifier = modifier,
                 )
             }
@@ -98,6 +99,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                 onRetake = model::retake,
                 onUpload = model::upload,
                 onCancel = model::cancelCapture,
+                onWithdraw = model::withdrawConsent,
                 modifier = modifier,
             )
         }

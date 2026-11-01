@@ -124,7 +124,7 @@ All limits are in `QualityPolicy.kt` and are not calibrated yet.
 
 ## F2: Review and leaving
 
-Staff see every photo and can retake one pose, which returns to F1 for that pose only. Nothing is sent until they upload. Cancel and the back key ask first, then clear the photos, and the consent stays on record. After more than `BACKGROUND_LIMIT_MS` away from the app, photos are cleared and staff are signed out. `FLAG_SECURE` blocks screenshots and the recents thumbnail on capture and review.
+Staff see every photo and can retake one pose, which returns to F1 for that pose only. Nothing is sent until they upload. Cancel and the back key ask first, then clear the photos, and the consent stays on record unless staff choose `Person withdrew consent`, which also calls `DELETE /consents`. After more than `BACKGROUND_LIMIT_MS` away from the app, photos are cleared and staff are signed out. `FLAG_SECURE` blocks screenshots and the recents thumbnail on capture and review.
 
 ## F2b: Upload and result
 

@@ -81,6 +81,10 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     var notice by mutableStateOf<Notice?>(null)
         private set
 
+    /** Kept apart from [error], because refreshing the roster clears that, and staff must see this. */
+    var withdrawalError by mutableStateOf<String?>(null)
+        private set
+
     /** The active enrolment. Consent stays valid across retakes, so a rejected set reuses it. */
     var consentId: String? = null
         private set
@@ -205,6 +209,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** @param reason set for a re-enrolment, which still shows the notice and records a new consent. */
     fun selectPerson(person: Person, reason: ReEnrolReason? = null) = run {
+        withdrawalError = null
         val client = api ?: return@run
         val expected = server ?: return@run
         val info = client.serverInfo()
@@ -334,6 +339,22 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     /** Clears the photos. The consent stays on record, so returning to this person needs no new notice flow beyond the roster. */
     fun cancelCapture() {
         finishEnrolment()
+    }
+
+    /** The person changed their mind. Photos go first, so a failed call cannot keep them. */
+    fun withdrawConsent() {
+        val client = api
+        val id = consentId
+        finishEnrolment()
+        if (client == null || id == null) return
+        run {
+            try {
+                client.withdrawConsent(id)
+            } catch (e: ApiException) {
+                if (e.failure == ApiFailure.UNAUTHORIZED) throw e
+                onMain { withdrawalError = "The photos were deleted, but the consent could not be withdrawn. Tell your administrator." }
+            }
+        }
     }
 
     /** Protects a device left unattended: the photos and the session go after [QualityPolicy.BACKGROUND_LIMIT_MS], without waiting for staff to come back. */

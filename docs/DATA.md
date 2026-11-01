@@ -29,6 +29,7 @@ Pose ranges, steady duration, minimum face size, blur and brightness thresholds,
 
 - Fields: subject, authenticated staff, time, notice version.
 - Written by: staff through the consent screen, sent with `POST /consents`. Stored by the server, which takes the staff identity from the session. See `features/FEATURE-001-enrolment.md`.
+- Withdrawn from the capture and review cancel dialogs, with `DELETE /consents` (D-018).
 - A re-enrolment records a new consent. A retake after rejection reuses the current one.
 - Camera permission is not consent.
 

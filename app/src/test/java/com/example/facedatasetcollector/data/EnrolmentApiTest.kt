@@ -131,6 +131,17 @@ class EnrolmentApiTest {
     }
 
     @Test
+    fun withdrawingConsentSendsAnAuthorizedDelete() {
+        signedIn()
+        respond(202, """{"deletion_id":"d1"}""")
+        api.withdrawConsent("c1")
+        val request = server.takeRequest()
+        assertEquals("DELETE", request.method)
+        assertEquals("/api/v1/consents/c1", request.url.encodedPath)
+        assertTrue(request.headers["Authorization"]!!.startsWith("Bearer "))
+    }
+
+    @Test
     fun consentNeverSendsStaffOrClient() {
         signedIn()
         respond(201, """{"consent_id":"c9"}""")

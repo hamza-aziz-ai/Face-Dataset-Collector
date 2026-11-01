@@ -100,6 +100,7 @@ Agreed with Codex on 2026-10-31. Login and consent ship before capture.
 - 2026-10-31: during a device check, a real face was in view of the phone and the app likely auto-captured it. Photos stayed in memory and were cleared on cancel. A file audit found no images on either device, and the mock logged no uploads.
 - 2026-10-31: roster and consent screens built.
 - 2026-10-31: connect and sign-in built and checked on the phone against the mock. QR setup not built yet.
+- 2026-11-01: consent withdrawal added to the cancel dialogs (D-018).
 - 2026-11-01: owner signed off the notice for the owner's own test only (D-015).
 - 2026-11-01: slow-server and late-answer runs pass on both devices, and the light theme is checked on the upload path.
 - 2026-11-01: ML Kit telemetry audited and kept (D-013). The notice must disclose Google's metrics before real enrollees.

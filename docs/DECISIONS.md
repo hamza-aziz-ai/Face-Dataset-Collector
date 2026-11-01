@@ -262,3 +262,18 @@ Chosen: 1.
 Why: one cancel in `clearEnrolment` covers every path, and a coroutine cancelled during a blocking call stops at its next step. Option 3 needs `DELETE /consents`, which the app does not call yet.
 Trade-off: a blocking call still runs to its end, so `busy` stays set until then, and a decline waits for the consent answer. After that, staff cancel on the capture screen, and that consent stays on record.
 Revisit if: the app gains consent withdrawal.
+
+## D-018: Withdraw consent from the cancel dialogs
+
+Date: 2026-11-01. Model: Claude Opus 5.5 (claude-opus-5-5). Owner chose to build it now.
+Context: the contract has `DELETE /api/v1/consents/{id}`, but a person who changed their mind after consent could only reach the contact in the notice.
+Options:
+
+1. A `Person withdrew consent` action in the capture and review cancel dialogs.
+2. A withdraw action on the roster for any enrolled person.
+3. Leave withdrawal to the contact in the notice.
+
+Chosen: 1.
+Why: it covers the moment a person changes their mind, using the consent the app still holds. Option 2 needs a consent ID the app does not keep, or a new server lookup.
+Trade-off: after an upload has been accepted, withdrawal still goes through the contact in the notice. Photos are cleared before the call, so a failed call keeps no photos, and staff are told to tell their administrator.
+Revisit if: staff need to withdraw for already enrolled people in the app. Then the contract needs a lookup by person.

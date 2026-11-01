@@ -10,6 +10,8 @@ import androidx.activity.ComponentActivity
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.facedatasetcollector.data.ApiException
+import com.example.facedatasetcollector.data.EnrolmentApi
 import com.example.facedatasetcollector.data.EnrolmentStatus
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.ReEnrolReason
@@ -20,6 +22,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -199,6 +202,24 @@ class EnrolmentFlowTest {
         assertTrue(read { model.photos.isEmpty() })
         assertEquals(Screen.SignIn, read { model.screen })
         assertFalse(read { model.error }.isNullOrEmpty())
+    }
+
+    @Test
+    fun withdrawingConsent_clearsPhotosAndReachesTheServer() {
+        signInAndCapture(personIndex = 0, glasses = false)
+        val person = read { model.selectedPerson }!!
+        val consent = read { model.consentId }!!
+        val set = read { model.photos.toMap() }
+        onMain { model.withdrawConsent() }
+        assertTrue(read { model.photos.isEmpty() })
+        assertEquals(Screen.SelectPerson, read { model.screen })
+        awaitUntil { !model.busy }
+        assertNull(read { model.withdrawalError })
+
+        // Only the server can prove it: a withdrawn consent must refuse an upload.
+        val check = EnrolmentApi(MOCK).apply { login("enrol.operator", "mock-only-password") }
+        val refused = assertThrows(ApiException::class.java) { check.upload(person.personId, consent, set) }
+        assertEquals("no_active_consent", refused.code)
     }
 
     @Test

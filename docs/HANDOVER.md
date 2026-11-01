@@ -20,7 +20,7 @@ Broken or risky:
 - Secrets: `gitleaks` 8.30.1 scanned all history once on 2026-11-01, with the owner's permission: 41 commits, 0 leaks. CI scans new commits only.
 - Codex hit its usage limit until 2026-11-04, so it never answered the `client_name`, `notice_url`, `selectPerson`, and `QrAnalyzer` findings.
 - `CameraLifecycleTest` has not run since `CaptureCamera` changed. Run it first in the real-face test.
-- The app has no consent withdrawal, so a person who changes their mind after consent uses the contact in the notice.
+- Consent can be withdrawn in the app only before upload (D-018). The old enrolment on a re-enrolment is unaffected, unconfirmed with CCTV.
 - Pre-ship gate: not ready to ship. Setup codes are not signed (D-014). ML Kit metrics reach Google (D-013).
 
 Next:

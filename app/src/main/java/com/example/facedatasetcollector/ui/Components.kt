@@ -24,6 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -130,6 +131,15 @@ fun PrimaryButton(text: String, busy: Boolean, enabled: Boolean = true, onClick:
         } else {
             Text(text, style = MaterialTheme.typography.labelLarge)
         }
+    }
+}
+
+/** Body of the cancel dialogs, which is also where a person's change of mind is recorded. */
+@Composable
+fun CancelDialogText(text: String, onWithdraw: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text)
+        TextButton(onClick = onWithdraw) { Text("Person withdrew consent") }
     }
 }
 
