@@ -13,8 +13,8 @@ In progress:
 - Nothing.
 
 Broken or risky:
-- `enrolment_open` and `reason_required` are my proposal, not yet confirmed by CCTV.
-- A new consent per re-enrolment is my choice, because the contract is silent. Owner or CCTV may rule otherwise.
+- CCTV confirmed `enrolment_open` and `reason_required` for the provisional 8c contract. The server is not built.
+- A new consent per re-enrolment is the cautious default, agreed with CCTV. The owner has not ruled on it yet.
 - Nothing compares the new face with the old one, so staff could replace someone's enrolment. See `THREAT.md`.
 - The equal row height on the wide roster was built after the last tablet install and has not been seen on the tablet. The test for it would need a tap on the tablet's install prompt.
 - Setup codes are not signed. See `THREAT.md`.

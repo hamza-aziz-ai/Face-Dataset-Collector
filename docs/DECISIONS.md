@@ -183,5 +183,5 @@ Chosen: 1.
 Why: new photos of a real person are a new capture, so `CONSTRAINTS.md` calls for informed consent each time, and the notice may have changed since. Option 2 also needs a stored consent ID, which the app does not keep. Option 3 repeats screens that already do the job.
 Trade-off: one more step for someone who already agreed once.
 Also: no reason is preselected, so the reason on record is one staff chose. A rejected re-enrolment says the current enrolment stays in use.
-Proposed to CCTV, not yet in the contract: 409 `{"error": "enrolment_open", "job_id": ...}` for the open job, and 422 `reason_required` for an enrolled person with no reason. The app shows a clear message for each. Until CCTV confirms, a different code falls back to the general message.
+Confirmed by the CCTV session on 2026-11-01 for the provisional 8c contract: 409 `{"error": "enrolment_open", "job_id": ...}` for the open job, and 422 `{"error": "reason_required"}` for an enrolled person with no reason. CCTV also keeps new consent per re-enrolment as its cautious default. That is its engineering call, not an owner ruling, and it is raising the point with the owner alongside the notice and legal basis sign-off.
 Revisit if: CCTV or the owner rules that existing consent covers a re-enrolment.
