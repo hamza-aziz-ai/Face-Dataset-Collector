@@ -1,0 +1,159 @@
+"""Checks the mock against the provisional contract. Run: python -m unittest discover -s tools/mock_server"""
+import http.client
+import json
+import threading
+import time
+import unittest
+import uuid
+
+import mock_server
+
+# Starts with the JPEG magic bytes and holds no image. No real photos are ever used in tests.
+FAKE_JPEG = b"\xff\xd8\xff\xe0synthetic-not-a-photo"
+BOUNDARY = "mockboundary"
+
+
+def multipart(person_id, consent_id, poses, data=FAKE_JPEG):
+    parts = []
+    for name, value in (("person_id", person_id), ("consent_id", consent_id)):
+        parts.append(f'--{BOUNDARY}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode())
+    for pose in poses:
+        head = f'--{BOUNDARY}\r\nContent-Disposition: form-data; name="{pose}"; filename="{pose}.jpg"\r\nContent-Type: image/jpeg\r\n\r\n'
+        parts.append(head.encode() + data + b"\r\n")
+    parts.append(f"--{BOUNDARY}--\r\n".encode())
+    return b"".join(parts)
+
+
+class MockServerTest(unittest.TestCase):
+    def setUp(self):
+        self.server = mock_server.make_server(mock_server.dedicated_client(), 0)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self.addCleanup(self.server.server_close)
+        self.addCleanup(self.server.shutdown)
+        self.state = self.server.RequestHandlerClass.state
+        self.port = self.server.server_port
+        mock_server.CHECK_SECONDS = 0
+
+    def call(self, method, path, body=None, token=None, headers=None):
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        self.addCleanup(connection.close)
+        sent = dict(headers or {})
+        if token:
+            sent["Authorization"] = f"Bearer {token}"
+        if isinstance(body, dict):
+            body = json.dumps(body).encode()
+        connection.request(method, path, body=body, headers=sent)
+        response = connection.getresponse()
+        return response.status, json.loads(response.read() or b"{}")
+
+    def login(self, username="enrol.operator"):
+        status, body = self.call("POST", "/api/v1/auth/login", {"username": username, "password": "mock-only-password"})
+        self.assertEqual(200, status)
+        return body["token"]
+
+    def consent(self, token, person_id="p-0412"):
+        status, body = self.call("POST", "/api/v1/consents", {
+            "person_id": person_id, "notice_version": "0.1-mock",
+            "captured_at": "2026-10-31T10:00:00Z", "method": "staff_attested_in_app",
+        }, token)
+        self.assertEqual(201, status)
+        return body["consent_id"]
+
+    def upload(self, token, consent_id, poses=mock_server.BASE_POSES, key=None, person_id="p-0412", data=FAKE_JPEG):
+        return self.call("POST", "/api/v1/enrolments", multipart(person_id, consent_id, poses, data), token, {
+            "Content-Type": f"multipart/form-data; boundary={BOUNDARY}",
+            "Idempotency-Key": key or str(uuid.uuid4()),
+        })
+
+    def test_server_info_identifies_the_client(self):
+        status, body = self.call("GET", "/api/v1/server-info")
+        self.assertEqual(200, status)
+        self.assertEqual("mock-dedicated", body["client_id"])
+        self.assertEqual("0.1-mock", body["notice_version"])
+
+    def test_bad_password_and_missing_token_are_refused(self):
+        status, _ = self.call("POST", "/api/v1/auth/login", {"username": "enrol.operator", "password": "wrong"})
+        self.assertEqual(401, status)
+        self.assertEqual(401, self.call("GET", "/api/v1/persons")[0])
+
+    def test_viewer_cannot_enrol(self):
+        token = self.login("viewer.user")
+        status, body = self.call("POST", "/api/v1/consents", {"person_id": "p-0412"}, token)
+        self.assertEqual((403, "role_cannot_enrol"), (status, body["error"]))
+
+    def test_roster_search_and_unknown_person(self):
+        token = self.login()
+        status, body = self.call("GET", "/api/v1/persons?query=0418", token=token)
+        self.assertEqual(200, status)
+        self.assertEqual(["p-0418"], [person["person_id"] for person in body["persons"]])
+        status, _ = self.call("POST", "/api/v1/consents", {"person_id": "other-client"}, token)
+        self.assertEqual(404, status)
+
+    def test_full_enrolment_is_accepted(self):
+        token = self.login()
+        status, body = self.upload(token, self.consent(token))
+        self.assertEqual(202, status)
+        status, body = self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)
+        self.assertEqual((200, "accepted"), (status, body["status"]))
+
+    def test_glasses_poses_are_all_or_none(self):
+        token = self.login()
+        consent_id = self.consent(token)
+        self.assertEqual(202, self.upload(token, consent_id, mock_server.BASE_POSES + mock_server.GLASSES_POSES)[0])
+        status, body = self.upload(token, consent_id, mock_server.BASE_POSES + mock_server.GLASSES_POSES[:2])
+        self.assertEqual((422, "invalid_pose_set"), (status, body["error"]))
+
+    def test_photo_limits(self):
+        token = self.login()
+        consent_id = self.consent(token)
+        self.assertEqual("not_jpeg", self.upload(token, consent_id, data=b"not a jpeg")[1]["error"])
+        oversized = FAKE_JPEG + b"x" * mock_server.MAX_PHOTO_BYTES
+        self.assertEqual(413, self.upload(token, consent_id, data=oversized)[0])
+
+    def test_upload_needs_active_consent_for_that_person(self):
+        token = self.login()
+        consent_id = self.consent(token)
+        self.assertEqual("no_active_consent", self.upload(token, consent_id, person_id="p-0431")[1]["error"])
+        self.assertEqual(202, self.call("DELETE", f"/api/v1/consents/{consent_id}", token=token)[0])
+        self.assertEqual("no_active_consent", self.upload(token, consent_id)[1]["error"])
+
+    def test_idempotency(self):
+        token = self.login()
+        consent_id = self.consent(token)
+        key = str(uuid.uuid4())
+        first = self.upload(token, consent_id, key=key)
+        self.assertEqual(first, self.upload(token, consent_id, key=key))
+        changed = self.upload(token, consent_id, key=key, data=FAKE_JPEG + b"changed")
+        self.assertEqual((409, "idempotency_key_reused"), (changed[0], changed[1]["error"]))
+
+    def test_rejected_job_reports_problems_and_keeps_consent_valid(self):
+        token = self.login()
+        consent_id = self.consent(token)
+        self.call("POST", "/mock/scenario", {"scenario": "reject"})
+        _, body = self.upload(token, consent_id)
+        status, body = self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)
+        self.assertEqual("rejected", body["status"])
+        self.assertTrue(body["problems"])
+        self.call("POST", "/mock/scenario", {"scenario": "normal"})
+        self.assertEqual(202, self.upload(token, consent_id)[0])
+
+    def test_photos_are_not_kept(self):
+        token = self.login()
+        self.upload(token, self.consent(token))
+        self.assertNotIn(FAKE_JPEG.decode("latin-1"), repr(self.state.jobs) + repr(self.state.idempotency))
+
+    def test_server_error_scenario(self):
+        token = self.login()
+        consent_id = self.consent(token)
+        self.call("POST", "/mock/scenario", {"scenario": "server_error"})
+        self.assertEqual(500, self.upload(token, consent_id)[0])
+
+    def test_job_is_pending_until_checked(self):
+        mock_server.CHECK_SECONDS = 30
+        token = self.login()
+        _, body = self.upload(token, self.consent(token))
+        self.assertEqual("pending", self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)[1]["status"])
+
+
+if __name__ == "__main__":
+    unittest.main()

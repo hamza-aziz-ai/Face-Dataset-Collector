@@ -16,6 +16,7 @@ There is one Gradle module, `:app`.
 | `ui/QualityState.kt` | The possible frame results |
 | `ui/theme/` | Colours and typography |
 | `tools/ci/` | Image allowlist and its check |
+| `tools/mock_server/` | Mock enrolment server for development, never deployed |
 
 ## Legend
 

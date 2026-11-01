@@ -24,7 +24,7 @@ Face images and consent records of real people, staff credentials, and session t
 | Network attacker | Reads or changes uploads | TLS only in release. Cleartext only in debug, only for loopback. | Planned |
 | Developer mistake | Real photos or secrets land in git or CI | CI image allowlist and review. No real photos in tests. It reduces accidents and does not prove absence. | Planned |
 | Compromised dependency | Exfiltrates frames | Pinned versions, wrapper checksum, few dependencies. Face detection stays on-device. | Partly done |
-| Mock server user | Real credentials or photos linger on a development computer | Fake credentials only, loopback bind, memory-only with expiry, no logging of bodies, credentials, tokens, or identifiers. | Planned |
+| Mock server user | Real credentials or photos linger on a development computer | Fake credentials only, loopback bind, photos discarded after checks, no logging of bodies, credentials, tokens, or identifiers. | Done in `tools/mock_server` |
 
 ## Known gaps
 
