@@ -17,7 +17,7 @@ Broken or risky:
 - A new consent per re-enrolment is the cautious default, agreed with CCTV. The owner has not ruled on it yet.
 - Nothing compares the new face with the old one, so staff could replace someone's enrolment. See `THREAT.md`.
 - The equal row height on the wide roster was built after the last tablet install and has not been seen on the tablet. The test for it would need a tap on the tablet's install prompt.
-- Setup codes are not signed. See `THREAT.md`.
+- Setup codes are not signed. They must be before the first outside client (D-014). Until then the owner hands out codes.
 - ML Kit telemetry stays, by owner decision (D-013). It reaches Google with device details and a per-install ID.
 
 Next:

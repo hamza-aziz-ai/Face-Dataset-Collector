@@ -200,3 +200,19 @@ Chosen: 1.
 Why: the queued data holds no image, landmark, angle, or face box, and option 2 could be read as breaching the terms. That reading is the model's and is not legal advice. Option 3 means a new dependency and new pose logic before the real-face test.
 Trade-off: device details and a per-install ID reach Google, so the notice must say so before real enrollees.
 Revisit if: a client requires zero traffic to Google, or legal advice says otherwise. A client's own network can block the host with no effect on the app, because detection runs on-device.
+
+## D-014: Sign setup codes before the first outside client
+
+Date: 2026-11-01. Model: Claude Opus 5.5 (claude-opus-5-5). Owner chose.
+Context: a setup code is plain text, so a forged code can point a device at another HTTPS server, which then receives the staff password and later photos. The `client_id` check does not stop this, because a forger controls both the code and the server.
+Options:
+
+1. Sign codes now.
+2. Sign codes before the first outside client.
+3. Never sign, and rely on staff reading the host at sign-in.
+
+Chosen: 2.
+Why: while the owner hands codes to internal staff, the risk is small. An outside client is where codes start to travel through other people's hands.
+Trade-off: internal setup relies on the host shown at sign-in until then.
+Must exist before the first outside client: a `signature` field agreed with CCTV, CCTV creating signed codes per client, the public key built into the app, a guarded signing key with a rotation plan, and a rule for the typed address, which carries no signature.
+Revisit if: internal codes start to pass through people other than the owner.

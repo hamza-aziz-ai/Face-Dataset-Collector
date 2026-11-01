@@ -37,7 +37,7 @@ Face images and consent records of real people, staff credentials, and session t
   - Not found: images, JPEG data, landmarks, face boxes, or head angles. Each event is at most 163 bytes, and the only non-integer value is the 0.1 minimum face size setting.
   - Limits: this read the queue, not network traffic. The format is private, so not every integer has a known meaning, and one small value could be a count of faces. Most events wait for an idle, unmetered moment. Earlier urgent ones were probably sent, because the urgent queue is empty and has a next-send time, and that is an inference.
   - The per-install ID with a timestamp shows when a device ran detection, though not who was in front of it. The notice must disclose these metrics before real enrollees.
-- A setup code is not signed. The `client_id` check catches a stale or mistaken code, but a forger controls both the code and the server, so it does not stop them. Staff seeing the host at sign-in is the only defence. Decide before real clients whether codes need a signature, which is a contract change with CCTV.
+- A setup code is not signed. The `client_id` check catches a stale or mistaken code, but a forger controls both the code and the server, so it does not stop them. Staff seeing the host at sign-in is the only defence for now. Codes must be signed before the first outside client (D-014), which is a contract change with CCTV.
 - Face detection establishes neither liveness nor identity continuity. One detected face does not mean the same consenting person throughout.
 - Clearing references to JPEG bytes in memory is not secure erasure. Bytes can remain in the heap until overwritten.
 - An unlocked or debug-enabled device exposes process memory to anyone with `adb` access.
