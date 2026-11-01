@@ -105,3 +105,18 @@ Why: no callback outlives `analyze`, so one `finally` closes the frame and shutt
 Trade-off: the analyzer thread is blocked during detection. `STRATEGY_KEEP_ONLY_LATEST` drops frames meanwhile, which is the wanted behavior.
 Also: brightness is now measured on the face box, not the whole frame, and a detector failure has its own `DetectorFailed` state.
 Revisit if: detection needs to run in parallel.
+
+## D-008: Bundle IBM Plex Sans and use one fixed light theme
+
+Date: 2026-10-31. Model: Claude Opus 5.5 (claude-opus-5-5). Owner approved the design and the font.
+Context: the app must look the same and keep readable contrast on every device.
+Options:
+
+1. Bundle IBM Plex Sans, fixed light theme.
+2. System font with dynamic color and dark mode.
+
+Chosen: 1.
+Why: dynamic color changes contrast per device, and the design was drawn in one palette.
+Trade-off: three font files add about 600 KB. Dark mode is not offered, except the capture screen, which is always dark.
+Source: `@ibm/plex-sans` 1.1.0 release from `github.com/IBM/plex`, OFL 1.1, licence shipped in `assets/licenses/`. Weights 400, 500, 600.
+Revisit if: staff ask for dark mode.
