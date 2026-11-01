@@ -62,7 +62,7 @@ flowchart TD
     D --> E["`adb install on test devices`"]:::outside
 ```
 
-CI is defined in `.github/workflows/ci.yml` but has never run, because GitHub refused the job over account billing. Deployment and release automation are deferred (D-006). There is no signing, no store release, and no production monitoring.
+CI runs from `.github/workflows/ci.yml` on every pull request and every push to `main`, except commits marked `[skip ci]`. Deployment and release automation are deferred (D-006). There is no signing, no store release, and no production monitoring.
 
 ## A3: Where data lives
 
