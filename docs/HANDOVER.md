@@ -2,7 +2,38 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-11-01, real-face test preparation (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-11-01, review findings (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- 21 Codex PR bot comments were found unread after merging. Codex, a separate review, and the bot found real defects, fixed in one PR with four commits.
+- Stale work: running calls stop when an enrolment or session ends (D-017). A late photo can no longer reach the next person. Decline and server change wait for a running call. The background timeout now fires while away. Back waits for checks to finish.
+- Trust boundaries: port range, `notice_url` must stay on the same server, `client_name` cleaned and capped, full address shown, client checked before each notice.
+- Upload retry sends identical bytes, so a manual retry recovers the job. Capture rejects a rocking head and a face past the frame edge.
+- Tools: image guard handles non-ASCII names, mock checks are atomic, old job polls no longer change status, mock logs hide record IDs.
+- CI runs `gitleaks` on new commits.
+
+In progress:
+- Nothing.
+
+Broken or risky:
+- Read Codex's PR comments before every merge. Green CI is not a review.
+- Older history was searched with `git log`, not scanned by `gitleaks`, because the local download was blocked.
+- Codex hit its usage limit until 2026-11-04, so it never answered the `client_name`, `notice_url`, `selectPerson`, and `QrAnalyzer` findings.
+- `CameraLifecycleTest` has not run since `CaptureCamera` changed. Run it first in the real-face test.
+- The app has no consent withdrawal, so a person who changes their mind after consent uses the contact in the notice.
+- Pre-ship gate: not ready to ship. Setup codes are not signed (D-014). ML Kit metrics reach Google (D-013).
+
+Next:
+- Owner's real-face test against the mock, signed off for the owner only (D-015), then threshold tuning. Tell the owner before anything opens the camera.
+- Staff sign-off: legal basis, final notice, withdrawal contact, retention.
+- Release build: signing, plus private CA if the server sits on a LAN.
+
+Do not touch:
+- `QualityPolicy.kt` values, until the real-face test gives measurements.
+
+Read first: `CONSTRAINTS.md`, `features/FEATURE-001-enrolment.md`, `TESTING.md`.
+
+## Earlier session: 2026-11-01, real-face test preparation (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - The capture screen shows live numbers against the mock, and logs only prompt counts, timings, and sizes (D-016). The test script is in `TESTING.md`.
