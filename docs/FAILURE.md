@@ -14,7 +14,7 @@ How the app fails, dependency by dependency. Limits marked unmeasured are first 
 | Not the same client | Sign-in stops on a full-screen warning before the password is sent | Unit test only |
 | Redirecting | Refused, so photos cannot move to another host | Unit test |
 | Wrong or empty JSON | A general error message | Unit test |
-| Offline after 202 | The photos are safe on the server, so the app shows `Still checking` | Not tested |
+| Offline after 202 | The photos are safe on the server, so the app shows `Still checking` | Mock `poll_drop` |
 
 ## Camera
 

@@ -35,7 +35,7 @@ MAX_PHOTO_BYTES = 2 * 1024 * 1024
 MAX_BODY_BYTES = 25 * 1024 * 1024
 TOKEN_SECONDS = 8 * 60 * 60
 CHECK_SECONDS = 2.0
-SCENARIOS = {"normal", "reject", "server_error", "slow", "drop", "timeout"}
+SCENARIOS = {"normal", "reject", "server_error", "slow", "drop", "timeout", "poll_drop"}
 REENROL_REASONS = {"appearance_changed", "poor_photos", "other"}
 SLOW_SECONDS = 20
 # Longer than the app's 30 s read timeout.
@@ -362,6 +362,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def job_status(self, job_id):
         self.session()
+        if self.state.scenario == "poll_drop":
+            # The job is safe and the network went away after the 202.
+            self.close_connection = True
+            self.connection.close()
+            return
         with self.state.lock:
             job = self.state.jobs.get(job_id)
         if job is None:

@@ -222,6 +222,14 @@ class MockServerTest(unittest.TestCase):
         self.assertEqual(first, self.upload(token, consent_id, key=key))
         self.assertEqual(1, len(self.state.jobs))
 
+    def test_poll_drop_keeps_the_job(self):
+        token = self.login()
+        _, body = self.upload(token, self.consent(token))
+        self.call("POST", "/mock/scenario", {"scenario": "poll_drop"})
+        with self.assertRaises((ConnectionError, http.client.HTTPException)):
+            self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)
+        self.assertIn(body["job_id"], self.state.jobs)
+
     def test_reset_restores_the_roster(self):
         token = self.login()
         self.upload(token, self.consent(token))
