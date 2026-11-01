@@ -216,3 +216,18 @@ Why: while the owner hands codes to internal staff, the risk is small. An outsid
 Trade-off: internal setup relies on the host shown at sign-in until then.
 Must exist before the first outside client: a `signature` field agreed with CCTV, CCTV creating signed codes per client, the public key built into the app, a guarded signing key with a rotation plan, and a rule for the typed address, which carries no signature.
 Revisit if: internal codes start to pass through people other than the owner.
+
+## D-015: Owner sign-off for the owner's own real-face test
+
+Date: 2026-11-01. Model: Claude Opus 5.5 (claude-opus-5-5). Owner chose. Meets the D-005 condition for this test only.
+Context: D-005 allows no live-face run until the owner signs off the notice text. Legal basis, staff use, and the final notice still need legal advice.
+Options:
+
+1. Sign off the owner's own test only.
+2. Also sign off internal staff.
+3. Change the wording first.
+
+Chosen: 1.
+Scope: test person is the owner, on the owner's own face. Legal basis is the owner's own consent. Destination is the mock on this laptop, which checks and discards photos. Re-enrolment records a new consent each time. Notice version `0.2-mock` adds this line: "Google's on-device face detection sends Google technical usage data from this device, such as device model, app version, and timings. It does not send your photos."
+Trade-off: no other real person may be captured under this sign-off, including bystanders in view.
+Revisit if: anyone else is to be enrolled. That needs a stated legal basis, a final notice, a withdrawal contact, and confirmed retention first.

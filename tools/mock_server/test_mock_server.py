@@ -54,7 +54,7 @@ class MockServerTest(unittest.TestCase):
 
     def consent(self, token, person_id="p-0412"):
         status, body = self.call("POST", "/api/v1/consents", {
-            "person_id": person_id, "notice_version": "0.1-mock",
+            "person_id": person_id, "notice_version": "0.2-mock",
             "captured_at": "2026-10-31T10:00:00Z", "method": "staff_attested_in_app",
         }, token)
         self.assertEqual(201, status)
@@ -70,7 +70,7 @@ class MockServerTest(unittest.TestCase):
         status, body = self.call("GET", "/api/v1/server-info")
         self.assertEqual(200, status)
         self.assertEqual("mock-dedicated", body["client_id"])
-        self.assertEqual("0.1-mock", body["notice_version"])
+        self.assertEqual("0.2-mock", body["notice_version"])
 
     def test_bad_password_and_missing_token_are_refused(self):
         status, _ = self.call("POST", "/api/v1/auth/login", {"username": "enrol.operator", "password": "wrong"})
@@ -106,6 +106,10 @@ class MockServerTest(unittest.TestCase):
         self.upload(token, self.consent(token))
         _, body = self.call("GET", "/api/v1/persons?query=0412", token=token)
         self.assertEqual("pending", body["persons"][0]["enrolment_status"])
+
+    def test_notice_discloses_google_metrics(self):
+        headings = [section["heading"] for section in self.call("GET", "/api/v1/notice")[1]["sections"]]
+        self.assertIn("Google", headings)
 
     def test_notice_names_a_processor_only_when_central(self):
         self.assertNotIn("processor", self.call("GET", "/api/v1/notice")[1])
