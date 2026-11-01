@@ -19,6 +19,7 @@ There is one Gradle module, `:app`.
 | `ui/FaceQuality.kt` | Pure logic: coordinates and face luma |
 | `ui/QualityPolicy.kt` | Every quality threshold and the policy version |
 | `ui/ReviewScreen.kt` | Review and retake |
+| `ui/UploadScreens.kt` | Upload progress, result, and rejection |
 | `ui/theme/` | Colours and typography |
 | `data/EnrolmentApi.kt` | HTTP calls, upload retry, job polling |
 | `data/ServerSetup.kt` | Validates the server address and setup code |
@@ -69,7 +70,7 @@ CI is defined in `.github/workflows/ci.yml` but has never run, because GitHub re
 | Server address and client | Private app preferences, excluded from backup | Connect step | Until reset |
 | Session token | Memory | Login | Until sign-out or process death |
 | Guidance | Compose state | Analyzer, through the main thread | Replaced on each frame |
-| Captured JPEGs | Memory, `EnrolmentViewModel.photos` | Analyzer, through the main thread | Until cancel, sign-out, or process death |
+| Captured JPEGs | Memory, `EnrolmentViewModel.photos` | Analyzer, through the main thread | Until 202, cancel, sign-out, or process death |
 | Timing log | Logcat | Analyzer | Device log buffer, aggregates only |
 
 The planned design for captured images, consent, and tokens is in `DATA.md`.
