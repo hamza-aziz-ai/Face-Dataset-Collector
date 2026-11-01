@@ -32,6 +32,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -46,6 +47,9 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     testImplementation(libs.junit)
+    testImplementation(libs.okhttp.mockwebserver)
+    // Android provides org.json at runtime; JVM unit tests need a real copy.
+    testImplementation(libs.org.json)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -65,4 +69,7 @@ dependencies {
 
     // ML Kit on-device face detection
     implementation(libs.face.detection)
+
+    // Enrolment API client
+    implementation(libs.okhttp)
 }

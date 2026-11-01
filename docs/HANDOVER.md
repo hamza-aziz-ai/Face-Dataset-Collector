@@ -25,7 +25,8 @@ Next:
 - Owner: notice text sign-off before any live-face run, named test person, legal basis, `CONSTRAINTS.md` review.
 - Owner: fix GitHub billing so CI can run.
 - Audit ML Kit telemetry traffic (`transport-backend-cct`), see `THREAT.md`.
-- PR for login, person selection, consent, and the local mock.
+- Build the screens in design order: connect, sign in, person, consent, capture, review, upload. Design: https://claude.ai/artifact/Lb5vSuHUeweB1KDiGdHGfD
+- Owner's real-face test comes last, then thresholds are tuned.
 
 Do not touch:
 - Nothing protected in code yet. See `CONSTRAINTS.md`.

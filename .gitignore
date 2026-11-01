@@ -157,3 +157,4 @@ replay_pid*
 /graphify-out/
 # Exception: the Gradle wrapper must be committed so a clean clone can build.
 !gradle/wrapper/gradle-wrapper.jar
+__pycache__/

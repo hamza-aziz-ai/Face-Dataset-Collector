@@ -5,6 +5,9 @@
     <!-- Camera permission -->
     <uses-permission android:name="android.permission.CAMERA"/>
 
+    <!-- Upload to the enrolment server -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <!-- Declare that we need at least one camera -->
     <uses-feature
         android:name="android.hardware.camera"

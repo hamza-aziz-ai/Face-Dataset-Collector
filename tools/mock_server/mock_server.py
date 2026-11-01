@@ -36,20 +36,23 @@ SCENARIOS = {"normal", "reject", "server_error", "slow", "drop"}
 SLOW_SECONDS = 20
 
 
-def sample_client(client_id, client_name, destination, responsible):
+def sample_client(client_id, client_name, destination, processor):
     return {
         "client_id": client_id,
         "client_name": client_name,
         "notice_version": "0.1-mock",
         "notice": {
             "version": "0.1-mock",
+            "effective_date": "2026-11-01",
+            "controller": client_name,
+            **({"processor": processor} if processor else {}),
+            "contact": {"name": "Sample Privacy Desk", "email": "privacy@example.com"},
             "sections": [
                 {"heading": "What we collect", "body": "5 face photos, or 10 if you wear glasses."},
                 {"heading": "Why", "body": f"To recognise you for attendance at {client_name}."},
                 {"heading": "Where they go", "body": destination},
                 {"heading": "How long", "body": "While you are enrolled. Deleted when you withdraw or leave, within [GRACE PERIOD]."},
-                {"heading": "Your choice", "body": "You can refuse. You can withdraw later through [CONTACT], and your photos and face data are then removed."},
-                {"heading": "Who is responsible", "body": responsible},
+                {"heading": "Your choice", "body": "You can refuse. You can withdraw later through the contact below, and your photos and face data are then removed."},
             ],
         },
         "users": {
@@ -58,9 +61,9 @@ def sample_client(client_id, client_name, destination, responsible):
             "viewer.user": {"password": "mock-only-password", "role": "viewer"},
         },
         "persons": [
-            {"person_id": "p-0412", "name": "Sample Person A", "employee_code": "EMP-0412", "department": "Stores", "enrolled": False},
-            {"person_id": "p-0418", "name": "Sample Person B", "employee_code": "EMP-0418", "department": "Dispatch", "enrolled": True},
-            {"person_id": "p-0431", "name": "Sample Person C", "employee_code": "EMP-0431", "department": "Admin", "enrolled": False},
+            {"person_id": "p-0412", "name": "Sample Person A", "employee_code": "EMP-0412", "department": "Stores", "enrolment_status": "none"},
+            {"person_id": "p-0418", "name": "Sample Person B", "employee_code": "EMP-0418", "department": "Dispatch", "enrolment_status": "enrolled"},
+            {"person_id": "p-0431", "name": "Sample Person C", "employee_code": "EMP-0431", "enrolment_status": "none"},
         ],
     }
 
@@ -69,7 +72,7 @@ def dedicated_client():
     return sample_client(
         "mock-dedicated", "Sample Dedicated Client",
         "Sample Dedicated Client's attendance server, run by Sample Dedicated Client.",
-        "Sample Dedicated Client is the Data Fiduciary.",
+        None,
     )
 
 
@@ -77,7 +80,7 @@ def central_client():
     return sample_client(
         "mock-central", "Sample Central Client",
         "A server run by [OPERATOR] on behalf of Sample Central Client.",
-        "Sample Central Client is the Data Fiduciary. [OPERATOR] is its Data Processor.",
+        "[OPERATOR]",
     )
 
 
@@ -248,12 +251,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def persons(self):
         self.session()
-        query = parse_qs(urlparse(self.path).query).get("query", [""])[0].casefold()
+        params = parse_qs(urlparse(self.path).query)
+        query = params.get("query", [""])[0].casefold()
+        limit = int(params.get("limit", ["50"])[0])
+        start = int(params.get("cursor", ["0"])[0])
         matches = [
             person for person in self.state.client["persons"]
             if query in person["name"].casefold() or query in person["employee_code"].casefold()
         ]
-        self.reply(200, {"persons": matches})
+        end = start + limit
+        self.reply(200, {"persons": matches[start:end], "next_cursor": str(end) if end < len(matches) else None})
 
     def create_consent(self):
         session = self.enrolling_session()
@@ -307,6 +314,7 @@ class Handler(BaseHTTPRequestHandler):
         # WHY only names survive this point: the photos themselves are never kept.
         poses = sorted(files)
         job_id = str(uuid.uuid4())
+        self.person(person_id)["enrolment_status"] = "pending"
         with self.state.lock:
             self.state.jobs[job_id] = {
                 "person_id": person_id, "poses": poses,
@@ -324,12 +332,13 @@ class Handler(BaseHTTPRequestHandler):
         if time.monotonic() < job["ready_at"]:
             return self.reply(200, {"status": "pending", "problems": []})
         if job["reject"]:
+            self.person(job["person_id"])["enrolment_status"] = "none"
             problems = [
                 {"pose": job["poses"][0], "problem": "face_too_small"},
                 {"pose": job["poses"][-1], "problem": "too_blurry"},
             ]
             return self.reply(200, {"status": "rejected", "problems": problems})
-        self.person(job["person_id"])["enrolled"] = True
+        self.person(job["person_id"])["enrolment_status"] = "enrolled"
         self.reply(200, {"status": "accepted", "problems": []})
 
     def handle_any(self):
