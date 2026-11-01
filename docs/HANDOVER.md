@@ -18,14 +18,14 @@ In progress:
 Broken or risky:
 - Read Codex's PR comments before every merge. Green CI is not a review.
 - Secrets: `gitleaks` 8.30.1 scanned all history once on 2026-11-01, with the owner's permission: 41 commits, 0 leaks. CI scans new commits only.
-- Codex hit its usage limit until 2026-11-04, so it never answered the `client_name`, `notice_url`, `selectPerson`, and `QrAnalyzer` findings.
+- Codex hit its usage limit until 2026-11-04, so it never saw PR #25, and its PR bot failed there. An independent review covered that diff. On or after 2026-11-04, comment `@codex review` on a new PR touching this code.
 - `CameraLifecycleTest` has not run since `CaptureCamera` changed. Run it first in the real-face test.
 - Consent can be withdrawn in the app only before upload (D-018). On a re-enrolment the old enrolment stays in service, and the app says so. Whether it should also end is a legal question for the owner.
 - Pre-ship gate: not ready to ship. Setup codes are not signed (D-014). ML Kit metrics reach Google (D-013).
 
 Next:
-- Owner's real-face test against the mock, signed off for the owner only (D-015), then threshold tuning. Tell the owner before anything opens the camera.
-- Staff sign-off: legal basis, final notice, withdrawal contact, retention.
+- Owner's real-face test against the mock, signed off for the owner only (D-015), then threshold tuning. Tell the owner before anything opens the camera. The tablet needs an install tap.
+- Staff sign-off: legal basis, final notice, withdrawal contact, retention, and whether a withdrawal during re-enrolment should also end the old enrolment.
 - Release build: signing, plus private CA if the server sits on a LAN.
 
 Do not touch:
