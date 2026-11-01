@@ -1,8 +1,8 @@
 # FLOW
 
-How execution travels through the app. Checked against commit `481cb7b` on `perf/ml-kit-background`, app version 1.0 (`versionCode` 1).
+How execution travels through the app. App version 1.0 (`versionCode` 1). F0 was checked against branch `feat/connect-sign-in`, and F1 to F3 against commit `481cb7b`.
 
-Today the app is one screen: a front camera preview with a quality warning. It does not capture, store, or upload anything. The planned enrolment flows are in `features/FEATURE-001-enrolment.md`.
+The app connects to a server and signs staff in, then shows a front camera preview with a quality warning. It does not capture, store, or upload anything yet. The planned enrolment flows are in `features/FEATURE-001-enrolment.md`.
 
 ## How to read the diagrams
 
@@ -16,6 +16,39 @@ Flowcharts read top to bottom. Colours are fixed:
 - Grey: a data store or outside service.
 
 Numbers in a diagram match the numbered trace below it.
+
+## F0: Connect and sign in
+
+```mermaid
+flowchart TD
+    classDef way fill:#dbeafe,stroke:#1d4ed8,color:#111827
+    classDef step fill:#dcfce7,stroke:#15803d,color:#111827
+    classDef choice fill:#fef3c7,stroke:#b45309,color:#111827
+    classDef seen fill:#ede9fe,stroke:#6d28d9,color:#111827
+    classDef bad fill:#fee2e2,stroke:#b91c1c,color:#111827
+    classDef outside fill:#f3f4f6,stroke:#4b5563,color:#111827
+    A["`**1** App opens`"]:::way --> B{"`**2** Server stored?`"}:::choice
+    B -->|No| C["`**3** Validate typed address`"]:::step
+    C --> D["`**4** server-info, then store client`"]:::outside
+    D --> E["`**5** Sign-in screen`"]:::seen
+    B -->|Yes| E
+    E --> F["`**6** server-info again`"]:::outside
+    F --> G{"`**7** Same client?`"}:::choice
+    G -->|No| H["`**8** This server has changed`"]:::bad
+    G -->|Yes| I["`**9** Login, token in memory`"]:::outside
+    I --> J["`**10** Signed in`"]:::seen
+```
+
+1. `MainActivity` creates `EnrolmentViewModel`.
+2. `ServerStore` holds the address and client, never a token.
+3. `normalizeBaseUrl` refuses anything but a plain HTTPS origin. Debug builds also accept loopback HTTP for the mock.
+4. The device binds to the client that answers.
+5. Shows `Uploading to:` with the client and host, and a `MOCK SERVER` chip on debug loopback.
+6. Runs before the password is sent, so a changed server never receives credentials.
+7. `isSameClient` compares `client_id`.
+8. A full-screen stop. The only way out is setting up again.
+9. A wrong password or unreachable server stays on this screen with a message from `messageFor`.
+10. Losing the process signs staff out. The old preview stands in until the roster screen lands.
 
 ## F1: App start and camera permission
 
@@ -32,7 +65,7 @@ flowchart TD
     E --> F["`**6** Live preview`"]:::seen
 ```
 
-1. `MainActivity.onCreate` sets the Compose content with `CameraPreview`.
+1. After sign-in, `AppRoot` shows `CameraPreview`.
 2. A `LaunchedEffect` requests `CAMERA` on first compose.
 3. `cameraPermissionState.status.isGranted` decides the branch.
 4. Denied: a static message. There is no retry button or link to Settings yet.

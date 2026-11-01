@@ -8,14 +8,18 @@ There is one Gradle module, `:app`.
 
 | File | Owns |
 |---|---|
-| `MainActivity.kt` | App entry and theme |
+| `MainActivity.kt` | App entry and system bars |
+| `ui/EnrolmentViewModel.kt` | Navigation and the session |
+| `ui/AppRoot.kt`, `ui/ConnectScreens.kt`, `ui/Components.kt` | Screens and shared controls |
+| `ui/SessionRules.kt` | Client check and staff-facing error messages |
+| `data/ServerStore.kt` | The server this device is bound to |
 | `ui/CameraPreview.kt` | Permission, camera binding, lifecycle, banner |
 | `ui/FaceQualityAnalyzer.kt` | Judging a frame on the background thread, closing it, timing log |
 | `ui/FaceQuality.kt` | Pure logic: coordinates, face luma, quality decision |
 | `ui/QualityPolicy.kt` | Every quality threshold and the policy version |
 | `ui/QualityState.kt` | The possible frame results |
 | `ui/theme/` | Colours and typography |
-| `data/EnrolmentApi.kt` | HTTP calls, upload retry, job polling. The UI does not use it yet |
+| `data/EnrolmentApi.kt` | HTTP calls, upload retry, job polling |
 | `data/ServerSetup.kt` | Validates the server address and setup code |
 | `data/Pose.kt` | The pose set and its contract names |
 | `tools/ci/` | Image allowlist and its check |
@@ -39,7 +43,7 @@ flowchart TD
     D -.->|Result posted| C
 ```
 
-The app is a single process. `EnrolmentApi` exists but no screen calls it yet, so the app makes no calls of its own today. The manifest declares `CAMERA` and `INTERNET`. Separately, `com.google.android.datatransport:transport-backend-cct`, which ML Kit brings in for telemetry, also uses the network, and what it sends has not been measured.
+The app is a single process. The app calls its enrolment server for `server-info` and login. The manifest declares `CAMERA` and `INTERNET`. Separately, `com.google.android.datatransport:transport-backend-cct`, which ML Kit brings in for telemetry, also uses the network, and what it sends has not been measured.
 
 ## A2: How a change reaches a device
 
@@ -61,6 +65,8 @@ CI is defined in `.github/workflows/ci.yml` but has never run, because GitHub re
 | Data | Where | Written by | Lifetime |
 |---|---|---|---|
 | Camera frames | Memory, one at a time | CameraX | Closed after judging |
+| Server address and client | Private app preferences, excluded from backup | Connect step | Until reset |
+| Session token | Memory | Login | Until sign-out or process death |
 | Quality result | Compose state | Analyzer, through the main thread | Replaced on each frame |
 | Timing log | Logcat | Analyzer | Device log buffer, aggregates only |
 

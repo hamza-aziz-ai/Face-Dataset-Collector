@@ -84,4 +84,5 @@ Agreed with Codex on 2026-10-31. Login and consent ship before capture.
 ## Log
 
 - 2026-10-31: plan agreed, contract received from CCTV.
+- 2026-10-31: connect and sign-in built and checked on the phone against the mock. QR setup not built yet.
 - 2026-10-31: storage design and full-retake rule received from CCTV. UI design drafted: https://claude.ai/artifact/Lb5vSuHUeweB1KDiGdHGfD

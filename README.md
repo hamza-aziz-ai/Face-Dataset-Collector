@@ -2,7 +2,7 @@
 
 Android app for enrolling a person's face for the CCTV Face Recognition Attendance System. It handles real people's faces, so it follows the Lane B process in [`docs/`](docs/).
 
-**Status:** not released and not sold. Today it is one screen with a live front camera preview and quality warnings. It does not capture, save, or upload anything yet. The enrolment flow is being built against a mock server.
+**Status:** not released and not sold. Staff can connect to a server and sign in, then see a live front camera preview with quality warnings. It does not capture, save, or upload anything yet. The enrolment flow is being built against a mock server.
 
 ## System Design
 
