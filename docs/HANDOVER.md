@@ -17,7 +17,7 @@ In progress:
 
 Broken or risky:
 - Read Codex's PR comments before every merge. Green CI is not a review.
-- Older history was searched with `git log`, not scanned by `gitleaks`, because the local download was blocked.
+- Secrets: `gitleaks` 8.30.1 scanned all history once on 2026-11-01, with the owner's permission: 41 commits, 0 leaks. CI scans new commits only.
 - Codex hit its usage limit until 2026-11-04, so it never answered the `client_name`, `notice_url`, `selectPerson`, and `QrAnalyzer` findings.
 - `CameraLifecycleTest` has not run since `CaptureCamera` changed. Run it first in the real-face test.
 - The app has no consent withdrawal, so a person who changes their mind after consent uses the contact in the notice.
