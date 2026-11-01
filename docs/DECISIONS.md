@@ -185,3 +185,18 @@ Trade-off: one more step for someone who already agreed once.
 Also: no reason is preselected, so the reason on record is one staff chose. A rejected re-enrolment says the current enrolment stays in use.
 Confirmed by the CCTV session on 2026-11-01 for the provisional 8c contract: 409 `{"error": "enrolment_open", "job_id": ...}` for the open job, and 422 `{"error": "reason_required"}` for an enrolled person with no reason. CCTV also keeps new consent per re-enrolment as its cautious default. That is its engineering call, not an owner ruling, and it is raising the point with the owner alongside the notice and legal basis sign-off.
 Revisit if: CCTV or the owner rules that existing consent covers a re-enrolment.
+
+## D-013: Keep ML Kit telemetry and disclose it
+
+Date: 2026-11-01. Model: Claude Opus 5.5 (claude-opus-5-5). Owner chose.
+Context: ML Kit brings `transport-backend-cct`, which sends usage metrics to Google. The audit read the local queue on both devices: 131 and 116 events, each at most 163 bytes, no JPEG. Details are in `THREAT.md`. Google documents no opt-out. Removing one manifest entry would stop uploads, but the Google APIs Terms of Service section 3a says "You will not interfere with this monitoring", and the ML Kit terms make the developer responsible for informing users about these metrics.
+Options:
+
+1. Keep ML Kit as is, and disclose the metrics in the notice.
+2. Remove the `CctBackendFactory` manifest entry, so nothing uploads.
+3. Replace ML Kit with a detector that has no telemetry.
+
+Chosen: 1.
+Why: the queued data holds no image, landmark, angle, or face box, and option 2 could be read as breaching the terms. That reading is the model's and is not legal advice. Option 3 means a new dependency and new pose logic before the real-face test.
+Trade-off: device details and a per-install ID reach Google, so the notice must say so before real enrollees.
+Revisit if: a client requires zero traffic to Google, or legal advice says otherwise. A client's own network can block the host with no effect on the app, because detection runs on-device.

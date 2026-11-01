@@ -47,7 +47,7 @@ flowchart TD
     D -.->|Result posted| C
 ```
 
-The app is a single process. The app calls its enrolment server for `server-info` and login. The manifest declares `CAMERA` and `INTERNET`. Separately, `com.google.android.datatransport:transport-backend-cct`, which ML Kit brings in for telemetry, also uses the network, and what it sends has not been measured.
+The app is a single process. The app calls its enrolment server for `server-info` and login. The manifest declares `CAMERA` and `INTERNET`. Separately, `com.google.android.datatransport:transport-backend-cct`, which ML Kit brings in for telemetry, also uses the network. Its contents were audited and it is kept (D-013, `THREAT.md`).
 
 ## A2: How a change reaches a device
 

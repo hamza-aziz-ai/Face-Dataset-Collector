@@ -18,10 +18,11 @@ Broken or risky:
 - Nothing compares the new face with the old one, so staff could replace someone's enrolment. See `THREAT.md`.
 - The equal row height on the wide roster was built after the last tablet install and has not been seen on the tablet. The test for it would need a tap on the tablet's install prompt.
 - Setup codes are not signed. See `THREAT.md`.
+- ML Kit telemetry stays, by owner decision (D-013). It reaches Google with device details and a per-install ID.
 
 Next:
-- Audit ML Kit telemetry, and disable it if possible.
-- Light theme and slow-server checks.
+- Light theme and slow-server checks, plus the wide roster row height on the tablet.
+- Owner sign-off: notice text, including Google's ML Kit metrics (D-013), legal basis, named test person, new consent per re-enrolment.
 - Owner's real-face test, then threshold tuning. Tell the owner before anything opens the camera.
 
 Do not touch:

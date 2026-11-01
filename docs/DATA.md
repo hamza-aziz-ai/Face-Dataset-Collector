@@ -40,6 +40,10 @@ Held in memory only. Cleared on logout and after the background timeout. Never l
 
 Aggregate technical timings only, with no subject or session identifiers. Per-person angles, landmarks, and quality scores are face-derived data and are not logged.
 
+## Telemetry to Google
+
+ML Kit metrics go to Google (D-013). Contents and limits are in `THREAT.md`. No image or landmark was found. The queue sits in `databases/com.google.android.datatransport.events`, excluded from backup like all app data.
+
 ## Mock server
 
 `tools/mock_server/mock_server.py` checks photos and discards them at once, so it keeps pose names, any re-enrol reason, and a body hash only. Consent rows and jobs are in memory and are lost on restart. Nothing is written to disk. Logs carry method, path, and status only.

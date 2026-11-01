@@ -32,7 +32,11 @@ Face images and consent records of real people, staff credentials, and session t
 
 ## Known gaps
 
-- ML Kit brings `transport-backend-cct`, Google telemetry that adds `INTERNET` and `ACCESS_NETWORK_STATE` to the merged manifest. It keeps a local queue, `databases/com.google.android.datatransport.events`, about 128 KB after a short run. What it sends has not been measured. Google documents detection as on-device, but this repo has not verified that no face-derived data leaves the device. Audit the traffic, and disable it if possible, before real enrollees.
+- ML Kit sends usage metrics to Google at `firebaselogging.googleapis.com`, through `transport-backend-cct`, and it is kept on purpose (D-013). Audited 2026-11-01 from the local queue, `databases/com.google.android.datatransport.events`, on both devices, after real capture runs:
+  - Found: device model, OS build, country, locale, carrier code, time zone, app package and version, ML Kit version, one per-install ID, event type, frame size and rotation, detector settings, and integer counts and timings.
+  - Not found: images, JPEG data, landmarks, face boxes, or head angles. Each event is at most 163 bytes, and the only non-integer value is the 0.1 minimum face size setting.
+  - Limits: this read the queue, not network traffic. The format is private, so not every integer has a known meaning, and one small value could be a count of faces. Most events wait for an idle, unmetered moment. Earlier urgent ones were probably sent, because the urgent queue is empty and has a next-send time, and that is an inference.
+  - The per-install ID with a timestamp shows when a device ran detection, though not who was in front of it. The notice must disclose these metrics before real enrollees.
 - A setup code is not signed. The `client_id` check catches a stale or mistaken code, but a forger controls both the code and the server, so it does not stop them. Staff seeing the host at sign-in is the only defence. Decide before real clients whether codes need a signature, which is a contract change with CCTV.
 - Face detection establishes neither liveness nor identity continuity. One detected face does not mean the same consenting person throughout.
 - Clearing references to JPEG bytes in memory is not secure erasure. Bytes can remain in the heap until overwritten.
