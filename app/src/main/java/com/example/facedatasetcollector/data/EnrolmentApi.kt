@@ -152,12 +152,13 @@ class EnrolmentApi(
         key: String = UUID.randomUUID().toString(),
         reason: ReEnrolReason? = null,
     ): String {
-        val parts = MultipartBody.Builder().setType(MultipartBody.FORM)
+        // WHY the key as boundary and a fixed pose order: a manual retry must send identical bytes, or the server sees a different body under the same key and refuses it.
+        val parts = MultipartBody.Builder(key).setType(MultipartBody.FORM)
             .addFormDataPart("person_id", personId)
             .addFormDataPart("consent_id", consentId)
         if (reason != null) parts.addFormDataPart("reason", reason.wireName)
-        photos.forEach { (pose, bytes) ->
-            parts.addFormDataPart(pose.wireName, "${pose.wireName}.jpg", bytes.toRequestBody(JPEG))
+        Pose.entries.forEach { pose ->
+            photos[pose]?.let { bytes -> parts.addFormDataPart(pose.wireName, "${pose.wireName}.jpg", bytes.toRequestBody(JPEG)) }
         }
         val call = authorized(request("/api/v1/enrolments")).header("Idempotency-Key", key).post(parts.build()).build()
 

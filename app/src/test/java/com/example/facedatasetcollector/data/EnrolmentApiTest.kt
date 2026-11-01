@@ -170,6 +170,16 @@ class EnrolmentApiTest {
     }
 
     @Test
+    fun aManualRetrySendsIdenticalBytes() {
+        signedIn()
+        respond(202, """{"job_id":"j1"}""")
+        respond(202, """{"job_id":"j1"}""")
+        api.upload("p1", "c1", photos, "key-1")
+        api.upload("p1", "c1", photos.entries.reversed().associate { it.key to it.value }, "key-1")
+        assertEquals(server.takeRequest().body!!.utf8(), server.takeRequest().body!!.utf8())
+    }
+
+    @Test
     fun uploadRetriesWithTheSameKeyAfterAnUnknownOutcome() {
         signedIn()
         dropConnection()
