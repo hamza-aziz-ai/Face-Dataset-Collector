@@ -28,6 +28,10 @@ Pass for step 4: `OK (1 test)` and 0 crash lines.
 
 With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (12 tests)`, in about 100 s. Each test starts with `POST /mock/reset`. The test keeps an empty activity open, because these OnePlus devices freeze a process with nothing on screen after about 27 s, and the run then hangs with no failure.
 
+## Re-enrol tap path, no camera
+
+With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `ReEnrolTapPathTest` with `am instrument`. It taps the real screens from connect to the notice, checks that `Continue` waits for a reason and that the notice shows the Google line, then declines, so capture never starts. Pass: `OK (1 test)`.
+
 ## Setup QR code, camera on
 
 Opens the back camera. Tell the owner first. Show a code for `{"base_url":"http://127.0.0.1:8081","client_id":"mock-dedicated"}` on another screen, tap `Scan setup QR code`, and point the device at it. Pass: the app reaches sign-in showing the mock client, and `adb shell dumpsys media.camera` shows no active client on that screen.
