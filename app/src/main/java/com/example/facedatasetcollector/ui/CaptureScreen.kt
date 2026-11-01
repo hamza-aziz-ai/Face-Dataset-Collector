@@ -53,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -89,11 +90,13 @@ fun CaptureCamera(
     onPhoto: (Pose, ByteArray) -> Unit,
     onFailure: () -> Unit,
     modifier: Modifier = Modifier,
+    onReading: ((FrameReading) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val currentGuidance by rememberUpdatedState(onGuidance)
     val currentPhoto by rememberUpdatedState(onPhoto)
     val currentFailure by rememberUpdatedState(onFailure)
+    val currentReading by rememberUpdatedState(onReading)
 
     // Configure fast, on-device face detection
     val faceDetector = remember {
@@ -113,6 +116,7 @@ fun CaptureCamera(
             onGuidance = { guidance -> main.execute { currentGuidance(guidance) } },
             onPhoto = { pose, bytes -> main.execute { currentPhoto(pose, bytes) } },
             onFailure = { main.execute { currentFailure() } },
+            onReading = if (onReading == null) null else { frame -> main.execute { currentReading?.invoke(frame) } },
         )
     }
 
@@ -295,6 +299,18 @@ private fun PosePrompt(pose: Pose, guidance: Guidance?, failed: Boolean) {
     }
 }
 
+/** Tuning aid. Sits on the camera panel, so `FLAG_SECURE` covers it. */
+@Composable
+fun ReadoutPanel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        color = NightText,
+        fontFamily = FontFamily.Monospace,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = modifier.background(Night.copy(alpha = 0.75f), RoundedCornerShape(8.dp)).padding(8.dp),
+    )
+}
+
 @Composable
 fun CancelButton(text: String = "Cancel and delete", onClick: () -> Unit) {
     Button(
@@ -311,10 +327,12 @@ fun CaptureScreen(
     pose: Pose,
     set: List<Pose>,
     uploadingTo: String,
+    showReadout: Boolean,
     onPhoto: (Pose, ByteArray) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var reading by remember { mutableStateOf<FrameReading?>(null) }
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
     var guidance by remember(pose) { mutableStateOf<Guidance?>(null) }
     var failed by remember { mutableStateOf(false) }
@@ -350,6 +368,7 @@ fun CaptureScreen(
                     onPhoto = onPhoto,
                     onFailure = { failed = true },
                     modifier = Modifier.fillMaxSize(),
+                    onReading = if (showReadout) ({ reading = it }) else null,
                 )
                 GuideOverlay(
                     cueFor(pose),
@@ -357,6 +376,7 @@ fun CaptureScreen(
                     progress = (guidance as? Guidance.Hold)?.progress ?: 0f,
                     modifier = Modifier.fillMaxSize(),
                 )
+                reading?.let { ReadoutPanel(readoutText(it), Modifier.align(Alignment.BottomStart).padding(8.dp)) }
             } else {
                 CameraPermissionNeeded(
                     "This does not replace the person's consent. Turn on camera access in Settings, then come back.",

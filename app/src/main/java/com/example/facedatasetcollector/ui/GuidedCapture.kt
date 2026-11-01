@@ -2,6 +2,7 @@ package com.example.facedatasetcollector.ui
 
 import com.example.facedatasetcollector.data.Pose
 import java.nio.ByteBuffer
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -30,6 +31,22 @@ sealed interface Guidance {
     /** Take this frame. Comes exactly once per pose. */
     data object TakePhoto : Guidance
 }
+
+/** The numbers behind a decision, for tuning against the mock. Shown on screen only and never logged, because per-person angles are face-derived (docs/DATA.md). */
+fun readoutText(frame: FrameReading): String = String.format(
+    Locale.US,
+    "policy v%d  faces %d\nyaw %.1f  pitch %.1f  roll %.1f\nwidth %.2f  centre %.2f\nluma %s  blur %s  pupils %s",
+    QualityPolicy.VERSION,
+    frame.faceCount,
+    frame.yaw * QualityPolicy.YAW_SIGN,
+    frame.pitch,
+    frame.roll,
+    frame.faceWidthFraction,
+    frame.faceCentreOffset,
+    frame.faceLuma?.toString() ?: "-",
+    frame.blurScore?.roundToInt()?.toString() ?: "-",
+    frame.pupilDistance?.roundToInt()?.toString() ?: "-",
+)
 
 fun promptFor(pose: Pose): String = when (pose) {
     Pose.FRONT, Pose.FRONT_GLASSES -> "Look straight at the camera"

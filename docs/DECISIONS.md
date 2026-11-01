@@ -231,3 +231,19 @@ Chosen: 1.
 Scope: test person is the owner, on the owner's own face. Legal basis is the owner's own consent. Destination is the mock on this laptop, which checks and discards photos. Re-enrolment records a new consent each time. Notice version `0.2-mock` adds this line: "Google's on-device face detection sends Google technical usage data from this device, such as device model, app version, and timings. It does not send your photos."
 Trade-off: no other real person may be captured under this sign-off, including bystanders in view.
 Revisit if: anyone else is to be enrolled. That needs a stated legal basis, a final notice, a withdrawal contact, and confirmed retention first.
+
+## D-016: Show tuning numbers on screen only, against the mock
+
+Date: 2026-11-01. Model: Claude Opus 5.5 (claude-opus-5-5). Owner approved the plan.
+Context: every threshold in `QualityPolicy.kt` is a first guess, and tuning needs the numbers behind each decision. `DATA.md` bans logging per-person angles, landmarks, and quality scores.
+Options:
+
+1. Show live numbers on the capture screen, and log only counts of which check failed.
+2. Log the numbers, and relax the `DATA.md` rule for the test.
+3. Tune from the prompts alone.
+
+Chosen: 1.
+Why: it keeps the data rule intact, and the numbers leave no trace once the screen closes. Prompt counts and timings still show which check holds a pose back.
+Trade-off: exact values must be read off the screen, because `FLAG_SECURE` blocks screenshots.
+Also: the readout and the tally appear only when `isMock` is true, meaning a debug build on loopback, so a real server never shows them.
+Revisit if: tuning needs values the screen cannot show fast enough.
