@@ -15,7 +15,8 @@ In progress:
 - Stacked PRs from the plan.
 
 Broken or risky:
-- `CONSTRAINTS.md` requires each off-device destination to be approved in `DECISIONS.md`. Add entries for the mock and for CCTV before upload work.
+- `CONSTRAINTS.md` requires each off-device destination to be approved in `DECISIONS.md`. D-004 covers the local mock only. The real CCTV server still needs its own entry.
+- Backup is off and verified on both devices: `ALLOW_BACKUP` absent from package flags. Device-transfer behavior itself was not exercised.
 - `THREAT.md` bars real images going to a real server until server-side deletion exists, so plan step 8 stays mock-only.
 
 Next:
