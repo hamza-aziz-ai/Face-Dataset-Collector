@@ -13,7 +13,8 @@ There is one Gradle module, `:app`.
 | `ui/AppRoot.kt`, `ui/ConnectScreens.kt`, `ui/RosterScreens.kt`, `ui/Components.kt` | Screens and shared controls |
 | `ui/SessionRules.kt` | Client check and staff-facing error messages |
 | `data/ServerStore.kt` | The server this device is bound to |
-| `ui/CaptureScreen.kt` | Camera binding and teardown, guide overlay, capture layouts |
+| `ui/CaptureScreen.kt` | Camera binding and teardown (`BoundCamera`), guide overlay, capture layouts |
+| `ui/QrScanScreen.kt` | Setup code camera, analyzer, and layouts |
 | `ui/CaptureAnalyzer.kt` | Judging a frame on the background thread, keeping the accepted frame, timing log |
 | `ui/GuidedCapture.kt` | Pure logic: pose checks, steady timer, blur score, crop |
 | `ui/FaceQuality.kt` | Pure logic: coordinates and face luma |
@@ -23,6 +24,7 @@ There is one Gradle module, `:app`.
 | `ui/theme/` | Colours and typography |
 | `data/EnrolmentApi.kt` | HTTP calls, upload retry, job polling |
 | `data/ServerSetup.kt` | Validates the server address and setup code |
+| `data/QrDecoder.kt` | Finds a QR code in a brightness plane, using ZXing |
 | `data/Pose.kt` | The pose set and its contract names |
 | `tools/ci/` | Image allowlist and its check |
 | `tools/mock_server/` | Mock enrolment server for development, never deployed |
@@ -66,7 +68,7 @@ CI is defined in `.github/workflows/ci.yml` but has never run, because GitHub re
 
 | Data | Where | Written by | Lifetime |
 |---|---|---|---|
-| Camera frames | Memory, one at a time | CameraX | Closed after judging |
+| Camera frames | Memory, one at a time | CameraX | Closed after judging, or after looking for a code |
 | Server address and client | Private app preferences, excluded from backup | Connect step | Until reset |
 | Session token | Memory | Login | Until sign-out or process death |
 | Guidance | Compose state | Analyzer, through the main thread | Replaced on each frame |
@@ -77,7 +79,7 @@ The planned design for captured images, consent, and tokens is in `DATA.md`.
 
 ## Trust boundaries
 
-- The camera is the only outside input today.
+- Camera frames and scanned setup codes are outside input. `parseSetupCode` and `normalizeBaseUrl` guard the code.
 - ML Kit is a pinned dependency running in-process, and it brings a Google telemetry library with network access. See the known gaps in `THREAT.md`.
 - Planned: the enrolment server becomes a second boundary. Only the local mock is approved (D-004).
 
@@ -85,6 +87,7 @@ The planned design for captured images, consent, and tokens is in `DATA.md`.
 
 - Frame close and detector failure handling: `CaptureAnalyzer.analyze`.
 - Teardown order: `DisposableEffect` in `CaptureCamera`.
+- Closing the camera when a screen leaves: `BoundCamera`.
 - Keep or reject a frame: `PoseGuide`, using `QualityPolicy`.
 - Backup exclusion: `AndroidManifest.xml` and the two files in `res/xml/`.
 

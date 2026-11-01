@@ -94,7 +94,6 @@ fun CaptureCamera(
     val currentGuidance by rememberUpdatedState(onGuidance)
     val currentPhoto by rememberUpdatedState(onPhoto)
     val currentFailure by rememberUpdatedState(onFailure)
-    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
     // Configure fast, on-device face detection
     val faceDetector = remember {
@@ -142,11 +141,35 @@ fun CaptureCamera(
         }
     }
 
+    BoundCamera(CameraSelector.DEFAULT_FRONT_CAMERA, analysisUseCase, currentFailure, modifier)
+}
+
+/**
+ * Shows the preview and feeds [analysis] from [selector] while on screen.
+ *
+ * WHY unbind on leaving: a camera stays open for as long as its lifecycle lives, so without this it would run behind later screens.
+ */
+@Composable
+fun BoundCamera(selector: CameraSelector, analysis: ImageAnalysis, onFailure: () -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val currentFailure by rememberUpdatedState(onFailure)
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+    // Main thread only. Stops a bind that would otherwise land after the screen has gone.
+    val onScreen = remember { mutableStateOf(true) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            onScreen.value = false
+            if (cameraProviderFuture.isDone) cameraProviderFuture.get().unbindAll()
+        }
+    }
+
     AndroidView(
         modifier = modifier,
         factory = { ctx ->
             PreviewView(ctx).also { previewView ->
                 cameraProviderFuture.addListener({
+                    if (!onScreen.value) return@addListener
                     val cameraProvider = cameraProviderFuture.get()
 
                     // Set up Preview
@@ -156,14 +179,9 @@ fun CaptureCamera(
 
                     try {
                         cameraProvider.unbindAll()
-                        cameraProvider.bindToLifecycle(
-                            ctx as LifecycleOwner,
-                            CameraSelector.DEFAULT_FRONT_CAMERA,
-                            previewUseCase,
-                            analysisUseCase
-                        )
+                        cameraProvider.bindToLifecycle(ctx as LifecycleOwner, selector, previewUseCase, analysis)
                     } catch (exc: Exception) {
-                        Log.e("CaptureCamera", "Binding failed", exc)
+                        Log.e("BoundCamera", "Binding failed", exc)
                         currentFailure()
                     }
                 }, ContextCompat.getMainExecutor(ctx))
@@ -278,12 +296,12 @@ private fun PosePrompt(pose: Pose, guidance: Guidance?, failed: Boolean) {
 }
 
 @Composable
-private fun CancelButton(onClick: () -> Unit) {
+fun CancelButton(text: String = "Cancel and delete", onClick: () -> Unit) {
     Button(
         onClick = onClick,
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(containerColor = NightControl, contentColor = NightText),
-    ) { Text("Cancel and delete", style = MaterialTheme.typography.labelMedium) }
+    ) { Text(text, style = MaterialTheme.typography.labelMedium) }
 }
 
 /** Always dark, whatever the device theme, so attention stays on the guide. */
@@ -340,7 +358,10 @@ fun CaptureScreen(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                CameraPermissionNeeded(Modifier.fillMaxSize())
+                CameraPermissionNeeded(
+                    "This does not replace the person's consent. Turn on camera access in Settings, then come back.",
+                    Modifier.fillMaxSize(),
+                )
             }
         }
     }
@@ -381,7 +402,7 @@ fun CaptureScreen(
 }
 
 @Composable
-private fun CameraPermissionNeeded(modifier: Modifier) {
+fun CameraPermissionNeeded(message: String, modifier: Modifier) {
     val context = LocalContext.current
     Column(
         modifier.padding(24.dp),
@@ -390,7 +411,7 @@ private fun CameraPermissionNeeded(modifier: Modifier) {
     ) {
         Text("Camera access is needed", color = NightText, style = MaterialTheme.typography.titleMedium)
         Text(
-            "This does not replace the person's consent. Turn on camera access in Settings, then come back.",
+            message,
             color = NightMuted,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,

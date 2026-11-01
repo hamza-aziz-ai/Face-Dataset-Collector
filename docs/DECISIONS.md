@@ -151,3 +151,20 @@ Chosen: 1.
 Why: it respects the choice staff already made on the device, with no new setting to build.
 Trade-off: every color must be checked in two themes. Dynamic color stays off, so contrast stays as designed.
 Revisit if: staff need to override the device setting.
+
+## D-011: Decode setup QR codes with ZXing core on the app's own camera
+
+Date: 2026-11-01. Model: Claude Opus 5.5 (claude-opus-5-5). Owner chose the library.
+Context: setup happens once by QR code with a typed fallback. Camera frames here can show faces, and the ML Kit telemetry audit is still open.
+Options:
+
+1. `com.google.zxing:core` 3.5.4 on a CameraX `ImageAnalysis` stream.
+2. `com.google.mlkit:barcode-scanning` 17.3.0, bundled.
+3. `com.google.android.gms:play-services-code-scanner` 16.1.0.
+
+Chosen: 1.
+Why: pure Java with no transitive dependencies and no network code, so frames meet nothing new that could send them anywhere, and the audit does not grow. It also runs on the JVM, so CI tests decoding with generated codes and no camera. Option 2 adds to the unaudited telemetry path. Option 3 needs Google Play services, downloads a module on first use, and cannot match the design.
+Dependency: `com.google.zxing:core` 3.5.4, Apache 2.0, maintained by the ZXing project, 610 KB jar. The project is in maintenance mode, last release November 2025.
+Trade-off: possibly weaker on angled or poorly lit codes than ML Kit, not measured. A QR frame stream is one more place a camera runs, so only the brightness plane is read, nothing is kept, and `FLAG_SECURE` is on.
+Also: a scan connects without a confirm step, and the sign-in screen shows the client and host before any password is typed. The camera now unbinds when its screen leaves, for capture too, because it otherwise stayed open behind later screens.
+Revisit if: scans fail in real use, or setup codes become signed.

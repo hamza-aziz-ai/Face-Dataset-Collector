@@ -13,6 +13,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.PoseProblem
+import com.example.facedatasetcollector.ui.ConnectScreen
+import com.example.facedatasetcollector.ui.QrScanLayout
 import com.example.facedatasetcollector.ui.RejectedScreen
 import com.example.facedatasetcollector.ui.ReviewScreen
 import com.example.facedatasetcollector.ui.UploadScreen
@@ -25,7 +27,7 @@ import java.io.ByteArrayOutputStream
 /**
  * Shows one screen with synthetic data for a person to look at, or for `adb screencap`. The real app blocks screenshots on review, and real photos must never be used to check a layout.
  *
- * Pick the screen with `-e screen review|sending|checking|accepted|rejected`.
+ * Pick the screen with `-e screen connect|scan|review|sending|checking|accepted|rejected`. `scan` shows an empty panel, so no camera opens.
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenGalleryTest {
@@ -52,6 +54,8 @@ class ScreenGalleryTest {
                     FaceDatasetCollectorTheme {
                         val modifier = Modifier.fillMaxSize()
                         when (screen) {
+                            "connect" -> ConnectScreen(false, null, {}, {}, modifier)
+                            "scan" -> QrScanLayout({}, modifier) {}
                             "review" -> ReviewScreen("Sample Person A", photos, Pose.entries, true, false, null, {}, {}, {}, modifier)
                             "sending" -> UploadScreen("Sample Person A", 10, "0.1-mock", UploadState.Sending, true, {}, modifier)
                             "checking" -> UploadScreen("Sample Person A", 10, "0.1-mock", UploadState.Checking, true, {}, modifier)

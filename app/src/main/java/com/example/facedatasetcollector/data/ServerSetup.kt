@@ -6,7 +6,14 @@ import java.net.URI
 import java.net.URISyntaxException
 
 /** What a setup QR code gives the app. [clientId] is null when the address was typed, and is then taken from server-info. */
-data class ServerSetup(val baseUrl: String, val clientId: String?)
+data class ServerSetup(val baseUrl: String, val clientId: String?) {
+    /** A setup code names its client, so a server answering as anyone else is refused before anything is stored. */
+    fun requireClient(serverClientId: String) {
+        if (clientId != null && clientId != serverClientId) {
+            throw InvalidServerAddress("This setup code does not match the server. Ask your administrator for a new code.")
+        }
+    }
+}
 
 class InvalidServerAddress(message: String) : Exception(message)
 

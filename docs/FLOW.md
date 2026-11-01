@@ -1,6 +1,6 @@
 # FLOW
 
-How execution travels through the app. App version 1.0 (`versionCode` 1). Checked against branch `feat/upload`.
+How execution travels through the app. App version 1.0 (`versionCode` 1). Checked against branch `feat/qr-setup`.
 
 The app connects to a server and signs staff in, then guides 5 or 10 poses, holds the photos in memory for review, and uploads them. The enrolment plan is in `features/FEATURE-001-enrolment.md`.
 
@@ -28,8 +28,8 @@ flowchart TD
     classDef bad fill:#fee2e2,stroke:#b91c1c,color:#111827
     classDef outside fill:#f3f4f6,stroke:#4b5563,color:#111827
     A["`**1** App opens`"]:::way --> B{"`**2** Server stored?`"}:::choice
-    B -->|No| C["`**3** Validate typed address`"]:::step
-    C --> D["`**4** server-info, then store client`"]:::outside
+    B -->|No| C["`**3** Scan a code, or type the address`"]:::step
+    C --> D["`**4** server-info, check code, store client`"]:::outside
     D --> E["`**5** Sign-in screen`"]:::seen
     B -->|Yes| E
     E --> F["`**6** server-info again`"]:::outside
@@ -41,8 +41,8 @@ flowchart TD
 
 1. `MainActivity` creates `EnrolmentViewModel`.
 2. `ServerStore` holds the address and client, never a token.
-3. `normalizeBaseUrl` refuses anything but a plain HTTPS origin. Debug builds also accept loopback HTTP for the mock.
-4. The device binds to the client that answers.
+3. `QrScanScreen` reads the back camera and keeps no frame. `parseSetupCode` needs `base_url` and `client_id`. `normalizeBaseUrl` refuses anything but a plain HTTPS origin, for both routes. Debug builds also accept loopback HTTP for the mock. A bad code, a camera failure, or cancel returns to the connect screen.
+4. The device binds to the client that answers. A scanned code must name that client, or `requireClient` refuses and nothing is stored. A typed address has no client to compare.
 5. Shows `Uploading to:` with the client and host, and a `MOCK SERVER` chip on debug loopback.
 6. Runs before the password is sent, so a changed server never receives credentials.
 7. `isSameClient` compares `client_id`.

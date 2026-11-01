@@ -98,4 +98,5 @@ Agreed with Codex on 2026-10-31. Login and consent ship before capture.
 - 2026-10-31: during a device check, a real face was in view of the phone and the app likely auto-captured it. Photos stayed in memory and were cleared on cancel. A file audit found no images on either device, and the mock logged no uploads.
 - 2026-10-31: roster and consent screens built.
 - 2026-10-31: connect and sign-in built and checked on the phone against the mock. QR setup not built yet.
+- 2026-11-01: QR setup built, with ZXing (D-011). Typed address stays as the fallback.
 - 2026-10-31: storage design and full-retake rule received from CCTV. UI design drafted: https://claude.ai/artifact/Lb5vSuHUeweB1KDiGdHGfD

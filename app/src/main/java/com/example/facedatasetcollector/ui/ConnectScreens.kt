@@ -1,5 +1,6 @@
 package com.example.facedatasetcollector.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +12,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,22 +40,38 @@ import androidx.compose.ui.unit.dp
 import com.example.facedatasetcollector.R
 
 @Composable
-fun ConnectScreen(busy: Boolean, error: String?, onConnect: (String) -> Unit, modifier: Modifier = Modifier) {
+fun ConnectScreen(busy: Boolean, error: String?, onScan: () -> Unit, onConnect: (String) -> Unit, modifier: Modifier = Modifier) {
     var address by rememberSaveable { mutableStateOf("") }
 
     StaffPage(modifier, centred = true) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Connect to your server", style = MaterialTheme.typography.displaySmall)
             Text(
-                "Your administrator gives you the server address. You only do this once on each device.",
+                "Your administrator gives you a setup code. You only do this once on each device.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Button(
+            onClick = onScan,
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth().height(188.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (busy) {
+                    CircularProgressIndicator(Modifier.size(56.dp), color = LocalContentColor.current, strokeWidth = 3.dp)
+                } else {
+                    Icon(painterResource(R.drawable.ic_qr_code), contentDescription = null, modifier = Modifier.size(56.dp))
+                }
+                Text("Scan setup QR code", style = MaterialTheme.typography.labelLarge)
+            }
+        }
         OutlinedTextField(
             value = address,
             onValueChange = { address = it },
-            label = { Text("Server address") },
+            label = { Text("Or type the server address") },
             placeholder = { Text("https://attendance.example.com") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go, autoCorrectEnabled = false),
@@ -55,7 +79,13 @@ fun ConnectScreen(busy: Boolean, error: String?, onConnect: (String) -> Unit, mo
             modifier = Modifier.fillMaxWidth(),
         )
         ErrorMessage(error)
-        PrimaryButton("Connect", busy, enabled = address.isNotBlank()) { onConnect(address) }
+        OutlinedButton(
+            onClick = { onConnect(address) },
+            enabled = !busy && address.isNotBlank(),
+            modifier = Modifier.fillMaxWidth().height(if (LocalConfiguration.current.smallestScreenWidthDp >= 600) 64.dp else 52.dp),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        ) { Text("Connect", style = MaterialTheme.typography.labelLarge) }
         Text(
             "HTTPS only. This can be your organisation's own server or a central one run on its behalf.",
             style = MaterialTheme.typography.bodyMedium,

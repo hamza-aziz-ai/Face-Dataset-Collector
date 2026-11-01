@@ -17,6 +17,10 @@ Draft 2026-10-31 by Claude Opus 5.5, reviewed with Codex gpt-6.1-sol. It describ
 
 The stored image is the `ImageAnalysis` frame that passed the checks, so the frame judged is the frame stored. If its resolution proves too low, use `ImageCapture` and validate that result again, because a capture request produces a different frame.
 
+## Setup code frames
+
+The scan screen reads the brightness plane of each back camera frame in memory, to find a QR code. A person in view is not detected, measured, or kept. Each buffer is dropped after that frame, the decoded text is parsed and not stored or logged, and only the resulting server address and client reach preferences. `FLAG_SECURE` covers the preview.
+
 ## Quality policy
 
 Pose ranges, steady duration, minimum face size, blur and brightness thresholds, and a policy version live in one reviewable Kotlin file. No remote configuration.

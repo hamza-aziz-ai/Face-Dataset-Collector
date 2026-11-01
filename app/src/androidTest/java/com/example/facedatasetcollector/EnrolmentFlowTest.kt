@@ -15,6 +15,7 @@ import com.example.facedatasetcollector.ui.UploadState
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -187,6 +188,31 @@ class EnrolmentFlowTest {
         assertTrue(read { model.photos.isEmpty() })
         assertEquals(Screen.SignIn, read { model.screen })
         assertFalse(read { model.error }.isNullOrEmpty())
+    }
+
+    @Test
+    fun setupCode_refusesAMismatchAndBindsTheNamedClient() {
+        onMain {
+            model.resetServer()
+            model.connectWithCode("""{"base_url":"$MOCK","client_id":"someone-else"}""")
+        }
+        awaitUntil { model.error != null && !model.busy }
+        assertEquals(Screen.Connect, read { model.screen })
+        assertNull(read { model.server })
+
+        onMain { model.connectWithCode("""{"base_url":"$MOCK","client_id":"mock-dedicated"}""") }
+        awaitUntil { model.screen == Screen.SignIn && !model.busy }
+        assertEquals("mock-dedicated", read { model.server }?.clientId)
+    }
+
+    @Test
+    fun longTimeAway_duringSetup_staysInSetup() {
+        onMain {
+            model.resetServer()
+            model.onBackgrounded(0)
+            model.onForegrounded(10 * 60 * 1000L)
+        }
+        assertEquals(Screen.Connect, read { model.screen })
     }
 
     private companion object {

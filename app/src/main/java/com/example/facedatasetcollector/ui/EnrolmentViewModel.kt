@@ -21,9 +21,11 @@ import com.example.facedatasetcollector.data.Notice
 import com.example.facedatasetcollector.data.Person
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.PoseProblem
+import com.example.facedatasetcollector.data.ServerSetup
 import com.example.facedatasetcollector.data.ServerStore
 import com.example.facedatasetcollector.data.StoredServer
 import com.example.facedatasetcollector.data.normalizeBaseUrl
+import com.example.facedatasetcollector.data.parseSetupCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -32,6 +34,7 @@ import java.util.UUID
 
 sealed interface Screen {
     data object Connect : Screen
+    data object ScanCode : Screen
     data object SignIn : Screen
     data object ClientChanged : Screen
     data object SelectPerson : Screen
@@ -103,12 +106,37 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         api = server?.let { EnrolmentApi(it.baseUrl) }
     }
 
-    /** First-time setup. Trusts the server's identity only after it answers. */
+    /** First-time setup from a typed address. */
     fun connect(address: String) = run {
-        val baseUrl = normalizeBaseUrl(address, allowLoopbackHttp = BuildConfig.DEBUG)
-        val client = EnrolmentApi(baseUrl)
+        connectTo(ServerSetup(normalizeBaseUrl(address, allowLoopbackHttp = BuildConfig.DEBUG), null))
+    }
+
+    fun startScan() {
+        error = null
+        screen = Screen.ScanCode
+    }
+
+    fun cancelScan() {
+        screen = Screen.Connect
+    }
+
+    fun scanFailed() {
+        screen = Screen.Connect
+        error = "The camera could not start. Type the server address instead."
+    }
+
+    /** First-time setup from a scanned code. Any failure lands on the connect screen, where the typed fallback is. */
+    fun connectWithCode(raw: String) {
+        screen = Screen.Connect
+        run { connectTo(parseSetupCode(raw, allowLoopbackHttp = BuildConfig.DEBUG)) }
+    }
+
+    /** Trusts the server's identity only after it answers. */
+    private suspend fun connectTo(setup: ServerSetup) {
+        val client = EnrolmentApi(setup.baseUrl)
         val info = client.serverInfo()
-        val connected = StoredServer(baseUrl, info.clientId, info.clientName)
+        setup.requireClient(info.clientId)
+        val connected = StoredServer(setup.baseUrl, info.clientId, info.clientName)
         store.save(connected)
         onMain {
             api = client
@@ -285,7 +313,8 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     fun onForegrounded(nowMs: Long) {
         val since = backgroundedAt ?: return
         backgroundedAt = null
-        if (nowMs - since > QualityPolicy.BACKGROUND_LIMIT_MS && screen != Screen.SignIn && screen != Screen.Connect) {
+        // WHY server != null: with no server set up there is no session to end, and signing out would strand setup on a blank sign-in screen.
+        if (nowMs - since > QualityPolicy.BACKGROUND_LIMIT_MS && screen != Screen.SignIn && server != null) {
             signOut()
             error = "Signed out after time away. Any photos were deleted."
         }

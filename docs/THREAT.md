@@ -9,6 +9,8 @@ Face images and consent records of real people, staff credentials, and session t
 ## Entry points
 
 - Front camera frames.
+- Back camera frames, on the setup code screen only.
+- Scanned setup codes.
 - Staff login form.
 - HTTP responses from the enrolment server.
 - Local mock server on the development computer, over `adb reverse`.
@@ -21,6 +23,7 @@ Face images and consent records of real people, staff credentials, and session t
 | Malicious staff member | Enrols someone without consent | Consent screen, audit of subject, staff, time, and notice version. Server authorizes person and job. | Planned, server side unspecified |
 | Someone holding an unlocked device | Views captured faces or uses a live session | Images stay in memory, FLAG_SECURE, images and token cleared after a background timeout. | Planned |
 | Other apps on the device | Read images from storage or backups | Nothing written to disk or gallery. Backup and device transfer excluded. | Backup done in this PR, rest planned |
+| Someone with a forged setup code | Points a device at their own HTTPS server, then receives the staff password and later photos | `normalizeBaseUrl` allows only a plain HTTPS origin. Sign-in shows the client and host before a password is typed. A later client change stops the app. | Known gap, see below |
 | Network attacker | Reads or changes uploads | TLS only in release. Cleartext only in debug, only for loopback. | Planned |
 | Developer mistake | Real photos or secrets land in git or CI | CI image allowlist and review. No real photos in tests. It reduces accidents and does not prove absence. | Planned |
 | Compromised dependency | Exfiltrates frames | Pinned versions, wrapper checksum, few dependencies. Face detection stays on-device. | Partly done |
@@ -29,6 +32,7 @@ Face images and consent records of real people, staff credentials, and session t
 ## Known gaps
 
 - ML Kit brings `transport-backend-cct`, Google telemetry that adds `INTERNET` and `ACCESS_NETWORK_STATE` to the merged manifest. It keeps a local queue, `databases/com.google.android.datatransport.events`, about 128 KB after a short run. What it sends has not been measured. Google documents detection as on-device, but this repo has not verified that no face-derived data leaves the device. Audit the traffic, and disable it if possible, before real enrollees.
+- A setup code is not signed. The `client_id` check catches a stale or mistaken code, but a forger controls both the code and the server, so it does not stop them. Staff seeing the host at sign-in is the only defence. Decide before real clients whether codes need a signature, which is a contract change with CCTV.
 - Face detection establishes neither liveness nor identity continuity. One detected face does not mean the same consenting person throughout.
 - Clearing references to JPEG bytes in memory is not secure erasure. Bytes can remain in the heap until overwritten.
 - An unlocked or debug-enabled device exposes process memory to anyone with `adb` access.
