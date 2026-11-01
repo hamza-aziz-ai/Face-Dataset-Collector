@@ -36,6 +36,29 @@ A code with a different `client_id` must return to the connect screen with a mes
 
 `ScreenGalleryTest` with `-e screen connect` or `-e screen scan` checks these layouts with no camera. `roster`, `reenrol`, and `rejected-reenrol` do the same for re-enrolment.
 
+## Real-face test script
+
+For the owner only, on the owner's own face (D-015). Nobody else may be in view. It opens the front camera and auto-capture fires, so the owner must start it knowingly. Do not screenshot it.
+
+Setup:
+
+1. Start the mock, then `adb reverse tcp:8081 tcp:8081`.
+2. Install the debug build. Check the camera permission is granted.
+3. Stand in even indoor light against a plain wall, with the device at eye level, at about arm's length.
+
+Run on the phone, then on the tablet:
+
+1. Connect, sign in with `enrol.operator`, and select Sample Person A.
+2. Read the notice and record consent.
+3. Follow the prompts through all 5 poses, or 10 with glasses. The panel on the camera shows live numbers.
+4. For each pose, note any prompt that will not clear and the numbers shown. For `Turn your head to the left`, check that turning your own left is what passes. If left and right are swapped, `YAW_SIGN` flips.
+5. Review the photos, retake one, and upload.
+6. Tap `Re-enrol` on an enrolled person, choose a reason, and repeat with one retake.
+
+Afterwards, read the numbers from logcat, with `adb logcat -d -s Enrolment:D CaptureAnalyzer:D`. `poseMs` and `photoBytes` come per pose, `frames` and `fixes` show what held each pose back, and `uploadMs` and `checkMs` come per upload. Then look at the kept photos on the review screen against the target photo in `features/FEATURE-001-enrolment.md`.
+
+Pass: all poses complete on both devices without fighting the prompts, left and right are correct, and pupil distance on front poses shows at least 60.
+
 ## Simulating server trouble
 
 Run `python tools/mock_server/mock_server.py`, then `adb reverse tcp:8081 tcp:8081` and `adb reverse tcp:8082 tcp:8082`. Port 8081 is a client-dedicated sample and 8082 a central sample. Sign in with `enrol.operator` and `mock-only-password`.

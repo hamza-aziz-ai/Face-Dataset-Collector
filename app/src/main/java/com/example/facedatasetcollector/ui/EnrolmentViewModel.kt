@@ -102,6 +102,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     /** One per attempt at this exact set. A retry after an unknown outcome must reuse it, and a changed set must not. */
     private var uploadKey: String? = null
     private var retaking = false
+    private var poseStartedAt = 0L
     private var backgroundedAt: Long? = null
     private var nextCursor: String? = null
     private var lastQuery = ""
@@ -230,6 +231,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         uploadState = null
         retaking = false
         capturePose = poseSet.firstOrNull()
+        poseStartedAt = SystemClock.elapsedRealtime()
         screen = Screen.Capture
     }
 
@@ -239,6 +241,10 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     /** Ignores a stale photo: one that arrives after cancel or for a pose no longer being captured. */
     fun onPhoto(pose: Pose, jpeg: ByteArray) {
         if (screen != Screen.Capture || pose != capturePose) return
+        // Timing and size only, with no person in the line.
+        val now = SystemClock.elapsedRealtime()
+        Log.d(TAG, "pose=${pose.wireName} poseMs=${now - poseStartedAt} photoBytes=${jpeg.size}")
+        poseStartedAt = now
         photos[pose] = jpeg
         uploadKey = null
         val next = if (retaking) null else poseSet.getOrNull(poseSet.indexOf(pose) + 1)
@@ -252,6 +258,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     fun retake(pose: Pose) {
         retaking = true
         capturePose = pose
+        poseStartedAt = SystemClock.elapsedRealtime()
         screen = Screen.Capture
     }
 

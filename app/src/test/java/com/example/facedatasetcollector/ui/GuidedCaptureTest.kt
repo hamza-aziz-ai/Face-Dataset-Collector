@@ -183,4 +183,14 @@ class GuidedCaptureTest {
         assertEquals(1080, crop.bottom - crop.top)
         assertEquals(864, crop.right - crop.left)
     }
+
+    @Test
+    fun readoutShowsEveryNumberAndMarksWhatIsMissing() {
+        val text = readoutText(FrameReading(0, 1, yaw = 12.34f, pitch = -2f, roll = 1f, faceLuma = 130, blurScore = 88.4, faceWidthFraction = 0.42f, faceCentreOffset = 0.03f))
+        assertTrue(text, text.contains("faces 1"))
+        assertTrue(text, text.contains("yaw 12.3"))
+        assertTrue(text, text.contains("pitch -2.0"))
+        assertTrue(text, text.contains("width 0.42"))
+        assertTrue(text, text.contains("luma 130  blur 88  pupils -"))
+    }
 }

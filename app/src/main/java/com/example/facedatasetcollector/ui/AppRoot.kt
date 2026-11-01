@@ -58,6 +58,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                     pose = pose,
                     set = model.poseSet,
                     uploadingTo = "${server?.clientName.orEmpty()} (${model.serverHost.orEmpty()})",
+                    showReadout = model.isMock,
                     onPhoto = model::onPhoto,
                     onCancel = model::cancelCapture,
                     modifier = modifier,

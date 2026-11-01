@@ -203,6 +203,8 @@ class Handler(BaseHTTPRequestHandler):
         """Simulates real-world server trouble. Returns True when the connection was dropped on purpose."""
         scenario = self.state.scenario
         if scenario == "server_error":
+            # A real 500 comes after the upload arrives. Refusing with it unread can also stall a wireless adb tunnel.
+            self.read_body()
             raise Reject(500, "simulated_server_error")
         if scenario == "slow":
             time.sleep(SLOW_SECONDS)

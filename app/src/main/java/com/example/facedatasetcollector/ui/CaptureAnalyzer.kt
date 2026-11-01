@@ -30,6 +30,8 @@ class CaptureAnalyzer(
     private val onGuidance: (Guidance) -> Unit,
     private val onPhoto: (Pose, ByteArray) -> Unit,
     private val onFailure: () -> Unit,
+    /** Set only for tuning against the mock. Also turns on the per-pose tally. */
+    private val onReading: ((FrameReading) -> Unit)? = null,
 ) : ImageAnalysis.Analyzer {
 
     /** The pose being captured. Null means do not capture: frames are then dropped, so no callback can arrive after cancel. */
@@ -43,6 +45,8 @@ class CaptureAnalyzer(
     private var frames = 0
     private var totalNanos = 0L
     private var maxNanos = 0L
+    private val fixes = HashMap<String, Int>()
+    private var poseFrames = 0
 
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
@@ -60,7 +64,10 @@ class CaptureAnalyzer(
                 guidePose = pose
             }
             val reading = reading(faces, imageProxy, rotation)
-            when (val guidance = guide?.onFrame(reading) ?: return) {
+            onReading?.invoke(reading)
+            val guidance = guide?.onFrame(reading) ?: return
+            if (onReading != null) tally(pose, guidance)
+            when (guidance) {
                 Guidance.TakePhoto -> keep(pose, faces.single(), imageProxy, rotation)
                 else -> onGuidance(guidance)
             }
@@ -138,6 +145,17 @@ class CaptureAnalyzer(
             if (kept !== upright) kept.recycle()
             if (upright !== raw) upright.recycle()
             raw.recycle()
+        }
+    }
+
+    /** Counts which checks held a pose back. Logs fixed prompt texts and counts only, so no measurement of the person leaves the screen. */
+    private fun tally(pose: Pose, guidance: Guidance) {
+        poseFrames++
+        if (guidance is Guidance.Fix) fixes[guidance.text] = (fixes[guidance.text] ?: 0) + 1
+        if (guidance == Guidance.TakePhoto) {
+            Log.d(TAG, "pose=${pose.wireName} frames=$poseFrames fixes=$fixes")
+            poseFrames = 0
+            fixes.clear()
         }
     }
 
