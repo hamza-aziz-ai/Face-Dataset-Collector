@@ -21,6 +21,7 @@ Face images and consent records of real people, staff credentials, and session t
 |---|---|---|---|
 | Person being enrolled | Holds up a photo or swaps with someone else | Staff must supervise the whole session. The app has no liveness check. | Known gap |
 | Malicious staff member | Enrols someone without consent | Consent screen, audit of subject, staff, time, and notice version. Server authorizes person and job. | Planned, server side unspecified |
+| Malicious staff member, re-enrolling | Replaces a person's enrolment with someone else's face, so attendance is marked falsely | Explicit action, a reason, the notice, and new consent. The old enrolment stays until the new job is accepted. Nothing compares the new face with the old one. | Known gap, server audit unspecified |
 | Someone holding an unlocked device | Views captured faces or uses a live session | Images stay in memory, FLAG_SECURE, images and token cleared after a background timeout. | Planned |
 | Other apps on the device | Read images from storage or backups | Nothing written to disk or gallery. Backup and device transfer excluded. | Backup done in this PR, rest planned |
 | Someone with a forged setup code | Points a device at their own HTTPS server, then receives the staff password and later photos | `normalizeBaseUrl` allows only a plain HTTPS origin. Sign-in shows the client and host before a password is typed. A later client change stops the app. | Known gap, see below |

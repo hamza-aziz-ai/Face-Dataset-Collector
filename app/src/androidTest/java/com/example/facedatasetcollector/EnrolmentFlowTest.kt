@@ -6,9 +6,13 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.facedatasetcollector.data.EnrolmentStatus
 import com.example.facedatasetcollector.data.Pose
+import com.example.facedatasetcollector.data.ReEnrolReason
 import com.example.facedatasetcollector.ui.EnrolmentViewModel
 import com.example.facedatasetcollector.ui.Screen
 import com.example.facedatasetcollector.ui.UploadState
@@ -34,6 +38,9 @@ class EnrolmentFlowTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private lateinit var model: EnrolmentViewModel
 
+    // WHY: OnePlus devices freeze a process with nothing on screen after about 27 s, which hangs the run with no failure. The activity stays empty, so the camera still never opens.
+    private lateinit var keepAwake: ActivityScenario<ComponentActivity>
+
     private fun onMain(block: () -> Unit) = instrumentation.runOnMainSync(block)
 
     private fun <T> read(block: () -> T): T {
@@ -52,14 +59,16 @@ class EnrolmentFlowTest {
         throw AssertionError("Timed out. Screen=${read { model.screen }} error=${read { model.error }}")
     }
 
-    private fun scenario(name: String) {
-        val connection = URL("$MOCK/mock/scenario").openConnection() as HttpURLConnection
+    private fun post(path: String, body: String) {
+        val connection = URL("$MOCK$path").openConnection() as HttpURLConnection
         connection.requestMethod = "POST"
         connection.doOutput = true
-        connection.outputStream.use { it.write("""{"scenario":"$name"}""".toByteArray()) }
+        connection.outputStream.use { it.write(body.toByteArray()) }
         assertEquals(200, connection.responseCode)
         connection.disconnect()
     }
+
+    private fun scenario(name: String) = post("/mock/scenario", """{"scenario":"$name"}""")
 
     /** A plain gradient. Not an image of anything, and never a real photo. */
     private fun syntheticJpeg(seed: Int): ByteArray {
@@ -92,7 +101,8 @@ class EnrolmentFlowTest {
 
     @Before
     fun signIn() {
-        scenario("normal")
+        keepAwake = ActivityScenario.launch(ComponentActivity::class.java)
+        post("/mock/reset", "{}")
         onMain {
             model = EnrolmentViewModel(instrumentation.targetContext.applicationContext as Application)
             model.resetServer()
@@ -109,6 +119,7 @@ class EnrolmentFlowTest {
     fun tidy() {
         scenario("normal")
         onMain { model.resetServer() }
+        keepAwake.close()
     }
 
     @Test
@@ -188,6 +199,39 @@ class EnrolmentFlowTest {
         assertTrue(read { model.photos.isEmpty() })
         assertEquals(Screen.SignIn, read { model.screen })
         assertFalse(read { model.error }.isNullOrEmpty())
+    }
+
+    @Test
+    fun reEnrolment_keepsItsReasonAcrossARejectionAndClearsAfterwards() {
+        scenario("reject")
+        val person = read { model.persons[1] }
+        assertEquals(EnrolmentStatus.ENROLLED, person.status)
+        onMain { model.selectPerson(person, ReEnrolReason.POOR_PHOTOS) }
+        awaitUntil { model.screen == Screen.Consent && !model.busy }
+        onMain { model.recordConsent(false) }
+        awaitUntil { model.screen == Screen.Capture && !model.busy }
+        takePhotos()
+        onMain { model.upload() }
+        awaitUntil { model.uploadState is UploadState.Rejected && !model.busy }
+
+        // The mock refuses an enrolled person with no reason, so this passes only if the reason survived the retake.
+        scenario("normal")
+        onMain { model.retakeAll() }
+        awaitUntil { model.screen == Screen.Capture }
+        takePhotos()
+        onMain { model.upload() }
+        awaitUntil { model.uploadState == UploadState.Accepted }
+        onMain { model.finishEnrolment() }
+        assertNull(read { model.reEnrolReason })
+    }
+
+    @Test
+    fun enrolledPersonWithNoReason_isRefusedAndKeepsPhotos() {
+        signInAndCapture(personIndex = 1, glasses = false)
+        onMain { model.upload() }
+        awaitUntil { model.screen == Screen.Review && !model.busy }
+        assertEquals("This person is already enrolled. Cancel and use Re-enrol on the roster.", read { model.error })
+        assertEquals(5, read { model.photos.size })
     }
 
     @Test

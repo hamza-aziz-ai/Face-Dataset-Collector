@@ -13,9 +13,10 @@ FAKE_JPEG = b"\xff\xd8\xff\xe0synthetic-not-a-photo"
 BOUNDARY = "mockboundary"
 
 
-def multipart(person_id, consent_id, poses, data=FAKE_JPEG):
+def multipart(person_id, consent_id, poses, data=FAKE_JPEG, reason=None):
     parts = []
-    for name, value in (("person_id", person_id), ("consent_id", consent_id)):
+    fields = [("person_id", person_id), ("consent_id", consent_id)] + ([("reason", reason)] if reason else [])
+    for name, value in fields:
         parts.append(f'--{BOUNDARY}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode())
     for pose in poses:
         head = f'--{BOUNDARY}\r\nContent-Disposition: form-data; name="{pose}"; filename="{pose}.jpg"\r\nContent-Type: image/jpeg\r\n\r\n'
@@ -59,8 +60,8 @@ class MockServerTest(unittest.TestCase):
         self.assertEqual(201, status)
         return body["consent_id"]
 
-    def upload(self, token, consent_id, poses=mock_server.BASE_POSES, key=None, person_id="p-0412", data=FAKE_JPEG):
-        return self.call("POST", "/api/v1/enrolments", multipart(person_id, consent_id, poses, data), token, {
+    def upload(self, token, consent_id, poses=mock_server.BASE_POSES, key=None, person_id="p-0412", data=FAKE_JPEG, reason=None):
+        return self.call("POST", "/api/v1/enrolments", multipart(person_id, consent_id, poses, data, reason), token, {
             "Content-Type": f"multipart/form-data; boundary={BOUNDARY}",
             "Idempotency-Key": key or str(uuid.uuid4()),
         })
@@ -168,6 +169,51 @@ class MockServerTest(unittest.TestCase):
         consent_id = self.consent(token)
         self.call("POST", "/mock/scenario", {"scenario": "server_error"})
         self.assertEqual(500, self.upload(token, consent_id)[0])
+
+    def status_of(self, token, query):
+        return self.call("GET", f"/api/v1/persons?query={query}", token=token)[1]["persons"][0]["enrolment_status"]
+
+    def test_enrolled_person_needs_a_valid_reason(self):
+        token = self.login()
+        consent_id = self.consent(token, "p-0418")
+        self.assertEqual("reason_required", self.upload(token, consent_id, person_id="p-0418")[1]["error"])
+        self.assertEqual("invalid_reason", self.upload(token, consent_id, person_id="p-0418", reason="bored")[1]["error"])
+        self.assertEqual(202, self.upload(token, consent_id, person_id="p-0418", reason="poor_photos")[0])
+        self.assertEqual(["poor_photos"], [job["reason"] for job in self.state.jobs.values()])
+
+    def test_rejected_re_enrolment_leaves_the_old_enrolment(self):
+        token = self.login()
+        self.call("POST", "/mock/scenario", {"scenario": "reject"})
+        _, body = self.upload(token, self.consent(token, "p-0418"), person_id="p-0418", reason="other")
+        self.assertEqual("pending", self.status_of(token, "0418"))
+        self.assertEqual("rejected", self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)[1]["status"])
+        self.assertEqual("enrolled", self.status_of(token, "0418"))
+
+    def test_one_open_job_per_person(self):
+        mock_server.CHECK_SECONDS = 30
+        token = self.login()
+        consent_id = self.consent(token)
+        key = str(uuid.uuid4())
+        first = self.upload(token, consent_id, key=key)
+        self.assertEqual(first, self.upload(token, consent_id, key=key))
+        status, body = self.upload(token, consent_id)
+        self.assertEqual((409, "enrolment_open", first[1]["job_id"]), (status, body["error"], body["job_id"]))
+
+    def test_open_job_is_the_newest_one(self):
+        token = self.login()
+        consent_id = self.consent(token, "p-0418")
+        _, old = self.upload(token, consent_id, person_id="p-0418", reason="other")
+        self.call("GET", f"/api/v1/enrolments/{old['job_id']}", token=token)
+        mock_server.CHECK_SECONDS = 30
+        _, new = self.upload(token, consent_id, person_id="p-0418", reason="other")
+        self.assertEqual(new["job_id"], self.upload(token, consent_id, person_id="p-0418", reason="other")[1]["job_id"])
+
+    def test_reset_restores_the_roster(self):
+        token = self.login()
+        self.upload(token, self.consent(token))
+        self.assertEqual(200, self.call("POST", "/mock/reset", {})[0])
+        self.assertEqual("none", self.status_of(token, "0412"))
+        self.assertFalse(self.state.jobs)
 
     def test_job_is_pending_until_checked(self):
         mock_server.CHECK_SECONDS = 30

@@ -1,6 +1,6 @@
 # FLOW
 
-How execution travels through the app. App version 1.0 (`versionCode` 1). Checked against branch `feat/qr-setup`.
+How execution travels through the app. App version 1.0 (`versionCode` 1). Checked against branch `feat/re-enrol`.
 
 The app connects to a server and signs staff in, then guides 5 or 10 poses, holds the photos in memory for review, and uploads them. The enrolment plan is in `features/FEATURE-001-enrolment.md`.
 
@@ -59,9 +59,11 @@ flowchart TD
     classDef choice fill:#fef3c7,stroke:#b45309,color:#111827
     classDef seen fill:#ede9fe,stroke:#6d28d9,color:#111827
     classDef outside fill:#f3f4f6,stroke:#4b5563,color:#111827
-    A["`**1** Search the roster`"]:::way --> B{"`**2** Not enrolled?`"}:::choice
-    B -->|Enrolled or checking| C["`**3** Shown, not selectable`"]:::seen
-    B -->|Yes| D["`**4** Fetch notice from server`"]:::outside
+    A["`**1** Search the roster`"]:::way --> B{"`**2** Status?`"}:::choice
+    B -->|Checking| C["`**3** Shown, not selectable`"]:::seen
+    B -->|Not enrolled| D["`**4** Fetch notice from server`"]:::outside
+    B -->|Enrolled| K["`**10** Re-enrol: confirm, choose reason`"]:::seen
+    K --> D
     D --> E["`**5** Show notice`"]:::seen
     E --> F{"`**6** Person agrees?`"}:::choice
     F -->|Declined| G["`**7** Nothing recorded`"]:::seen
@@ -70,14 +72,15 @@ flowchart TD
 ```
 
 1. `search` waits for a pause in typing, and cancels any older search.
-2. `PersonRow` allows only `none`.
-3. The contract defines no re-enrolment yet.
+2. Tapping a `PersonRow` starts only for `none`.
+3. One open job per person, so `pending` stays blocked.
 4. Text and version always come from the server, so each deployment shows its own wording.
 5. Rendered natively.
 6. Needs the checkbox and a glasses answer.
 7. `personDeclined` clears the selection and sends nothing.
 8. `POST /api/v1/consents` cites the notice version. The server takes staff from the session.
 9. Continues in F1.
+10. An enrolled row has a `Re-enrol` button. `ReEnrolDialog` needs a reason, which is held until the upload. The person still sees the notice and agrees again (D-012).
 
 A `401` on any of these calls signs staff out and shows `Your session ended. Sign in again.`
 
@@ -152,7 +155,7 @@ flowchart TD
 6. `awaitJob`, every 2 s, up to 30 polls.
 7. A poll that loses the connection is not a failed enrolment, because the server already has the photos.
 8. `Enrol next person` returns to a refreshed roster.
-9. The server deleted the set. `retakeAll` restarts capture under a new key with the same consent.
+9. The server deleted the set. `retakeAll` restarts capture under a new key with the same consent. A re-enrolment keeps its reason, and the old enrolment stays in use.
 10. The result appears on the roster.
 
 ## F3: Teardown

@@ -29,6 +29,7 @@ Pose ranges, steady duration, minimum face size, blur and brightness thresholds,
 
 - Fields: subject, authenticated staff, time, notice version.
 - Written by: staff through the consent screen, sent with `POST /consents`. Stored by the server, which takes the staff identity from the session. See `features/FEATURE-001-enrolment.md`.
+- A re-enrolment records a new consent. A retake after rejection reuses the current one.
 - Camera permission is not consent.
 
 ## Session token
@@ -41,4 +42,4 @@ Aggregate technical timings only, with no subject or session identifiers. Per-pe
 
 ## Mock server
 
-`tools/mock_server/mock_server.py` checks photos and discards them at once, so it keeps pose names and a body hash only. Consent rows and jobs are in memory and are lost on restart. Nothing is written to disk. Logs carry method, path, and status only.
+`tools/mock_server/mock_server.py` checks photos and discards them at once, so it keeps pose names, any re-enrol reason, and a body hash only. Consent rows and jobs are in memory and are lost on restart. Nothing is written to disk. Logs carry method, path, and status only.

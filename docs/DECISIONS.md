@@ -168,3 +168,20 @@ Dependency: `com.google.zxing:core` 3.5.4, Apache 2.0, maintained by the ZXing p
 Trade-off: possibly weaker on angled or poorly lit codes than ML Kit, not measured. A QR frame stream is one more place a camera runs, so only the brightness plane is read, nothing is kept, and `FLAG_SECURE` is on.
 Also: a scan connects without a confirm step, and the sign-in screen shows the client and host before any password is typed. The camera now unbinds when its screen leaves, for capture too, because it otherwise stayed open behind later screens.
 Revisit if: scans fail in real use, or setup codes become signed.
+
+## D-012: Re-enrol through the normal flow, with new consent
+
+Date: 2026-11-01. Model: Claude Opus 5.5 (claude-opus-5-5). Owner asked for the feature. The consent choice below is the model's, because the contract does not say.
+Context: the CCTV contract allows re-enrolling an `enrolled` person, behind an explicit action with a confirm step and a reason. It does not say whether the person must see the notice again.
+Options:
+
+1. A dialog on the roster takes the reason, then the normal notice, new consent, capture, review, and upload.
+2. The same, but reuse the earlier consent and skip the notice.
+3. A separate re-enrol screen and flow.
+
+Chosen: 1.
+Why: new photos of a real person are a new capture, so `CONSTRAINTS.md` calls for informed consent each time, and the notice may have changed since. Option 2 also needs a stored consent ID, which the app does not keep. Option 3 repeats screens that already do the job.
+Trade-off: one more step for someone who already agreed once.
+Also: no reason is preselected, so the reason on record is one staff chose. A rejected re-enrolment says the current enrolment stays in use.
+Proposed to CCTV, not yet in the contract: 409 `{"error": "enrolment_open", "job_id": ...}` for the open job, and 422 `reason_required` for an enrolled person with no reason. The app shows a clear message for each. Until CCTV confirms, a different code falls back to the general message.
+Revisit if: CCTV or the owner rules that existing consent covers a re-enrolment.

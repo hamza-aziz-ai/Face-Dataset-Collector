@@ -21,6 +21,7 @@ import com.example.facedatasetcollector.data.Notice
 import com.example.facedatasetcollector.data.Person
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.PoseProblem
+import com.example.facedatasetcollector.data.ReEnrolReason
 import com.example.facedatasetcollector.data.ServerSetup
 import com.example.facedatasetcollector.data.ServerStore
 import com.example.facedatasetcollector.data.StoredServer
@@ -82,6 +83,10 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     var consentId: String? = null
         private set
     var wearsGlasses = false
+        private set
+
+    /** Set only while re-enrolling. It travels with the upload, and the job then replaces the old enrolment if accepted. */
+    var reEnrolReason: ReEnrolReason? = null
         private set
 
     /** JPEG bytes, in memory only (D-002). Never written to disk, and lost if the process dies. */
@@ -187,12 +192,14 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun selectPerson(person: Person) = run {
+    /** @param reason set for a re-enrolment, which still shows the notice and records a new consent. */
+    fun selectPerson(person: Person, reason: ReEnrolReason? = null) = run {
         val client = api ?: return@run
         val info = client.serverInfo()
         val current = client.notice(info.noticeUrl)
         onMain {
             selectedPerson = person
+            reEnrolReason = reason
             notice = current
             screen = Screen.Consent
         }
@@ -266,7 +273,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
         val started = SystemClock.elapsedRealtime()
         val jobId = try {
-            client.upload(person.personId, consent, set, key)
+            client.upload(person.personId, consent, set, key, reEnrolReason)
         } catch (e: ApiException) {
             onMain {
                 uploadState = null
@@ -378,6 +385,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         notice = null
         consentId = null
         wearsGlasses = false
+        reEnrolReason = null
         photos.clear()
         poseSet = emptyList()
         capturePose = null
