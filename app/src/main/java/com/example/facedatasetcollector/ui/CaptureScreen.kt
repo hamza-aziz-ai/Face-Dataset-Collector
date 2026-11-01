@@ -335,6 +335,7 @@ fun CaptureScreen(
     onPhoto: (Pose, ByteArray) -> Unit,
     onCancel: () -> Unit,
     onWithdraw: () -> Unit,
+    reEnrolling: Boolean,
     modifier: Modifier = Modifier,
 ) {
     var reading by remember { mutableStateOf<FrameReading?>(null) }
@@ -353,7 +354,7 @@ fun CaptureScreen(
         AlertDialog(
             onDismissRequest = { confirmCancel = false },
             title = { Text("Delete these photos?") },
-            text = { CancelDialogText("Photos taken so far are deleted from this device. The person's consent stays on record unless they withdraw it.", onWithdraw) },
+            text = { CancelDialogText("Photos taken so far are deleted from this device. The person's consent stays on record unless they withdraw it.", reEnrolling, onWithdraw) },
             confirmButton = { TextButton(onClick = onCancel) { Text("Cancel and delete") } },
             dismissButton = { TextButton(onClick = { confirmCancel = false }) { Text("Keep going") } },
         )

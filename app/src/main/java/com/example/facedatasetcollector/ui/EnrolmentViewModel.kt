@@ -82,7 +82,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         private set
 
     /** Kept apart from [error], because refreshing the roster clears that, and staff must see this. */
-    var withdrawalError by mutableStateOf<String?>(null)
+    var withdrawalMessage by mutableStateOf<String?>(null)
         private set
 
     /** The active enrolment. Consent stays valid across retakes, so a rejected set reuses it. */
@@ -209,7 +209,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** @param reason set for a re-enrolment, which still shows the notice and records a new consent. */
     fun selectPerson(person: Person, reason: ReEnrolReason? = null) = run {
-        withdrawalError = null
+        withdrawalMessage = null
         val client = api ?: return@run
         val expected = server ?: return@run
         val info = client.serverInfo()
@@ -345,14 +345,17 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     fun withdrawConsent() {
         val client = api
         val id = consentId
+        val reEnrolling = reEnrolReason != null
         finishEnrolment()
         if (client == null || id == null) return
         run {
             try {
                 client.withdrawConsent(id)
+                // WHY: staff could otherwise believe the person has left, while the old enrolment keeps matching.
+                if (reEnrolling) onMain { withdrawalMessage = RE_ENROL_STAYS }
             } catch (e: ApiException) {
                 if (e.failure == ApiFailure.UNAUTHORIZED) throw e
-                onMain { withdrawalError = "The photos were deleted, but the consent could not be withdrawn. Tell your administrator." }
+                onMain { withdrawalMessage = "The photos were deleted, but the consent could not be withdrawn. Tell your administrator." }
             }
         }
     }

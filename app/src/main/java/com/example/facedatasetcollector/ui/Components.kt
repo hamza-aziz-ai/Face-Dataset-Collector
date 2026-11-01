@@ -136,9 +136,10 @@ fun PrimaryButton(text: String, busy: Boolean, enabled: Boolean = true, onClick:
 
 /** Body of the cancel dialogs, which is also where a person's change of mind is recorded. */
 @Composable
-fun CancelDialogText(text: String, onWithdraw: () -> Unit) {
+fun CancelDialogText(text: String, reEnrolling: Boolean, onWithdraw: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text)
+        if (reEnrolling) Text(RE_ENROL_STAYS)
         TextButton(onClick = onWithdraw) { Text("Person withdrew consent") }
     }
 }

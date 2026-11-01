@@ -16,6 +16,7 @@ import com.example.facedatasetcollector.data.EnrolmentStatus
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.ReEnrolReason
 import com.example.facedatasetcollector.ui.EnrolmentViewModel
+import com.example.facedatasetcollector.ui.RE_ENROL_STAYS
 import com.example.facedatasetcollector.ui.Screen
 import com.example.facedatasetcollector.ui.UploadState
 import org.junit.After
@@ -214,12 +215,24 @@ class EnrolmentFlowTest {
         assertTrue(read { model.photos.isEmpty() })
         assertEquals(Screen.SelectPerson, read { model.screen })
         awaitUntil { !model.busy }
-        assertNull(read { model.withdrawalError })
+        assertNull(read { model.withdrawalMessage })
 
         // Only the server can prove it: a withdrawn consent must refuse an upload.
         val check = EnrolmentApi(MOCK).apply { login("enrol.operator", "mock-only-password") }
         val refused = assertThrows(ApiException::class.java) { check.upload(person.personId, consent, set) }
         assertEquals("no_active_consent", refused.code)
+    }
+
+    @Test
+    fun withdrawingDuringReEnrolment_saysTheOldEnrolmentStays() {
+        val person = read { model.persons[1] }
+        onMain { model.selectPerson(person, ReEnrolReason.OTHER) }
+        awaitUntil { model.screen == Screen.Consent && !model.busy }
+        onMain { model.recordConsent(false) }
+        awaitUntil { model.screen == Screen.Capture && !model.busy }
+        onMain { model.withdrawConsent() }
+        awaitUntil { model.withdrawalMessage != null && !model.busy }
+        assertEquals(RE_ENROL_STAYS, read { model.withdrawalMessage })
     }
 
     @Test

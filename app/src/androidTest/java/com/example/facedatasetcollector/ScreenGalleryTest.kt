@@ -71,7 +71,7 @@ class ScreenGalleryTest {
                             "readout" -> ReadoutPanel(readoutText(FrameReading(0, 1, 12.3f, -2f, 1f, 130, 88.0, 0.42f, 0.03f, 120f)), modifier)
                             "connect" -> ConnectScreen(false, null, {}, {}, modifier)
                             "scan" -> QrScanLayout({}, modifier) {}
-                            "review" -> ReviewScreen("Sample Person A", photos, Pose.entries, true, false, null, {}, {}, {}, {}, modifier)
+                            "review" -> ReviewScreen("Sample Person A", photos, Pose.entries, true, false, null, {}, {}, {}, {}, false, modifier)
                             "sending" -> UploadScreen("Sample Person A", 10, "0.1-mock", UploadState.Sending, true, {}, modifier)
                             "checking" -> UploadScreen("Sample Person A", 10, "0.1-mock", UploadState.Checking, true, {}, modifier)
                             "accepted" -> UploadScreen("Sample Person A", 10, "0.1-mock", UploadState.Accepted, true, {}, modifier)

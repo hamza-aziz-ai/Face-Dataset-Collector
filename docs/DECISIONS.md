@@ -276,4 +276,6 @@ Options:
 Chosen: 1.
 Why: it covers the moment a person changes their mind, using the consent the app still holds. Option 2 needs a consent ID the app does not keep, or a new server lookup.
 Trade-off: after an upload has been accepted, withdrawal still goes through the contact in the notice. Photos are cleared before the call, so a failed call keeps no photos, and staff are told to tell their administrator.
+Also: on a re-enrolment, the call ends that attempt only, and the existing enrolment stays in service (CCTV, provisional 8c). The dialog and the roster both say so, because staff could otherwise believe the person has left while the old enrolment keeps matching.
+Open for the owner, on the sign-off list: whether a person's withdrawal during re-enrolment should also end the old enrolment. It is a legal question.
 Revisit if: staff need to withdraw for already enrolled people in the app. Then the contract needs a lookup by person.
