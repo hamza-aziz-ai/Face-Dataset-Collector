@@ -112,6 +112,25 @@ class EnrolmentApiTest {
     }
 
     @Test
+    fun noticeOnAnotherServerIsNeverFetched() {
+        listOf("https://evil.example.com/notice", "//evil.example.com/notice").forEach { url ->
+            val failure = assertThrows(url, ApiException::class.java) { api.notice(url) }
+            assertEquals(ApiFailure.BAD_RESPONSE, failure.failure)
+        }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun serverNameIsAlwaysOneShortLine() {
+        val longName = "x".repeat(200)
+        respond(200, """{"client_id":"c","client_name":"Acme\n\n\n$longName","notice_version":"1","notice_url":"/n"}""")
+        val name = api.serverInfo().clientName
+        assertFalse(name.contains("\n"))
+        assertTrue(name.startsWith("Acme x"))
+        assertEquals(80, name.length)
+    }
+
+    @Test
     fun consentNeverSendsStaffOrClient() {
         signedIn()
         respond(201, """{"consent_id":"c9"}""")

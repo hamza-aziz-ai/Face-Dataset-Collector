@@ -65,12 +65,20 @@ class EnrolmentApi(
     fun serverInfo(): ServerInfo {
         val json = send(request("/api/v1/server-info").get().build())
         return parsed {
-            ServerInfo(json.getString("client_id"), json.getString("client_name"), json.getString("notice_version"), json.getString("notice_url"))
+            // WHY: the host beside this name is the defence against a forged server, so the name must not be able to push it out of view.
+            val name = json.getString("client_name").replace(UNPRINTABLE, " ").trim().take(MAX_CLIENT_NAME)
+            ServerInfo(json.getString("client_id"), name, json.getString("notice_version"), json.getString("notice_url"))
         }
     }
 
+    /** The server supplies this URL, so it may only point back at the same server. */
     fun notice(noticeUrl: String): Notice {
-        val json = send(request(noticeUrl).get().build())
+        val base = baseUrl.toHttpUrl()
+        val url = base.resolve(noticeUrl)
+        if (url == null || url.scheme != base.scheme || url.host != base.host || url.port != base.port) {
+            throw ApiException(ApiFailure.BAD_RESPONSE)
+        }
+        val json = send(Request.Builder().url(url).get().build())
         return parsed {
             val sections = json.getJSONArray("sections")
             val contact = json.getJSONObject("contact")
@@ -247,6 +255,8 @@ class EnrolmentApi(
         const val POLL_MS = 2_000L
         const val MAX_POLLS = 30
         const val PAGE_SIZE = 50
+        const val MAX_CLIENT_NAME = 80
+        val UNPRINTABLE = Regex("[\\s\\p{C}]+")
 
         fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)

@@ -25,7 +25,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
         }
         Screen.SignIn -> SignInScreen(
             clientName = server?.clientName.orEmpty(),
-            host = model.serverHost.orEmpty(),
+            host = model.serverAddress.orEmpty(),
             isMock = model.isMock,
             busy = model.busy,
             error = model.error,
@@ -57,7 +57,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                 CaptureScreen(
                     pose = pose,
                     set = model.poseSet,
-                    uploadingTo = "${server?.clientName.orEmpty()} (${model.serverHost.orEmpty()})",
+                    uploadingTo = "${server?.clientName.orEmpty()} (${model.serverAddress.orEmpty()})",
                     showReadout = model.isMock,
                     onPhoto = model::onPhoto,
                     onCancel = model::cancelCapture,

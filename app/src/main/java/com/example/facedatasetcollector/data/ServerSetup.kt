@@ -39,6 +39,8 @@ fun normalizeBaseUrl(raw: String, allowLoopbackHttp: Boolean): String {
         throw InvalidServerAddress("Enter only the server address.")
     }
     if (!uri.path.isNullOrEmpty() && uri.path != "/") throw InvalidServerAddress("Enter only the server address.")
+    // URI accepts any number here, and the HTTP client would crash on it later.
+    if (uri.port != -1 && uri.port !in 1..65535) throw InvalidServerAddress("This is not a valid server address.")
     val port = if (uri.port == -1) "" else ":${uri.port}"
     return "$scheme://$host$port"
 }

@@ -206,7 +206,12 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     /** @param reason set for a re-enrolment, which still shows the notice and records a new consent. */
     fun selectPerson(person: Person, reason: ReEnrolReason? = null) = run {
         val client = api ?: return@run
+        val expected = server ?: return@run
         val info = client.serverInfo()
+        if (!isSameClient(expected.clientId, info.clientId)) {
+            onMain { screen = Screen.ClientChanged }
+            return@run
+        }
         val current = client.notice(info.noticeUrl)
         onMain {
             selectedPerson = person
@@ -385,6 +390,9 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     val serverHost: String? get() = server?.baseUrl?.toUri()?.host
+
+    /** What staff read: the whole address, because the same host on another port can be another server. */
+    val serverAddress: String? get() = server?.baseUrl?.substringAfter("://")
 
     val isMock: Boolean get() = BuildConfig.DEBUG && (serverHost == "127.0.0.1" || serverHost == "localhost")
 
