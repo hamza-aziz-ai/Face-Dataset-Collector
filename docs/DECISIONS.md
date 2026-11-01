@@ -136,3 +136,18 @@ Why: multipart and timeouts by hand are bug farms, and Retrofit adds more than a
 Trade-off: one more runtime dependency. `org.json` needs a test-only copy on the JVM.
 Also: redirects are refused so photos cannot move to a host staff never saw. Uploads retry only on an unknown outcome or a 5xx, 3 attempts with 1 s and 2 s backoff, always with the same `Idempotency-Key`. Retry and poll limits are not measured yet.
 Revisit if: the API grows past a few calls.
+
+## D-010: Add a dark theme that follows the device setting
+
+Date: 2026-10-31. Model: Claude Opus 5.5 (claude-opus-5-5). Owner asked for it. Replaces the fixed light theme in D-008; the font stays.
+Context: the phone runs in dark mode, and the owner wants the app to support it.
+Options:
+
+1. Follow the device setting, with a designed dark palette.
+2. Stay light only.
+3. An in-app theme switch.
+
+Chosen: 1.
+Why: it respects the choice staff already made on the device, with no new setting to build.
+Trade-off: every color must be checked in two themes. Dynamic color stays off, so contrast stays as designed.
+Revisit if: staff need to override the device setting.

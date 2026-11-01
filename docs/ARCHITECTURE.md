@@ -85,6 +85,14 @@ The planned design for captured images, consent, and tokens is in `DATA.md`.
 - Quality decision: `qualityFor`, using `QualityPolicy`.
 - Backup exclusion: `AndroidManifest.xml` and the two files in `res/xml/`.
 
+## Screen sizes
+
+Phones get one column. Tablets get a wider column, larger text (`tabletFontScale`), short forms centred, and a notice that fills the screen. A large screen held sideways gets two panes for consent and two columns for the roster (`isWideLayout`).
+
+## Themes
+
+The staff screens follow the device light or dark setting (D-010). Colours come from `MaterialTheme` and `LocalStatusColors`, never from fixed values in a screen.
+
 ## Deployment
 
 None. Debug builds are installed by hand with `adb`.

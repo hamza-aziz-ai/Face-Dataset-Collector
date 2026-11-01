@@ -1,5 +1,6 @@
 package com.example.facedatasetcollector.ui
 
+import androidx.compose.ui.unit.dp
 import com.example.facedatasetcollector.data.ApiFailure
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -13,6 +14,21 @@ class SessionRulesTest {
         assertFalse(isSameClient("client-a", "client-b"))
         assertFalse(isSameClient("client-a", "Client-A"))
         assertFalse(isSameClient("client-a", ""))
+    }
+
+    @Test
+    fun twoPanesOnlyOnALargeScreenHeldSideways() {
+        assertTrue(isWideLayout(1647.dp, 1100.dp))
+        assertFalse(isWideLayout(1176.dp, 1647.dp))
+        assertFalse(isWideLayout(800.dp, 400.dp))
+        assertFalse(isWideLayout(390.dp, 844.dp))
+    }
+
+    @Test
+    fun textGrowsOnlyOnTablets() {
+        assertEquals(1f, tabletFontScale(390.dp))
+        assertEquals(1.15f, tabletFontScale(600.dp))
+        assertEquals(1.3f, tabletFontScale(1176.dp))
     }
 
     @Test

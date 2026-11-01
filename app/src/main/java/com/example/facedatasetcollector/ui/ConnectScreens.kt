@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -34,7 +35,7 @@ import com.example.facedatasetcollector.R
 fun ConnectScreen(busy: Boolean, error: String?, onConnect: (String) -> Unit, modifier: Modifier = Modifier) {
     var address by rememberSaveable { mutableStateOf("") }
 
-    StaffPage(modifier) {
+    StaffPage(modifier, centred = true) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Connect to your server", style = MaterialTheme.typography.displaySmall)
             Text(
@@ -79,14 +80,19 @@ fun SignInScreen(
     var password by remember { mutableStateOf("") }
     val ready = username.isNotBlank() && password.isNotEmpty()
 
-    StaffPage(modifier) {
+    StaffPage(modifier, centred = true) {
         MockChip(isMock)
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(
                 Modifier.size(56.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                Image(painterResource(R.drawable.ic_app_mark), contentDescription = null, modifier = Modifier.size(32.dp))
+                Image(
+                    painterResource(R.drawable.ic_app_mark),
+                    contentDescription = null,
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimary),
+                    modifier = Modifier.size(32.dp),
+                )
             }
             Text("Face enrolment", style = MaterialTheme.typography.displaySmall)
             Text(
@@ -133,7 +139,7 @@ fun SignInScreen(
 /** Full-screen stop. There is deliberately no way past it except setting up again. */
 @Composable
 fun ClientChangedScreen(expectedClient: String, onSetUpAgain: () -> Unit, modifier: Modifier = Modifier) {
-    StaffPage(modifier) {
+    StaffPage(modifier, centred = true) {
         Text("This server has changed", style = MaterialTheme.typography.displaySmall)
         Text(
             "This device was set up for $expectedClient, but the server now identifies as a different organisation. Nothing was sent.",
