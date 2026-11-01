@@ -259,8 +259,8 @@ Options:
 3. Let decline win, and withdraw the consent afterwards.
 
 Chosen: 1.
-Why: one cancel in `clearEnrolment` covers every path, and a coroutine cancelled during a blocking call stops at its next step. Option 3 needs `DELETE /consents`, which the app does not call yet.
-Trade-off: a blocking call still runs to its end, so `busy` stays set until then, and a decline waits for the consent answer. After that, staff cancel on the capture screen, and that consent stays on record.
+Why: one cancel in `clearEnrolment` covers every path, a coroutine cancelled during a blocking call stops at its next step, and sign-out also cancels the call on the wire. Option 3 needs `DELETE /consents`, which the app does not call yet.
+Trade-off: outside sign-out a blocking call runs to its end, so `busy` stays set until then, and a decline waits for the consent answer. A request the server already received cannot be recalled. After that, staff cancel on the capture screen, and that consent stays on record.
 Revisit if: the app gains consent withdrawal.
 
 ## D-018: Withdraw consent from the cancel dialogs

@@ -262,6 +262,15 @@ class MockServerTest(unittest.TestCase):
             self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)
         self.assertIn(body["job_id"], self.state.jobs)
 
+    def test_withdrawal_cancels_the_open_job_and_keeps_the_old_enrolment(self):
+        mock_server.CHECK_SECONDS = 30
+        token = self.login()
+        consent_id = self.consent(token, "p-0418")
+        self.upload(token, consent_id, person_id="p-0418", reason="other")
+        self.assertEqual("pending", self.status_of(token, "0418"))
+        self.assertEqual(202, self.call("DELETE", f"/api/v1/consents/{consent_id}", token=token)[0])
+        self.assertEqual("enrolled", self.status_of(token, "0418"))
+
     def test_reset_restores_the_roster(self):
         token = self.login()
         self.upload(token, self.consent(token))

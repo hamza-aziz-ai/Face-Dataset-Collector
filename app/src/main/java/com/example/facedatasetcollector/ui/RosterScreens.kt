@@ -172,7 +172,7 @@ fun PersonScreen(
         MockChip(isMock)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text("Select person", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
-            TextButton(onClick = onSignOut) { Text("Sign out") }
+            TextButton(onClick = onSignOut, enabled = !busy) { Text("Sign out") }
         }
         OutlinedTextField(
             value = query,

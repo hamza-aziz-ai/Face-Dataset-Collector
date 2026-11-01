@@ -56,7 +56,7 @@ Run on the phone, then on the tablet:
 1. Connect, sign in with `enrol.operator`, and select Sample Person A.
 2. Read the notice and record consent.
 3. Follow the prompts through all 5 poses, or 10 with glasses. The panel on the camera shows live numbers.
-4. For each pose, note any prompt that will not clear and the numbers shown. For `Turn your head to the left`, check that turning your own left is what passes. If left and right are swapped, `YAW_SIGN` flips.
+4. For each pose, note any prompt that will not clear and the numbers shown. If `Centre your face in the oval` stays on with the face centred, the face box may run past the frame edge, so try moving back. For `Turn your head to the left`, check that turning your own left is what passes. If left and right are swapped, `YAW_SIGN` flips.
 5. Review the photos, retake one, and upload.
 6. Tap `Re-enrol` on an enrolled person, choose a reason, and repeat with one retake.
 

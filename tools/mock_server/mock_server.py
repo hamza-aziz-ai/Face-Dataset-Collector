@@ -307,6 +307,11 @@ class Handler(BaseHTTPRequestHandler):
             if consent is None:
                 raise Reject(404, "consent_not_found")
             consent["active"] = False
+            # An open job under this consent is cancelled. Any earlier enrolment stays as it was (CCTV, provisional 8c).
+            for job in self.state.jobs.values():
+                if job["consent_id"] == consent_id and not job["finished"]:
+                    job["finished"] = job["reject"] = True
+                    self.person(job["person_id"])["enrolment_status"] = job["previous"]
         self.reply(202, {"deletion_id": str(uuid.uuid4())})
 
     def create_enrolment(self):
@@ -357,7 +362,7 @@ class Handler(BaseHTTPRequestHandler):
             # WHY only names survive this point: the photos themselves are never kept.
             job_id = str(uuid.uuid4())
             self.state.jobs[job_id] = {
-                "person_id": person_id, "poses": sorted(files), "reason": reason, "previous": person["enrolment_status"],
+                "person_id": person_id, "consent_id": fields.get("consent_id"), "poses": sorted(files), "reason": reason, "previous": person["enrolment_status"],
                 "reject": self.state.scenario == "reject", "ready_at": time.monotonic() + CHECK_SECONDS, "finished": False,
             }
             person["enrolment_status"] = "pending"

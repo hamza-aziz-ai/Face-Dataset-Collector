@@ -102,8 +102,10 @@ class EnrolmentApi(
         token = parsed { json.getString("token") }
     }
 
+    /** Also stops any call on its way, so a signed-out device sends nothing further. A request the server already received cannot be recalled. */
     fun signOut() {
         token = null
+        http.dispatcher.cancelAll()
     }
 
     fun persons(query: String, cursor: String? = null): PersonPage {
@@ -169,7 +171,7 @@ class EnrolmentApi(
 
         var attempt = 1
         while (true) {
-            // Signed out while waiting: staff were told the photos are gone, so nothing more goes out.
+            // Signed out while waiting, so no further attempt goes out.
             if (token == null) throw ApiException(ApiFailure.UNAUTHORIZED)
             try {
                 return send(call).let { json -> parsed { json.getString("job_id") } }

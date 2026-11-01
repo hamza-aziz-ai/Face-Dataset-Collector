@@ -205,6 +205,16 @@ class EnrolmentApiTest {
     }
 
     @Test
+    fun noRetryGoesOutAfterSignOut() {
+        signedIn()
+        respond(500, "{}")
+        api = EnrolmentApi(server.url("/").toString().trimEnd('/'), sleep = { api.signOut() }).apply { token = "test-token" }
+        val failure = assertThrows(ApiException::class.java) { api.upload("p1", "c1", photos) }
+        assertEquals(ApiFailure.UNAUTHORIZED, failure.failure)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
     fun uploadGivesUpAfterTheAttemptLimit() {
         signedIn()
         repeat(3) { respond(500, "{}") }

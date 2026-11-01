@@ -188,6 +188,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
                 hasMorePersons = page.nextCursor != null
                 error = null
             } catch (e: ApiException) {
+                ensureActive()
                 onFailure(e)
             }
         }
@@ -343,6 +344,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** The person changed their mind. Photos go first, so a failed call cannot keep them. */
     fun withdrawConsent() {
+        if (busy) return
         val client = api
         val id = consentId
         val reEnrolling = reEnrolReason != null
@@ -354,8 +356,15 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
                 // WHY: staff could otherwise believe the person has left, while the old enrolment keeps matching.
                 if (reEnrolling) onMain { withdrawalMessage = RE_ENROL_STAYS }
             } catch (e: ApiException) {
-                if (e.failure == ApiFailure.UNAUTHORIZED) throw e
-                onMain { withdrawalMessage = "The photos were deleted, but the consent could not be withdrawn. Tell your administrator." }
+                val unconfirmed = "The photos were deleted, but the app could not confirm the consent was withdrawn. Tell your administrator."
+                onMain {
+                    if (e.failure == ApiFailure.UNAUTHORIZED) {
+                        signOut()
+                        error = unconfirmed
+                    } else {
+                        withdrawalMessage = unconfirmed
+                    }
+                }
             }
         }
     }
@@ -381,7 +390,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         // WHY server != null: with no server set up there is no session to end, and signing out would strand setup on a blank sign-in screen.
         if (screen == Screen.SignIn || server == null) return
         signOut()
-        error = "Signed out after time away. Any photos were deleted."
+        error = "Signed out after time away. Any photos on this device were deleted."
     }
 
     /** Leaves the current enrolment and returns to a fresh roster. */
@@ -394,6 +403,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         api?.signOut()
         searchJob?.cancel()
         clearEnrolment()
+        withdrawalMessage = null
         persons = emptyList()
         hasMorePersons = false
         nextCursor = null
