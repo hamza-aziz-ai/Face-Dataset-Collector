@@ -13,7 +13,7 @@ Run on 2026-11-01 by Claude Opus 5.5. The guide's rule: if a box cannot be ticke
 | 7 | I read the full diff | No | The owner has reviewed results, not diffs |
 | 8 | Tests ran and I saw the real output | Pass | Pasted in each PR, and CI ran on `main` |
 | 9 | A customer path was tried by hand end to end | No | Needs the real-face test, then the real server |
-| 10 | No secrets, keys, or tokens in the code | Pass | Tracked files scanned on 2026-11-01. Only a fake test token and the mock's fake password. CI has no secret scanner |
+| 10 | No secrets, keys, or tokens in the code | Pass | `gitleaks` 8.30.1 scanned all history on 2026-11-01: 41 commits, 0 leaks. CI scans new commits on every PR |
 | 11 | New dependencies are justified and logged | Pass | See the dependency log below |
 | 12 | Rollback steps are written and the last good commit is known | Pass, for code | `ROLLBACK.md`. No release has been made yet, so there is no release rollback |
 | 13 | Unverified assumptions are cleared or consciously accepted | No | See the list below |
@@ -51,6 +51,7 @@ Open, for the owner:
 | Accompanist permissions | 0.37.3 | Camera permission prompt. Latest release, last published April 2025. Replace with the platform API if it stops being maintained | Google |
 | OkHttp | 5.5.1 | API client (D-009) | Square |
 | ZXing core | 3.5.4 | Setup QR codes (D-011). Maintenance mode | ZXing project |
+| gitleaks action | v3.0.0, pinned by SHA | CI secret scan, owner approved 2026-11-01 | Gitleaks project |
 | JUnit, AndroidX test, Espresso, mockwebserver3, org.json | 4.13.2, 1.3.0, 3.7.0, 5.5.1, 20260814 | Tests only | Various |
 
 Secrets touched: none. The mock's password is fake and is committed on purpose.

@@ -6,6 +6,7 @@ A change is done only when these pass and the real output was seen.
 
 `.github/workflows/ci.yml` runs:
 
+1. `gitleaks`, the same pinned action as the CCTV repo, in its own `secrets` job: passes when no secret is found in the commits scanned.
 1. `bash tools/ci/check_images.sh`: passes when every image is in `tools/ci/image-allowlist.txt`.
 2. Gradle wrapper validation.
 3. `./gradlew assembleDebug testDebugUnitTest lintDebug`: passes on `BUILD SUCCESSFUL`.
