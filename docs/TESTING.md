@@ -63,6 +63,12 @@ Afterwards, read the numbers from logcat, with `adb logcat -d -s Enrolment:D Cap
 
 Pass: all poses complete on both devices without fighting the prompts, left and right are correct, and pupil distance on front poses shows at least 60.
 
+## Release build check
+
+Run `./gradlew assembleRelease`, then `aapt2 dump xmltree <apk> --file AndroidManifest.xml`. Pass: no `debuggable`, `usesCleartextTraffic`, or `networkSecurityConfig`, `allowBackup` is false, both backup rule files are set, and the only permissions are `CAMERA`, `INTERNET`, and `ACCESS_NETWORK_STATE`.
+
+Result on 2026-11-01: passed. The APK is 51 MB, with minify off. It is unsigned, so it cannot be installed and has not been run. Plain HTTP and the mock address are refused by `normalizeBaseUrl` when `BuildConfig.DEBUG` is false, which unit tests cover.
+
 ## Simulating server trouble
 
 Run `python tools/mock_server/mock_server.py`, then `adb reverse tcp:8081 tcp:8081` and `adb reverse tcp:8082 tcp:8082`. Port 8081 is a client-dedicated sample and 8082 a central sample. Sign in with `enrol.operator` and `mock-only-password`.

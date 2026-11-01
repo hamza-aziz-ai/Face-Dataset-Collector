@@ -2,7 +2,36 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-11-01, light theme and slow server (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-11-01, real-face test preparation (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- The capture screen shows live numbers against the mock, and logs only prompt counts, timings, and sizes (D-016). The test script is in `TESTING.md`.
+- `ReEnrolTapPathTest` taps the real screens from connect to the notice, with no camera.
+- Release build checked: not debuggable, no cleartext, backup off, expected permissions only. Unsigned, so never run.
+- Lane B docs added: `ALTERNATIVES.md`, `FAILURE.md`, `ROLLBACK.md`, `defense/DEFENSE-enrolment-app.md`, `defense/PRE-SHIP-GATE.md`.
+- Owner signed off the owner's own real-face test only (D-015).
+
+In progress:
+- Nothing.
+
+Broken or risky:
+- Pre-ship gate: not ready to ship, as expected. 5 pass, 2 partly, 4 fail, 3 owner only. See `defense/PRE-SHIP-GATE.md`.
+- `serverFailure_keepsPhotosAndRetrySucceeds` failed once, cause not proven. See `FAILURE.md`.
+- `CameraLifecycleTest` has not run since `CaptureCamera` changed. Run it first in the real-face test.
+- The readout and re-enrol tap test have not run on the tablet, which needs an install tap.
+- Setup codes are not signed (D-014). ML Kit metrics reach Google (D-013). Nothing compares a re-enrolled face with the old one.
+
+Next:
+- Owner's real-face test against the mock, signed off for the owner only (D-015), then threshold tuning. Tell the owner before anything opens the camera.
+- Staff sign-off: legal basis, final notice, withdrawal contact, retention.
+- Release build: signing, plus private CA if the server sits on a LAN.
+
+Do not touch:
+- `QualityPolicy.kt` values, until the real-face test gives measurements.
+
+Read first: `CONSTRAINTS.md`, `features/FEATURE-001-enrolment.md`, `TESTING.md`.
+
+## Earlier session: 2026-11-01, light theme and slow server (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - Light theme checked by screenshot on review, upload, accepted, and rejected: phone, and tablet in both orientations. The wide roster rows now match in height.
