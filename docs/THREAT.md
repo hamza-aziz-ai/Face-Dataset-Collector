@@ -28,6 +28,7 @@ Face images and consent records of real people, staff credentials, and session t
 
 ## Known gaps
 
+- ML Kit brings `transport-backend-cct`, Google telemetry that adds `INTERNET` and `ACCESS_NETWORK_STATE` to the merged manifest. What it sends has not been measured. Google documents detection as on-device, but this repo has not verified that no face-derived data leaves the device. Audit the traffic, and disable it if possible, before real enrollees.
 - Face detection establishes neither liveness nor identity continuity. One detected face does not mean the same consenting person throughout.
 - Clearing references to JPEG bytes in memory is not secure erasure. Bytes can remain in the heap until overwritten.
 - An unlocked or debug-enabled device exposes process memory to anyone with `adb` access.
