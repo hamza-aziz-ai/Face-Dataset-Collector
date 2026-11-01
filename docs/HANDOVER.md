@@ -17,14 +17,13 @@ Broken or risky:
 - The app's upload timeouts are still first guesses, and the mock runs on loopback. Real networks are not tested.
 - The cancel dialogs on capture and review take the same theme fix, but were not seen, because they need the camera flow.
 - CCTV confirmed `enrolment_open` and `reason_required` for the provisional 8c contract. The server is not built.
-- A new consent per re-enrolment is the cautious default, agreed with CCTV. The owner has not ruled on it yet.
+- A new consent per re-enrolment is approved for the owner's test only (D-015). Staff use is not signed off, and needs legal basis, final notice, withdrawal contact, and confirmed retention.
 - Nothing compares a re-enrolled face with the old one. See `THREAT.md`.
 - Setup codes are not signed. They must be before the first outside client (D-014). Until then the owner hands out codes.
 - ML Kit telemetry stays, by owner decision (D-013). It reaches Google with device details and a per-install ID.
 
 Next:
-- Owner sign-off: notice text, including Google's ML Kit metrics (D-013), legal basis, named test person, new consent per re-enrolment.
-- Owner's real-face test against the mock, then threshold tuning. Tell the owner before anything opens the camera. Also tap through re-enrol by hand, and scan a QR code on the tablet.
+- Owner's real-face test against the mock, signed off for the owner only (D-015), then threshold tuning. Tell the owner before anything opens the camera. Also tap through re-enrol by hand, and scan a QR code on the tablet.
 - Release build: signing, plus private CA if the server sits on a LAN.
 
 Do not touch:

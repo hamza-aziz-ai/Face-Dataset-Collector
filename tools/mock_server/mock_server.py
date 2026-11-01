@@ -46,9 +46,9 @@ def sample_client(client_id, client_name, destination, processor):
     return {
         "client_id": client_id,
         "client_name": client_name,
-        "notice_version": "0.1-mock",
+        "notice_version": "0.2-mock",
         "notice": {
-            "version": "0.1-mock",
+            "version": "0.2-mock",
             "effective_date": "2026-11-01",
             "controller": client_name,
             **({"processor": processor} if processor else {}),
@@ -57,6 +57,7 @@ def sample_client(client_id, client_name, destination, processor):
                 {"heading": "What we collect", "body": "5 face photos, or 10 if you wear glasses."},
                 {"heading": "Why", "body": f"To recognise you for attendance at {client_name}."},
                 {"heading": "Where they go", "body": destination},
+                {"heading": "Google", "body": "Google's on-device face detection sends Google technical usage data from this device, such as device model, app version, and timings. It does not send your photos."},
                 {"heading": "How long", "body": "While you are enrolled. Deleted within 30 days after you withdraw or leave."},
                 {"heading": "Your choice", "body": "You can refuse. You can withdraw later through the contact below, and your photos and face data are then removed."},
             ],
