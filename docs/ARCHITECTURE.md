@@ -1,6 +1,6 @@
 # ARCHITECTURE
 
-What exists and who owns it. Checked against commit `481cb7b` on `perf/ml-kit-background`. Anything marked planned is not built.
+What exists and who owns it. Checked against `main` on 2026-11-01. Anything marked planned is not built.
 
 ## Modules
 
@@ -40,14 +40,18 @@ flowchart TD
     classDef way fill:#dbeafe,stroke:#1d4ed8,color:#111827
     classDef step fill:#dcfce7,stroke:#15803d,color:#111827
     classDef outside fill:#f3f4f6,stroke:#4b5563,color:#111827
-    A["`Front camera`"]:::way --> B["`CameraX`"]:::outside
+    A["`Front camera, for capture`"]:::way --> B["`CameraX, through BoundCamera`"]:::outside
+    F["`Back camera, for the setup code`"]:::way --> B
     B --> C["`Compose UI, main thread`"]:::step
     B --> D["`CaptureAnalyzer, background thread`"]:::step
+    B --> G["`QrAnalyzer, background thread`"]:::step
     D --> E["`ML Kit, bundled, on-device`"]:::outside
+    G --> H["`ZXing, on-device`"]:::outside
     D -.->|Result posted| C
+    G -.->|Code posted| C
 ```
 
-The app is a single process. The app calls its enrolment server for `server-info` and login. The manifest declares `CAMERA` and `INTERNET`. Separately, `com.google.android.datatransport:transport-backend-cct`, which ML Kit brings in for telemetry, also uses the network. Its contents were audited and it is kept (D-013, `THREAT.md`).
+The app is a single process. The app calls its enrolment server for setup, login, the roster, the notice, consent, upload, and job status. The manifest declares `CAMERA` and `INTERNET`. Separately, `com.google.android.datatransport:transport-backend-cct`, which ML Kit brings in for telemetry, also uses the network. Its contents were audited and it is kept (D-013, `THREAT.md`).
 
 ## A2: How a change reaches a device
 
@@ -75,13 +79,13 @@ CI runs from `.github/workflows/ci.yml` on every pull request and every push to 
 | Captured JPEGs | Memory, `EnrolmentViewModel.photos` | Analyzer, through the main thread | Until 202, cancel, sign-out, or process death |
 | Timing log | Logcat | Analyzer | Device log buffer, aggregates only |
 
-The planned design for captured images, consent, and tokens is in `DATA.md`.
+Captured images, consent, and tokens are described in `DATA.md`.
 
 ## Trust boundaries
 
 - Camera frames and scanned setup codes are outside input. `parseSetupCode` and `normalizeBaseUrl` guard the code.
 - ML Kit is a pinned dependency running in-process, and it brings a Google telemetry library with network access. See the known gaps in `THREAT.md`.
-- Planned: the enrolment server becomes a second boundary. Only the local mock is approved (D-004).
+- The enrolment server is a trust boundary: `EnrolmentApi` parses every answer, refuses redirects, and sends no client ID. Only the local mock is approved (D-004).
 
 ## Ownership of critical logic
 
