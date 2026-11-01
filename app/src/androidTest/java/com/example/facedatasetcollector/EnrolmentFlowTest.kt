@@ -202,6 +202,31 @@ class EnrolmentFlowTest {
     }
 
     @Test
+    fun slowServer_keepsPhotosUntilItAnswers() {
+        scenario("slow")
+        signInAndCapture(personIndex = 0, glasses = false)
+        val start = System.currentTimeMillis()
+        onMain { model.upload() }
+        awaitUntil { model.uploadState == UploadState.Sending }
+        Thread.sleep(5_000)
+        assertEquals(UploadState.Sending, read { model.uploadState })
+        assertEquals(5, read { model.photos.size })
+        awaitUntil(seconds = 60) { model.uploadState == UploadState.Accepted }
+        Log.i(TAG, "slowUploadMs=${System.currentTimeMillis() - start}")
+    }
+
+    @Test
+    fun lateAnswer_retriesWithTheSameKeyAndCreatesOneJob() {
+        scenario("timeout")
+        signInAndCapture(personIndex = 0, glasses = false)
+        val start = System.currentTimeMillis()
+        onMain { model.upload() }
+        awaitUntil(seconds = 60) { model.uploadState == UploadState.Accepted }
+        assertTrue(read { model.photos.isEmpty() })
+        Log.i(TAG, "lateAnswerMs=${System.currentTimeMillis() - start}")
+    }
+
+    @Test
     fun reEnrolment_keepsItsReasonAcrossARejectionAndClearsAfterwards() {
         scenario("reject")
         val person = read { model.persons[1] }

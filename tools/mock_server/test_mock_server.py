@@ -208,6 +208,16 @@ class MockServerTest(unittest.TestCase):
         _, new = self.upload(token, consent_id, person_id="p-0418", reason="other")
         self.assertEqual(new["job_id"], self.upload(token, consent_id, person_id="p-0418", reason="other")[1]["job_id"])
 
+    def test_timeout_commits_one_job_and_a_retry_finds_it(self):
+        mock_server.TIMEOUT_SECONDS = 0
+        token = self.login()
+        consent_id = self.consent(token)
+        self.call("POST", "/mock/scenario", {"scenario": "timeout"})
+        key = str(uuid.uuid4())
+        first = self.upload(token, consent_id, key=key)
+        self.assertEqual(first, self.upload(token, consent_id, key=key))
+        self.assertEqual(1, len(self.state.jobs))
+
     def test_reset_restores_the_roster(self):
         token = self.login()
         self.upload(token, self.consent(token))
