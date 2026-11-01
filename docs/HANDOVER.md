@@ -2,7 +2,32 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-10-31 (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-10-31, afternoon (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- Owner approved the enrolment work, recreating `gradle/`, opening PRs, and CI/CD. This entry replaces the blockers listed in the earlier entry below.
+- Build restored on latest stable. `assembleDebug`, `testDebugUnitTest`, and `lintDebug` pass in 2m 27s, with 9 lint warnings. See D-001.
+- Smoke test on both devices, installed and launched, 0 crashes. Start time: CPH2381 API 34 2213 ms, OPD2203 API 36 1216 ms. Install over wireless adb: 3.9 s and 170 s.
+- Plan agreed with Codex and CCTV contract received: `features/FEATURE-001-enrolment.md`.
+- Drafted `THREAT.md` and `DATA.md`.
+
+In progress:
+- Stacked PRs from the plan.
+
+Broken or risky:
+- `CONSTRAINTS.md` requires each off-device destination to be approved in `DECISIONS.md`. Add entries for the mock and for CCTV before upload work.
+- `THREAT.md` bars real images going to a real server until server-side deletion exists, so plan step 8 stays mock-only.
+
+Next:
+- Owner: notice text sign-off before any live-face run, named test person, legal basis, `CONSTRAINTS.md` review.
+- PR for `THREAT.md`, `DATA.md`, backup exclusions. Then CI.
+
+Do not touch:
+- Nothing protected in code yet. See `CONSTRAINTS.md`.
+
+Read first: `CONSTRAINTS.md`, `features/FEATURE-001-enrolment.md`.
+
+## Earlier session: 2026-10-31, morning (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - Adopted the Defend What You Ship guide. Project is Lane B: real people's faces are involved.
