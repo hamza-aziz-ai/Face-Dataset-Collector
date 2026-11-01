@@ -2,7 +2,38 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-10-31, afternoon (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-11-01 (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- PRs #1 to #15 merged into `main` with merge commits, 0 conflicts, after a local rehearsal. `main` matches #15 exactly. Tag `pre-merge-2026-11-01` marks the old `main`. Plan and evidence: `Face-Dataset-Collector-merge-plan/MERGE-PLAN.md`, beside the repo.
+- CI ran for the first time and passed on #15: 5 min 59 s with an empty cache.
+- Owner accepted `CONSTRAINTS.md` and kept the JetBrains template in `.gitignore`.
+- The app runs end to end against the mock: connect, sign in, roster, consent, guided capture, review, upload, result. Phone and tablet layouts, dark and light themes.
+- `EnrolmentFlowTest` passes on both devices with synthetic images and no camera.
+
+In progress:
+- Nothing. The 15 merged remote branches still exist.
+
+Broken or risky:
+- All capture thresholds in `QualityPolicy.kt` are first guesses, including `YAW_SIGN` for left and right. Not calibrated on a real face.
+- ML Kit telemetry (`transport-backend-cct`) is unaudited. See `THREAT.md`.
+- On 2026-10-31 a real face was in view during a device check and was likely auto-captured. It stayed in memory and was cleared. No image was found on either device.
+- The real CCTV server is not an approved destination yet. D-004 covers the mock only.
+- Not tested: light theme on the review, upload, and rejected screens; the mock `slow` scenario; real networks.
+
+Next:
+- QR setup.
+- Re-enrol action with a reason (contract in `features/FEATURE-001-enrolment.md`).
+- Audit ML Kit telemetry, and disable it if possible.
+- Light theme and slow-server checks.
+- Owner's real-face test, then threshold tuning. Tell the owner before anything opens the camera.
+
+Do not touch:
+- `QualityPolicy.kt` values, until the real-face test gives measurements.
+
+Read first: `CONSTRAINTS.md`, `features/FEATURE-001-enrolment.md`, `TESTING.md`.
+
+## Earlier session: 2026-10-31, afternoon (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - Owner approved the enrolment work, recreating `gradle/`, opening PRs, and CI/CD. This entry replaces the blockers listed in the earlier entry below.

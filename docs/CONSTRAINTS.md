@@ -1,6 +1,6 @@
 # CONSTRAINTS
 
-Draft by Claude Opus 5.5 on 2026-10-31, pending owner review. Hard rules for AI assistants on this project. Stop and ask before breaking any of them.
+Drafted by Claude Opus 5.5 on 2026-10-31. Accepted by the owner on 2026-11-01. Hard rules for AI assistants on this project. Stop and ask before breaking any of them.
 
 ## Face data
 
