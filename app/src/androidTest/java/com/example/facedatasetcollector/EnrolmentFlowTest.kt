@@ -202,6 +202,15 @@ class EnrolmentFlowTest {
     }
 
     @Test
+    fun lostConnectionAfterAcceptance_isNotAFailedEnrolment() {
+        signInAndCapture(personIndex = 0, glasses = false)
+        scenario("poll_drop")
+        onMain { model.upload() }
+        awaitUntil { model.uploadState == UploadState.StillChecking }
+        assertTrue(read { model.photos.isEmpty() })
+    }
+
+    @Test
     fun slowServer_keepsPhotosUntilItAnswers() {
         scenario("slow")
         signInAndCapture(personIndex = 0, glasses = false)
