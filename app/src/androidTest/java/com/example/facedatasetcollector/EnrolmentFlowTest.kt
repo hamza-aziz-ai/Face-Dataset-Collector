@@ -10,16 +10,20 @@ import androidx.activity.ComponentActivity
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.facedatasetcollector.data.ApiException
+import com.example.facedatasetcollector.data.EnrolmentApi
 import com.example.facedatasetcollector.data.EnrolmentStatus
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.ReEnrolReason
 import com.example.facedatasetcollector.ui.EnrolmentViewModel
+import com.example.facedatasetcollector.ui.RE_ENROL_STAYS
 import com.example.facedatasetcollector.ui.Screen
 import com.example.facedatasetcollector.ui.UploadState
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -199,6 +203,62 @@ class EnrolmentFlowTest {
         assertTrue(read { model.photos.isEmpty() })
         assertEquals(Screen.SignIn, read { model.screen })
         assertFalse(read { model.error }.isNullOrEmpty())
+    }
+
+    @Test
+    fun withdrawingConsent_clearsPhotosAndReachesTheServer() {
+        signInAndCapture(personIndex = 0, glasses = false)
+        val person = read { model.selectedPerson }!!
+        val consent = read { model.consentId }!!
+        val set = read { model.photos.toMap() }
+        onMain { model.withdrawConsent() }
+        assertTrue(read { model.photos.isEmpty() })
+        assertEquals(Screen.SelectPerson, read { model.screen })
+        awaitUntil { !model.busy }
+        assertNull(read { model.withdrawalMessage })
+
+        // Only the server can prove it: a withdrawn consent must refuse an upload.
+        val check = EnrolmentApi(MOCK).apply { login("enrol.operator", "mock-only-password") }
+        val refused = assertThrows(ApiException::class.java) { check.upload(person.personId, consent, set) }
+        assertEquals("no_active_consent", refused.code)
+    }
+
+    @Test
+    fun withdrawingDuringReEnrolment_saysTheOldEnrolmentStays() {
+        val person = read { model.persons[1] }
+        onMain { model.selectPerson(person, ReEnrolReason.OTHER) }
+        awaitUntil { model.screen == Screen.Consent && !model.busy }
+        onMain { model.recordConsent(false) }
+        awaitUntil { model.screen == Screen.Capture && !model.busy }
+        onMain { model.withdrawConsent() }
+        awaitUntil { model.withdrawalMessage != null && !model.busy }
+        assertEquals(RE_ENROL_STAYS, read { model.withdrawalMessage })
+    }
+
+    @Test
+    fun declineWhileConsentIsOnItsWay_isIgnored() {
+        val person = read { model.persons[0] }
+        onMain { model.selectPerson(person) }
+        awaitUntil { model.screen == Screen.Consent && !model.busy }
+        onMain {
+            model.recordConsent(false)
+            model.personDeclined()
+        }
+        awaitUntil { model.screen == Screen.Capture && !model.busy }
+        assertEquals(person, read { model.selectedPerson })
+    }
+
+    @Test
+    fun signOutDuringUpload_staysSignedOutWithNoPhotos() {
+        scenario("slow")
+        signInAndCapture(personIndex = 0, glasses = false)
+        onMain { model.upload() }
+        awaitUntil { model.uploadState == UploadState.Sending }
+        onMain { model.signOut() }
+        awaitUntil(seconds = 60) { !model.busy }
+        assertEquals(Screen.SignIn, read { model.screen })
+        assertTrue(read { model.photos.isEmpty() })
+        assertNull(read { model.uploadState })
     }
 
     @Test

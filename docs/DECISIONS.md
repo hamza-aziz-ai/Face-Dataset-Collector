@@ -247,3 +247,35 @@ Why: it keeps the data rule intact, and the numbers leave no trace once the scre
 Trade-off: exact values must be read off the screen, because `FLAG_SECURE` blocks screenshots.
 Also: the readout and the tally appear only when `isMock` is true, meaning a debug build on loopback, so a real server never shows them.
 Revisit if: tuning needs values the screen cannot show fast enough.
+
+## D-017: Stop work when an enrolment ends, and block decline during a consent call
+
+Date: 2026-11-01. Model: Claude Opus 5.5 (claude-opus-5-5). Found by Codex, by a separate review, and by the Codex PR bot.
+Context: a call started for one enrolment could finish after staff left it. A consent answer could open the camera for someone who had declined, a late upload failure could jump a signed-out device to an empty review, and a late photo could reach the next person's capture.
+Options:
+
+1. Cancel running work when an enrolment or session ends, and refuse decline and server change while a call is running.
+2. Tag every call with a generation number and compare it at each step.
+3. Let decline win, and withdraw the consent afterwards.
+
+Chosen: 1.
+Why: one cancel in `clearEnrolment` covers every path, a coroutine cancelled during a blocking call stops at its next step, and sign-out also cancels the call on the wire. Option 3 needs `DELETE /consents`, which the app does not call yet.
+Trade-off: outside sign-out a blocking call runs to its end, so `busy` stays set until then, and a decline waits for the consent answer. A request the server already received cannot be recalled. After that, staff cancel on the capture screen, and that consent stays on record.
+Revisit if: the app gains consent withdrawal.
+
+## D-018: Withdraw consent from the cancel dialogs
+
+Date: 2026-11-01. Model: Claude Opus 5.5 (claude-opus-5-5). Owner chose to build it now.
+Context: the contract has `DELETE /api/v1/consents/{id}`, but a person who changed their mind after consent could only reach the contact in the notice.
+Options:
+
+1. A `Person withdrew consent` action in the capture and review cancel dialogs.
+2. A withdraw action on the roster for any enrolled person.
+3. Leave withdrawal to the contact in the notice.
+
+Chosen: 1.
+Why: it covers the moment a person changes their mind, using the consent the app still holds. Option 2 needs a consent ID the app does not keep, or a new server lookup.
+Trade-off: after an upload has been accepted, withdrawal still goes through the contact in the notice. Photos are cleared before the call, so a failed call keeps no photos, and staff are told to tell their administrator.
+Also: on a re-enrolment, the call ends that attempt only, and the existing enrolment stays in service (CCTV, provisional 8c). The dialog and the roster both say so, because staff could otherwise believe the person has left while the old enrolment keeps matching.
+Open for the owner, on the sign-off list: whether a person's withdrawal during re-enrolment should also end the old enrolment. It is a legal question.
+Revisit if: staff need to withdraw for already enrolled people in the app. Then the contract needs a lookup by person.

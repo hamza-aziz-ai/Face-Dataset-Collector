@@ -5,12 +5,16 @@ set -euo pipefail
 
 allowlist="tools/ci/image-allowlist.txt"
 
+# The pipeline below ignores a git failure, so a broken repo must stop the check here.
+git rev-parse --git-dir > /dev/null
+
 # Includes untracked files so the check also works before committing.
+# WHY NUL-separated: git quotes a non-ASCII name in plain output, so "photo-é.jpg" would end in a quote and slip past the extension match.
 # tr strips CR because git may check the allowlist out with CRLF on Windows.
-unapproved=$(comm -23 \
-  <(git ls-files --cached --others --exclude-standard \
-    | grep -iE '\.(png|jpe?g|webp|gif|bmp|tiff?|heic|heif|avif|raw|dng)$' | LC_ALL=C sort -u || true) \
-  <(tr -d '\r' < "$allowlist" | LC_ALL=C sort -u))
+unapproved=$(LC_ALL=C comm -z -23 \
+  <(git ls-files -z --cached --others --exclude-standard \
+    | grep -zaiE '\.(png|jpe?g|webp|gif|bmp|tiff?|heic|heif|avif|raw|dng)$' | LC_ALL=C sort -zu || true) \
+  <(tr -d '\r' < "$allowlist" | tr '\n' '\0' | LC_ALL=C sort -zu) | tr '\0' '\n')
 
 if [ -n "$unapproved" ]; then
   echo "Images not in $allowlist:" >&2

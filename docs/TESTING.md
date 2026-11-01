@@ -27,7 +27,7 @@ Pass for step 4: `OK (1 test)` and 0 crash lines.
 
 ## Whole flow, no camera
 
-With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (13 tests)`, in about 100 s. Each test starts with `POST /mock/reset`. The test keeps an empty activity open, because these OnePlus devices freeze a process with nothing on screen after about 27 s, and the run then hangs with no failure.
+With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (17 tests)`, in about 2 minutes. Each test starts with `POST /mock/reset`. The device must be awake and unlocked, or every test fails with `No compose hierarchies found` or hangs. The test keeps an empty activity open, because these OnePlus devices freeze a process with nothing on screen after about 27 s, and the run then hangs with no failure.
 
 ## Re-enrol tap path, no camera
 
@@ -56,7 +56,7 @@ Run on the phone, then on the tablet:
 1. Connect, sign in with `enrol.operator`, and select Sample Person A.
 2. Read the notice and record consent.
 3. Follow the prompts through all 5 poses, or 10 with glasses. The panel on the camera shows live numbers.
-4. For each pose, note any prompt that will not clear and the numbers shown. For `Turn your head to the left`, check that turning your own left is what passes. If left and right are swapped, `YAW_SIGN` flips.
+4. For each pose, note any prompt that will not clear and the numbers shown. If `Centre your face in the oval` stays on with the face centred, the face box may run past the frame edge, so try moving back. For `Turn your head to the left`, check that turning your own left is what passes. If left and right are swapped, `YAW_SIGN` flips.
 5. Review the photos, retake one, and upload.
 6. Tap `Re-enrol` on an enrolled person, choose a reason, and repeat with one retake.
 

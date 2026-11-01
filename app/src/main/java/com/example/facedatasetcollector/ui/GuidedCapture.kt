@@ -19,6 +19,8 @@ data class FrameReading(
     val faceCentreOffset: Float = 0f,
     /** Pupil distance in pixels of the kept photo. Null when an eye is not found, which is normal at a side pose. */
     val pupilDistance: Float? = null,
+    /** False when the face box runs past an edge of the frame, so part of the head would be missing from the photo. */
+    val faceInFrame: Boolean = true,
 )
 
 sealed interface Guidance {
@@ -82,6 +84,7 @@ class PoseGuide(private val pose: Pose) {
     private var steadySince: Long? = null
     private var steadyYaw = 0f
     private var steadyPitch = 0f
+    private var steadyRoll = 0f
     private var lastFrameMs: Long? = null
     private var taken = false
 
@@ -102,12 +105,14 @@ class PoseGuide(private val pose: Pose) {
 
         // Yaw uses the same sign as the pose ranges, but only differences matter here.
         val moved = abs(frame.yaw - steadyYaw) > QualityPolicy.STEADY_DEGREES ||
-            abs(frame.pitch - steadyPitch) > QualityPolicy.STEADY_DEGREES
+            abs(frame.pitch - steadyPitch) > QualityPolicy.STEADY_DEGREES ||
+            abs(frame.roll - steadyRoll) > QualityPolicy.STEADY_DEGREES
         val start = steadySince
         if (start == null || moved) {
             steadySince = frame.timeMs
             steadyYaw = frame.yaw
             steadyPitch = frame.pitch
+            steadyRoll = frame.roll
             return Guidance.Hold(0f)
         }
         val held = frame.timeMs - start
@@ -122,7 +127,7 @@ class PoseGuide(private val pose: Pose) {
         if (frame.faceCount > 1) return "Only one person should be in view"
         if (frame.faceWidthFraction < policy.MIN_FACE_WIDTH) return "Move closer"
         if (frame.faceWidthFraction > policy.MAX_FACE_WIDTH) return "Move back a little"
-        if (frame.faceCentreOffset > policy.MAX_CENTRE_OFFSET) return "Centre your face in the oval"
+        if (frame.faceCentreOffset > policy.MAX_CENTRE_OFFSET || !frame.faceInFrame) return "Centre your face in the oval"
         // Front poses only: turning the head shortens this distance without losing any detail.
         val pupils = frame.pupilDistance
         if (pose in FRONT_POSES && pupils != null && pupils < policy.MIN_PUPIL_PIXELS) return "Move closer"

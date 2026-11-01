@@ -12,9 +12,9 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
     val notice = model.notice
     BackHandler(enabled = model.screen == Screen.Consent) { model.personDeclined() }
     BackHandler(enabled = model.screen == Screen.ScanCode) { model.cancelScan() }
-    // While photos are on their way, back does nothing. After that the flow is finished, so back goes to the roster.
+    // While photos are on their way or being checked, back does nothing, so a rejection is not missed. After that the flow is finished, so back goes to the roster.
     BackHandler(enabled = model.screen == Screen.Upload) {
-        if (model.uploadState != UploadState.Sending) model.finishEnrolment()
+        if (model.uploadState != UploadState.Sending && model.uploadState != UploadState.Checking) model.finishEnrolment()
     }
     when (model.screen) {
         Screen.Connect -> ConnectScreen(model.busy, model.error, model::startScan, model::connect, modifier)
@@ -25,7 +25,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
         }
         Screen.SignIn -> SignInScreen(
             clientName = server?.clientName.orEmpty(),
-            host = model.serverHost.orEmpty(),
+            host = model.serverAddress.orEmpty(),
             isMock = model.isMock,
             busy = model.busy,
             error = model.error,
@@ -39,7 +39,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
             hasMore = model.hasMorePersons,
             isMock = model.isMock,
             busy = model.busy,
-            error = model.error,
+            error = model.withdrawalMessage ?: model.error,
             onSearch = model::search,
             onLoadMore = model::loadMorePersons,
             onSelect = model::selectPerson,
@@ -57,10 +57,12 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                 CaptureScreen(
                     pose = pose,
                     set = model.poseSet,
-                    uploadingTo = "${server?.clientName.orEmpty()} (${model.serverHost.orEmpty()})",
+                    uploadingTo = "${server?.clientName.orEmpty()} (${model.serverAddress.orEmpty()})",
                     showReadout = model.isMock,
                     onPhoto = model::onPhoto,
                     onCancel = model::cancelCapture,
+                    onWithdraw = model::withdrawConsent,
+                    reEnrolling = model.reEnrolReason != null,
                     modifier = modifier,
                 )
             }
@@ -98,6 +100,8 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                 onRetake = model::retake,
                 onUpload = model::upload,
                 onCancel = model::cancelCapture,
+                onWithdraw = model::withdrawConsent,
+                reEnrolling = model.reEnrolReason != null,
                 modifier = modifier,
             )
         }

@@ -21,6 +21,7 @@ import email.parser
 import email.policy
 import hashlib
 import json
+import re
 import secrets
 import sys
 import threading
@@ -110,10 +111,10 @@ class State:
 
 
 class Reject(Exception):
-    def __init__(self, status, code, message=None):
+    def __init__(self, status, code, message=None, **extra):
         super().__init__(code)
         self.status = status
-        self.body = {"error": code, "message": message or code}
+        self.body = {"error": code, "message": message or code, **extra}
 
 
 def parse_multipart(content_type, body):
@@ -138,6 +139,11 @@ def parse_multipart(content_type, body):
     return fields, files
 
 
+def loggable_path(raw):
+    """Path only: a query string could hold a person's name, and the last segment of these routes is a record ID."""
+    return re.sub(r"(/api/v1/(?:enrolments|consents))/[^/]+$", r"\1/{id}", urlparse(raw).path)
+
+
 def check_pose_set(files):
     names = set(files)
     base, glasses = set(BASE_POSES), set(GLASSES_POSES)
@@ -155,8 +161,7 @@ class Handler(BaseHTTPRequestHandler):
     state = None  # Set per server in make_server.
 
     def log_message(self, format, *args):
-        # Path only: a query string could hold a person's name.
-        sys.stderr.write(f"{self.server.server_port} {self.command} {urlparse(self.path).path}\n")
+        sys.stderr.write(f"{self.server.server_port} {self.command} {loggable_path(self.path)}\n")
 
     def reply(self, status, body):
         data = json.dumps(body).encode("utf-8")
@@ -302,6 +307,11 @@ class Handler(BaseHTTPRequestHandler):
             if consent is None:
                 raise Reject(404, "consent_not_found")
             consent["active"] = False
+            # An open job under this consent is cancelled. Any earlier enrolment stays as it was (CCTV, provisional 8c).
+            for job in self.state.jobs.values():
+                if job["consent_id"] == consent_id and not job["finished"]:
+                    job["finished"] = job["reject"] = True
+                    self.person(job["person_id"])["enrolment_status"] = job["previous"]
         self.reply(202, {"deletion_id": str(uuid.uuid4())})
 
     def create_enrolment(self):
@@ -313,45 +323,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         body = self.read_body()
         digest = hashlib.sha256(body).hexdigest()
-        with self.state.lock:
-            seen = self.state.idempotency.get(key)
-        if seen is not None:
-            if seen["digest"] != digest:
-                raise Reject(409, "idempotency_key_reused")
-            return self.reply(202, {"job_id": seen["job_id"]})
-
-        fields, files = parse_multipart(self.headers.get("Content-Type", ""), body)
-        check_pose_set(files)
-        person_id = fields.get("person_id")
-        person = self.person(person_id)
-        with self.state.lock:
-            consent = self.state.consents.get(fields.get("consent_id"))
-        if consent is None or not consent["active"] or consent["person_id"] != person_id:
-            raise Reject(422, "no_active_consent")
-        reason = fields.get("reason")
-        if reason is not None and reason not in REENROL_REASONS:
-            raise Reject(422, "invalid_reason")
-        if person["enrolment_status"] == "pending":
-            # One open job per person. The same key was answered above, so this is a genuinely new attempt.
-            with self.state.lock:
-                open_job = [job_id for job_id, job in self.state.jobs.items() if job["person_id"] == person_id][-1]
-            self.close_connection = True
-            return self.reply(409, {"error": "enrolment_open", "job_id": open_job})
-        if person["enrolment_status"] == "enrolled" and reason is None:
-            raise Reject(422, "reason_required")
-
-        # WHY only names survive this point: the photos themselves are never kept.
-        poses = sorted(files)
-        job_id = str(uuid.uuid4())
-        with self.state.lock:
-            self.state.jobs[job_id] = {
-                "person_id": person_id, "poses": poses, "reason": reason, "previous": person["enrolment_status"],
-                "reject": self.state.scenario == "reject", "ready_at": time.monotonic() + CHECK_SECONDS,
-            }
-        person["enrolment_status"] = "pending"
-        with self.state.lock:
-            self.state.idempotency[key] = {"digest": digest, "job_id": job_id}
-        if self.state.scenario == "timeout":
+        job_id, new = self.commit_job(key, digest, body)
+        if new and self.state.scenario == "timeout":
             # The job is committed and the answer is late, so the client gives up with the outcome unknown.
             time.sleep(TIMEOUT_SECONDS)
         try:
@@ -359,6 +332,42 @@ class Handler(BaseHTTPRequestHandler):
         except OSError:
             # The client already left, which is the point of the timeout scenario.
             self.close_connection = True
+
+    def commit_job(self, key, digest, body):
+        """Returns (job_id, new). One lock across the check and the create, so two uploads at once cannot both pass."""
+        fields, files = parse_multipart(self.headers.get("Content-Type", ""), body)
+        with self.state.lock:
+            seen = self.state.idempotency.get(key)
+            if seen is not None:
+                if seen["digest"] != digest:
+                    raise Reject(409, "idempotency_key_reused")
+                return seen["job_id"], False
+
+            check_pose_set(files)
+            person_id = fields.get("person_id")
+            person = self.person(person_id)
+            consent = self.state.consents.get(fields.get("consent_id"))
+            if consent is None or not consent["active"] or consent["person_id"] != person_id:
+                raise Reject(422, "no_active_consent")
+            reason = fields.get("reason")
+            if reason is not None and reason not in REENROL_REASONS:
+                raise Reject(422, "invalid_reason")
+            if person["enrolment_status"] == "pending":
+                # One open job per person. The same key was answered above, so this is a genuinely new attempt.
+                open_job = [job_id for job_id, job in self.state.jobs.items() if job["person_id"] == person_id][-1]
+                raise Reject(409, "enrolment_open", job_id=open_job)
+            if person["enrolment_status"] == "enrolled" and reason is None:
+                raise Reject(422, "reason_required")
+
+            # WHY only names survive this point: the photos themselves are never kept.
+            job_id = str(uuid.uuid4())
+            self.state.jobs[job_id] = {
+                "person_id": person_id, "consent_id": fields.get("consent_id"), "poses": sorted(files), "reason": reason, "previous": person["enrolment_status"],
+                "reject": self.state.scenario == "reject", "ready_at": time.monotonic() + CHECK_SECONDS, "finished": False,
+            }
+            person["enrolment_status"] = "pending"
+            self.state.idempotency[key] = {"digest": digest, "job_id": job_id}
+            return job_id, True
 
     def job_status(self, job_id):
         self.session()
@@ -369,19 +378,21 @@ class Handler(BaseHTTPRequestHandler):
             return
         with self.state.lock:
             job = self.state.jobs.get(job_id)
-        if job is None:
-            raise Reject(404, "job_not_found")
-        if time.monotonic() < job["ready_at"]:
-            return self.reply(200, {"status": "pending", "problems": []})
+            if job is None:
+                raise Reject(404, "job_not_found")
+            if time.monotonic() < job["ready_at"]:
+                return self.reply(200, {"status": "pending", "problems": []})
+            # Once only: polling a finished job again must not overwrite a newer job's status.
+            if not job["finished"]:
+                job["finished"] = True
+                # A rejected replacement leaves the old enrolment untouched.
+                self.person(job["person_id"])["enrolment_status"] = job["previous"] if job["reject"] else "enrolled"
         if job["reject"]:
-            # A rejected replacement leaves the old enrolment untouched.
-            self.person(job["person_id"])["enrolment_status"] = job["previous"]
             problems = [
                 {"pose": job["poses"][0], "problem": "face_too_small"},
                 {"pose": job["poses"][-1], "problem": "too_blurry"},
             ]
             return self.reply(200, {"status": "rejected", "problems": problems})
-        self.person(job["person_id"])["enrolment_status"] = "enrolled"
         self.reply(200, {"status": "accepted", "problems": []})
 
     def handle_any(self):

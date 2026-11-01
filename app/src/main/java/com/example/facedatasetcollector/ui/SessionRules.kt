@@ -10,6 +10,9 @@ import java.util.TimeZone
 /** The device stays bound to the client it was set up for. Any difference means staff must set up again. */
 fun isSameClient(expected: String, actual: String): Boolean = expected == actual
 
+/** Withdrawing during a re-enrolment ends that attempt only (CCTV 8c). */
+const val RE_ENROL_STAYS = "This cancels this re-enrolment only. Their existing enrolment stays until they ask for it to be removed, through the withdrawal contact in the notice."
+
 /** ISO-8601 in UTC. SimpleDateFormat because java.time needs API 26 and minSdk is 23. */
 fun utcTimestamp(millis: Long): String =
     SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)

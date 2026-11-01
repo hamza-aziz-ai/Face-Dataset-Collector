@@ -29,6 +29,8 @@ import com.example.facedatasetcollector.data.normalizeBaseUrl
 import com.example.facedatasetcollector.data.parseSetupCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -79,6 +81,10 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     var notice by mutableStateOf<Notice?>(null)
         private set
 
+    /** Kept apart from [error], because refreshing the roster clears that, and staff must see this. */
+    var withdrawalMessage by mutableStateOf<String?>(null)
+        private set
+
     /** The active enrolment. Consent stays valid across retakes, so a rejected set reuses it. */
     var consentId: String? = null
         private set
@@ -107,6 +113,8 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     private var nextCursor: String? = null
     private var lastQuery = ""
     private var searchJob: Job? = null
+    private var runJob: Job? = null
+    private var timeoutJob: Job? = null
 
     init {
         api = server?.let { EnrolmentApi(it.baseUrl) }
@@ -169,6 +177,9 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         val client = api ?: return
         searchJob?.cancel()
         lastQuery = query
+        // The old cursor belongs to the old query, so paging waits for this answer.
+        nextCursor = null
+        hasMorePersons = false
         searchJob = viewModelScope.launch {
             try {
                 val page = withContext(Dispatchers.IO) { client.persons(query) }
@@ -177,6 +188,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
                 hasMorePersons = page.nextCursor != null
                 error = null
             } catch (e: ApiException) {
+                ensureActive()
                 onFailure(e)
             }
         }
@@ -185,8 +197,11 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     fun loadMorePersons() = run {
         val client = api ?: return@run
         val cursor = nextCursor ?: return@run
-        val page = client.persons(lastQuery, cursor)
+        val query = lastQuery
+        val page = client.persons(query, cursor)
         onMain {
+            // A search started meanwhile owns the list now.
+            if (query != lastQuery) return@onMain
             persons = persons + page.persons
             nextCursor = page.nextCursor
             hasMorePersons = page.nextCursor != null
@@ -195,8 +210,14 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** @param reason set for a re-enrolment, which still shows the notice and records a new consent. */
     fun selectPerson(person: Person, reason: ReEnrolReason? = null) = run {
+        withdrawalMessage = null
         val client = api ?: return@run
+        val expected = server ?: return@run
         val info = client.serverInfo()
+        if (!isSameClient(expected.clientId, info.clientId)) {
+            onMain { screen = Screen.ClientChanged }
+            return@run
+        }
         val current = client.notice(info.noticeUrl)
         onMain {
             selectedPerson = person
@@ -208,6 +229,8 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** Nothing is recorded when a person declines. */
     fun personDeclined() {
+        // WHY: a consent already on its way cannot be recalled, so declining waits for its answer.
+        if (busy) return
         clearEnrolment()
         screen = Screen.SelectPerson
     }
@@ -243,7 +266,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         if (screen != Screen.Capture || pose != capturePose) return
         // Timing and size only, with no person in the line.
         val now = SystemClock.elapsedRealtime()
-        Log.d(TAG, "pose=${pose.wireName} poseMs=${now - poseStartedAt} photoBytes=${jpeg.size}")
+        if (isMock) Log.d(TAG, "pose=${pose.wireName} poseMs=${now - poseStartedAt} photoBytes=${jpeg.size}")
         poseStartedAt = now
         photos[pose] = jpeg
         uploadKey = null
@@ -319,19 +342,55 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         finishEnrolment()
     }
 
-    fun onBackgrounded(nowMs: Long) {
-        backgroundedAt = nowMs
+    /** The person changed their mind. Photos go first, so a failed call cannot keep them. */
+    fun withdrawConsent() {
+        if (busy) return
+        val client = api
+        val id = consentId
+        val reEnrolling = reEnrolReason != null
+        finishEnrolment()
+        if (client == null || id == null) return
+        run {
+            try {
+                client.withdrawConsent(id)
+                // WHY: staff could otherwise believe the person has left, while the old enrolment keeps matching.
+                if (reEnrolling) onMain { withdrawalMessage = RE_ENROL_STAYS }
+            } catch (e: ApiException) {
+                val unconfirmed = "The photos were deleted, but the app could not confirm the consent was withdrawn. Tell your administrator."
+                onMain {
+                    if (e.failure == ApiFailure.UNAUTHORIZED) {
+                        signOut()
+                        error = unconfirmed
+                    } else {
+                        withdrawalMessage = unconfirmed
+                    }
+                }
+            }
+        }
     }
 
-    /** Protects a device left unattended: the photos and the session go after [QualityPolicy.BACKGROUND_LIMIT_MS]. */
+    /** Protects a device left unattended: the photos and the session go after [QualityPolicy.BACKGROUND_LIMIT_MS], without waiting for staff to come back. */
+    fun onBackgrounded(nowMs: Long) {
+        backgroundedAt = nowMs
+        timeoutJob = viewModelScope.launch {
+            delay(QualityPolicy.BACKGROUND_LIMIT_MS)
+            expireSession()
+        }
+    }
+
+    /** WHY the elapsed check as well: a frozen process never runs the timer. */
     fun onForegrounded(nowMs: Long) {
+        timeoutJob?.cancel()
         val since = backgroundedAt ?: return
         backgroundedAt = null
+        if (nowMs - since > QualityPolicy.BACKGROUND_LIMIT_MS) expireSession()
+    }
+
+    private fun expireSession() {
         // WHY server != null: with no server set up there is no session to end, and signing out would strand setup on a blank sign-in screen.
-        if (nowMs - since > QualityPolicy.BACKGROUND_LIMIT_MS && screen != Screen.SignIn && server != null) {
-            signOut()
-            error = "Signed out after time away. Any photos were deleted."
-        }
+        if (screen == Screen.SignIn || server == null) return
+        signOut()
+        error = "Signed out after time away. Any photos on this device were deleted."
     }
 
     /** Leaves the current enrolment and returns to a fresh roster. */
@@ -342,7 +401,9 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun signOut() {
         api?.signOut()
+        searchJob?.cancel()
         clearEnrolment()
+        withdrawalMessage = null
         persons = emptyList()
         hasMorePersons = false
         nextCursor = null
@@ -352,6 +413,8 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** Forgets this device's server, so that setup starts again. */
     fun resetServer() {
+        // WHY: a sign-in on its way would otherwise finish against a server that is gone.
+        if (busy) return
         signOut()
         api = null
         store.clear()
@@ -362,18 +425,23 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     val serverHost: String? get() = server?.baseUrl?.toUri()?.host
 
+    /** What staff read: the whole address, because the same host on another port can be another server. */
+    val serverAddress: String? get() = server?.baseUrl?.substringAfter("://")
+
     val isMock: Boolean get() = BuildConfig.DEBUG && (serverHost == "127.0.0.1" || serverHost == "localhost")
 
     private fun run(block: suspend () -> Unit) {
         if (busy) return
         busy = true
         error = null
-        viewModelScope.launch {
+        runJob = viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) { block() }
             } catch (e: InvalidServerAddress) {
+                ensureActive()
                 error = e.message
             } catch (e: ApiException) {
+                ensureActive()
                 onFailure(e)
             } finally {
                 busy = false
@@ -387,7 +455,9 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         error = if (sessionEnded) "Your session ended. Sign in again." else e.code?.let(::messageForCode) ?: messageFor(e.failure)
     }
 
+    /** Also stops whatever is running: work started for this enrolment must not touch state once it has ended. */
     private fun clearEnrolment() {
+        runJob?.cancel()
         selectedPerson = null
         notice = null
         consentId = null

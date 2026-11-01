@@ -172,7 +172,7 @@ fun PersonScreen(
         MockChip(isMock)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text("Select person", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
-            TextButton(onClick = onSignOut) { Text("Sign out") }
+            TextButton(onClick = onSignOut, enabled = !busy) { Text("Sign out") }
         }
         OutlinedTextField(
             value = query,
@@ -365,5 +365,5 @@ private fun ConsentActions(
     PrimaryButton("Record consent and continue", busy, enabled = agreed && wearsGlasses != null) {
         if (wearsGlasses != null) onRecord(wearsGlasses)
     }
-    TextButton(onClick = onDeclined, modifier = Modifier.fillMaxWidth()) { Text("Person declined") }
+    TextButton(onClick = onDeclined, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Person declined") }
 }

@@ -29,6 +29,14 @@ class ServerSetupTest {
     }
 
     @Test
+    fun refusesPortsOutsideTheValidRange() {
+        listOf("https://client.example.com:0", "https://client.example.com:65536", "https://client.example.com:99999").forEach { address ->
+            assertThrows(address, InvalidServerAddress::class.java) { normalizeBaseUrl(address, false) }
+        }
+        assertEquals("https://client.example.com:65535", normalizeBaseUrl("https://client.example.com:65535", false))
+    }
+
+    @Test
     fun httpIsOnlyForLoopbackInDebugBuilds() {
         assertEquals("http://127.0.0.1:8081", normalizeBaseUrl("http://127.0.0.1:8081", true))
         assertThrows(InvalidServerAddress::class.java) { normalizeBaseUrl("http://127.0.0.1:8081", false) }

@@ -86,6 +86,8 @@ fun ReviewScreen(
     onRetake: (Pose) -> Unit,
     onUpload: () -> Unit,
     onCancel: () -> Unit,
+    onWithdraw: () -> Unit,
+    reEnrolling: Boolean,
     modifier: Modifier = Modifier,
 ) {
     var confirmCancel by remember { mutableStateOf(false) }
@@ -96,7 +98,7 @@ fun ReviewScreen(
         AlertDialog(
             onDismissRequest = { confirmCancel = false },
             title = { Text("Delete these photos?") },
-            text = { Text("All photos are deleted from this device. The person's consent stays on record.") },
+            text = { CancelDialogText("All photos are deleted from this device. The person's consent stays on record unless they withdraw it.", reEnrolling, onWithdraw) },
             confirmButton = { TextButton(onClick = onCancel) { Text("Cancel and delete all") } },
             dismissButton = { TextButton(onClick = { confirmCancel = false }) { Text("Keep reviewing") } },
         )

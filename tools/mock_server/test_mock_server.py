@@ -35,8 +35,8 @@ class MockServerTest(unittest.TestCase):
         self.port = self.server.server_port
         mock_server.CHECK_SECONDS = 0
 
-    def call(self, method, path, body=None, token=None, headers=None):
-        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+    def call(self, method, path, body=None, token=None, headers=None, timeout=5):
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=timeout)
         self.addCleanup(connection.close)
         sent = dict(headers or {})
         if token:
@@ -213,14 +213,46 @@ class MockServerTest(unittest.TestCase):
         self.assertEqual(new["job_id"], self.upload(token, consent_id, person_id="p-0418", reason="other")[1]["job_id"])
 
     def test_timeout_commits_one_job_and_a_retry_finds_it(self):
-        mock_server.TIMEOUT_SECONDS = 0
+        self.addCleanup(setattr, mock_server, "TIMEOUT_SECONDS", mock_server.TIMEOUT_SECONDS)
+        mock_server.TIMEOUT_SECONDS = 1
         token = self.login()
         consent_id = self.consent(token)
         self.call("POST", "/mock/scenario", {"scenario": "timeout"})
         key = str(uuid.uuid4())
-        first = self.upload(token, consent_id, key=key)
-        self.assertEqual(first, self.upload(token, consent_id, key=key))
+        headers = {"Content-Type": f"multipart/form-data; boundary={BOUNDARY}", "Idempotency-Key": key}
+        with self.assertRaises(TimeoutError):
+            self.call("POST", "/api/v1/enrolments", multipart("p-0412", consent_id, mock_server.BASE_POSES), token, headers, timeout=0.3)
+        self.assertEqual(202, self.upload(token, consent_id, key=key)[0])
         self.assertEqual(1, len(self.state.jobs))
+
+    def test_polling_an_old_job_keeps_the_new_one_open(self):
+        token = self.login()
+        consent_id = self.consent(token, "p-0418")
+        _, old = self.upload(token, consent_id, person_id="p-0418", reason="other")
+        self.call("GET", f"/api/v1/enrolments/{old['job_id']}", token=token)
+        mock_server.CHECK_SECONDS = 30
+        self.upload(token, consent_id, person_id="p-0418", reason="other")
+        self.call("GET", f"/api/v1/enrolments/{old['job_id']}", token=token)
+        self.assertEqual("pending", self.status_of(token, "0418"))
+
+    def test_two_uploads_at_once_make_one_job(self):
+        mock_server.CHECK_SECONDS = 30
+        token = self.login()
+        for _ in range(10):
+            self.state.reset()
+            consent_id = self.consent(token)
+            results = []
+            threads = [threading.Thread(target=lambda: results.append(self.upload(token, consent_id)[0])) for _ in range(2)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+            self.assertEqual([202, 409], sorted(results))
+
+    def test_logs_hide_record_ids(self):
+        self.assertEqual("/api/v1/enrolments/{id}", mock_server.loggable_path("/api/v1/enrolments/abc-123"))
+        self.assertEqual("/api/v1/consents/{id}", mock_server.loggable_path("/api/v1/consents/abc-123"))
+        self.assertEqual("/api/v1/persons", mock_server.loggable_path("/api/v1/persons?query=name"))
 
     def test_poll_drop_keeps_the_job(self):
         token = self.login()
@@ -229,6 +261,15 @@ class MockServerTest(unittest.TestCase):
         with self.assertRaises((ConnectionError, http.client.HTTPException)):
             self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)
         self.assertIn(body["job_id"], self.state.jobs)
+
+    def test_withdrawal_cancels_the_open_job_and_keeps_the_old_enrolment(self):
+        mock_server.CHECK_SECONDS = 30
+        token = self.login()
+        consent_id = self.consent(token, "p-0418")
+        self.upload(token, consent_id, person_id="p-0418", reason="other")
+        self.assertEqual("pending", self.status_of(token, "0418"))
+        self.assertEqual(202, self.call("DELETE", f"/api/v1/consents/{consent_id}", token=token)[0])
+        self.assertEqual("enrolled", self.status_of(token, "0418"))
 
     def test_reset_restores_the_roster(self):
         token = self.login()

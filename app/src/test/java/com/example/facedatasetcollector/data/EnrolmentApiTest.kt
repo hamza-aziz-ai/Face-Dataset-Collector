@@ -112,6 +112,36 @@ class EnrolmentApiTest {
     }
 
     @Test
+    fun noticeOnAnotherServerIsNeverFetched() {
+        listOf("https://evil.example.com/notice", "//evil.example.com/notice").forEach { url ->
+            val failure = assertThrows(url, ApiException::class.java) { api.notice(url) }
+            assertEquals(ApiFailure.BAD_RESPONSE, failure.failure)
+        }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun serverNameIsAlwaysOneShortLine() {
+        val longName = "x".repeat(200)
+        respond(200, """{"client_id":"c","client_name":"Acme\n\n\n$longName","notice_version":"1","notice_url":"/n"}""")
+        val name = api.serverInfo().clientName
+        assertFalse(name.contains("\n"))
+        assertTrue(name.startsWith("Acme x"))
+        assertEquals(80, name.length)
+    }
+
+    @Test
+    fun withdrawingConsentSendsAnAuthorizedDelete() {
+        signedIn()
+        respond(202, """{"deletion_id":"d1"}""")
+        api.withdrawConsent("c1")
+        val request = server.takeRequest()
+        assertEquals("DELETE", request.method)
+        assertEquals("/api/v1/consents/c1", request.url.encodedPath)
+        assertTrue(request.headers["Authorization"]!!.startsWith("Bearer "))
+    }
+
+    @Test
     fun consentNeverSendsStaffOrClient() {
         signedIn()
         respond(201, """{"consent_id":"c9"}""")
@@ -151,6 +181,16 @@ class EnrolmentApiTest {
     }
 
     @Test
+    fun aManualRetrySendsIdenticalBytes() {
+        signedIn()
+        respond(202, """{"job_id":"j1"}""")
+        respond(202, """{"job_id":"j1"}""")
+        api.upload("p1", "c1", photos, "key-1")
+        api.upload("p1", "c1", photos.entries.reversed().associate { it.key to it.value }, "key-1")
+        assertEquals(server.takeRequest().body!!.utf8(), server.takeRequest().body!!.utf8())
+    }
+
+    @Test
     fun uploadRetriesWithTheSameKeyAfterAnUnknownOutcome() {
         signedIn()
         dropConnection()
@@ -162,6 +202,16 @@ class EnrolmentApiTest {
         val keys = List(3) { server.takeRequest().headers["Idempotency-Key"] }
         assertEquals(1, keys.toSet().size)
         assertEquals(listOf(1_000L, 2_000L), sleeps)
+    }
+
+    @Test
+    fun noRetryGoesOutAfterSignOut() {
+        signedIn()
+        respond(500, "{}")
+        api = EnrolmentApi(server.url("/").toString().trimEnd('/'), sleep = { api.signOut() }).apply { token = "test-token" }
+        val failure = assertThrows(ApiException::class.java) { api.upload("p1", "c1", photos) }
+        assertEquals(ApiFailure.UNAUTHORIZED, failure.failure)
+        assertEquals(1, server.requestCount)
     }
 
     @Test

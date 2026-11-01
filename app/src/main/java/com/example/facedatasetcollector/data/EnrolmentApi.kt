@@ -65,12 +65,20 @@ class EnrolmentApi(
     fun serverInfo(): ServerInfo {
         val json = send(request("/api/v1/server-info").get().build())
         return parsed {
-            ServerInfo(json.getString("client_id"), json.getString("client_name"), json.getString("notice_version"), json.getString("notice_url"))
+            // WHY: the host beside this name is the defence against a forged server, so the name must not be able to push it out of view.
+            val name = json.getString("client_name").replace(UNPRINTABLE, " ").trim().take(MAX_CLIENT_NAME)
+            ServerInfo(json.getString("client_id"), name, json.getString("notice_version"), json.getString("notice_url"))
         }
     }
 
+    /** The server supplies this URL, so it may only point back at the same server. */
     fun notice(noticeUrl: String): Notice {
-        val json = send(request(noticeUrl).get().build())
+        val base = baseUrl.toHttpUrl()
+        val url = base.resolve(noticeUrl)
+        if (url == null || url.scheme != base.scheme || url.host != base.host || url.port != base.port) {
+            throw ApiException(ApiFailure.BAD_RESPONSE)
+        }
+        val json = send(Request.Builder().url(url).get().build())
         return parsed {
             val sections = json.getJSONArray("sections")
             val contact = json.getJSONObject("contact")
@@ -94,8 +102,10 @@ class EnrolmentApi(
         token = parsed { json.getString("token") }
     }
 
+    /** Also stops any call on its way, so a signed-out device sends nothing further. A request the server already received cannot be recalled. */
     fun signOut() {
         token = null
+        http.dispatcher.cancelAll()
     }
 
     fun persons(query: String, cursor: String? = null): PersonPage {
@@ -131,6 +141,11 @@ class EnrolmentApi(
         return parsed { json.getString("consent_id") }
     }
 
+    /** The server deletes whatever this consent covers, as long as it holds any. */
+    fun withdrawConsent(consentId: String) {
+        send(authorized(request("/api/v1/consents/$consentId")).delete().build())
+    }
+
     /**
      * Uploads one set and retries only when the outcome is unknown or the server failed. Every retry reuses the same key, so a request that did land cannot create a second job.
      *
@@ -144,17 +159,20 @@ class EnrolmentApi(
         key: String = UUID.randomUUID().toString(),
         reason: ReEnrolReason? = null,
     ): String {
-        val parts = MultipartBody.Builder().setType(MultipartBody.FORM)
+        // WHY the key as boundary and a fixed pose order: a manual retry must send identical bytes, or the server sees a different body under the same key and refuses it.
+        val parts = MultipartBody.Builder(key).setType(MultipartBody.FORM)
             .addFormDataPart("person_id", personId)
             .addFormDataPart("consent_id", consentId)
         if (reason != null) parts.addFormDataPart("reason", reason.wireName)
-        photos.forEach { (pose, bytes) ->
-            parts.addFormDataPart(pose.wireName, "${pose.wireName}.jpg", bytes.toRequestBody(JPEG))
+        Pose.entries.forEach { pose ->
+            photos[pose]?.let { bytes -> parts.addFormDataPart(pose.wireName, "${pose.wireName}.jpg", bytes.toRequestBody(JPEG)) }
         }
         val call = authorized(request("/api/v1/enrolments")).header("Idempotency-Key", key).post(parts.build()).build()
 
         var attempt = 1
         while (true) {
+            // Signed out while waiting, so no further attempt goes out.
+            if (token == null) throw ApiException(ApiFailure.UNAUTHORIZED)
             try {
                 return send(call).let { json -> parsed { json.getString("job_id") } }
             } catch (e: ApiException) {
@@ -245,6 +263,8 @@ class EnrolmentApi(
         const val POLL_MS = 2_000L
         const val MAX_POLLS = 30
         const val PAGE_SIZE = 50
+        const val MAX_CLIENT_NAME = 80
+        val UNPRINTABLE = Regex("[\\s\\p{C}]+")
 
         fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)

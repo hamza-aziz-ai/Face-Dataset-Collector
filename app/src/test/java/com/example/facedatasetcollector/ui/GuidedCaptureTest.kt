@@ -185,6 +185,23 @@ class GuidedCaptureTest {
     }
 
     @Test
+    fun aHeadRockingSideToSideNeverCounts() {
+        val rock = policy.STEADY_DEGREES * 2
+        val guide = PoseGuide(Pose.FRONT)
+        var time = 0L
+        repeat(100) {
+            val roll = if (it % 2 == 0) rock else -rock
+            assertTrue(guide.onFrame(good(time).copy(roll = roll)) is Guidance.Hold)
+            time += 50
+        }
+    }
+
+    @Test
+    fun aFaceRunningPastTheFrameIsNotKept() {
+        assertEquals("Centre your face in the oval", fix(good(0).copy(faceInFrame = false)))
+    }
+
+    @Test
     fun readoutShowsEveryNumberAndMarksWhatIsMissing() {
         val text = readoutText(FrameReading(0, 1, yaw = 12.34f, pitch = -2f, roll = 1f, faceLuma = 130, blurScore = 88.4, faceWidthFraction = 0.42f, faceCentreOffset = 0.03f))
         assertTrue(text, text.contains("faces 1"))

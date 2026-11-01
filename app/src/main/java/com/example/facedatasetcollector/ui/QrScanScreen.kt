@@ -1,6 +1,7 @@
 package com.example.facedatasetcollector.ui
 
 import android.Manifest
+import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -57,9 +58,16 @@ private class QrAnalyzer(private val onCode: (String) -> Unit) : ImageAnalysis.A
             val text = decodeQr(luma, plane.rowStride, image.width, image.height) ?: return
             found = true
             onCode(text)
+        } catch (e: RuntimeException) {
+            // One bad frame must not end the app. The next frame tries again.
+            Log.w(TAG, "Frame skipped", e)
         } finally {
             image.close()
         }
+    }
+
+    private companion object {
+        const val TAG = "QrAnalyzer"
     }
 }
 

@@ -106,6 +106,7 @@ class CaptureAnalyzer(
             faceWidthFraction = (box.right - box.left) / usableWidth,
             faceCentreOffset = abs((box.left + box.right) / 2f - frameWidth / 2f) / usableWidth,
             pupilDistance = pupilDistance(face),
+            faceInFrame = box.left >= 0 && box.top >= 0 && box.right <= frameWidth && box.bottom <= frameHeight,
         )
     }
 
