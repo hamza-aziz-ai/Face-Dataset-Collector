@@ -11,8 +11,10 @@ Done:
 - Plan agreed with Codex and CCTV contract received: `features/FEATURE-001-enrolment.md`.
 - Drafted `THREAT.md` and `DATA.md`.
 
+- ML Kit analysis moved to a background thread (D-007). Measured per frame: CPH2381 about 56 to 64 ms, OPD2203 about 61 to 71 ms, scene unknown. Install was 3.8 s and 22 s this time, so the earlier 170 s was not typical.
+
 In progress:
-- Stacked PRs from the plan.
+- Stacked PRs from the plan. CI has never run: GitHub refused the job over account billing, so the workflow is unproven.
 
 Broken or risky:
 - `CONSTRAINTS.md` requires each off-device destination to be approved in `DECISIONS.md`. D-004 covers the local mock only. The real CCTV server still needs its own entry.
@@ -21,7 +23,8 @@ Broken or risky:
 
 Next:
 - Owner: notice text sign-off before any live-face run, named test person, legal basis, `CONSTRAINTS.md` review.
-- PR for `THREAT.md`, `DATA.md`, backup exclusions. Then CI.
+- Owner: fix GitHub billing so CI can run.
+- PR for login, person selection, consent, and the local mock.
 
 Do not touch:
 - Nothing protected in code yet. See `CONSTRAINTS.md`.

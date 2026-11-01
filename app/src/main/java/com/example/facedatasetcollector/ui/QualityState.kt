@@ -7,4 +7,5 @@ sealed class QualityState {
     data object TooBlurry : QualityState()
     data object NoFaceDetected : QualityState()
     data object MultipleFaces : QualityState()
+    data object DetectorFailed : QualityState()
 }

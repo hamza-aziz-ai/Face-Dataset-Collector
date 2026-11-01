@@ -90,3 +90,18 @@ Chosen: 1.
 Why: nothing is ready to deploy, and this app has no trained model. Training and registry work belongs to the CCTV server.
 Trade-off: deployment and release automation are deferred, not done.
 Revisit if: the first release candidate exists, or the app gets its own trained model.
+
+## D-007: Block on detection inside a single background analyzer thread
+
+Date: 2026-10-31. Model: Claude Opus 5.5 (claude-opus-5-5). Changes the listener approach agreed with Codex gpt-6.1-sol; same goals.
+Context: analysis ran on the main thread. The frame must close exactly once, and teardown must be safe while a frame is in flight.
+Options:
+
+1. `Tasks.await` in the analyzer, on one background executor.
+2. Task listeners with an explicit executor.
+
+Chosen: 1.
+Why: no callback outlives `analyze`, so one `finally` closes the frame and shutting down the executor cannot reject a late listener.
+Trade-off: the analyzer thread is blocked during detection. `STRATEGY_KEEP_ONLY_LATEST` drops frames meanwhile, which is the wanted behavior.
+Also: brightness is now measured on the face box, not the whole frame, and a detector failure has its own `DetectorFailed` state.
+Revisit if: detection needs to run in parallel.
