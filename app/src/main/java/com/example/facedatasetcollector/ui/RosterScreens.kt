@@ -6,9 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
@@ -16,6 +19,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -31,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -39,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.example.facedatasetcollector.data.EnrolmentStatus
 import com.example.facedatasetcollector.data.Notice
 import com.example.facedatasetcollector.data.Person
+import com.example.facedatasetcollector.data.ReEnrolReason
 import com.example.facedatasetcollector.ui.theme.LocalStatusColors
 import kotlinx.coroutines.delay
 
@@ -69,8 +75,8 @@ private fun StatusChip(status: EnrolmentStatus) {
 }
 
 @Composable
-private fun PersonRow(person: Person, onSelect: () -> Unit, modifier: Modifier = Modifier) {
-    // A pending or enrolled person cannot start a new enrolment: the contract defines neither case.
+private fun PersonRow(person: Person, onSelect: () -> Unit, onReEnrol: () -> Unit, modifier: Modifier = Modifier) {
+    // Pending stays blocked: one open job per person. Enrolled needs the explicit action, so a stray tap cannot start a replacement.
     val selectable = person.status == EnrolmentStatus.NONE
     Row(
         modifier
@@ -90,8 +96,42 @@ private fun PersonRow(person: Person, onSelect: () -> Unit, modifier: Modifier =
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        StatusChip(person.status)
+        Column(horizontalAlignment = Alignment.End) {
+            StatusChip(person.status)
+            if (person.status == EnrolmentStatus.ENROLLED) {
+                TextButton(
+                    onClick = onReEnrol,
+                    modifier = Modifier.semantics { contentDescription = "Re-enrol ${person.name}" },
+                ) { Text("Re-enrol") }
+            }
+        }
     }
+}
+
+/** The confirm step. No choice is preselected, so the reason on record is one staff actually made. */
+@Composable
+fun ReEnrolDialog(person: Person, onContinue: (ReEnrolReason) -> Unit, onDismiss: () -> Unit) {
+    var reason by rememberSaveable { mutableStateOf<ReEnrolReason?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text("Re-enrol ${person.name}?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("The current enrolment stays in use until the new photos are accepted. The person sees the notice again and agrees again.")
+                Text("Why are you re-enrolling them?", style = MaterialTheme.typography.labelMedium)
+                Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ReEnrolReason.entries.forEach { choice ->
+                        ChoiceButton(choice.label, reason == choice, { reason = choice }, Modifier.fillMaxWidth())
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { reason?.let(onContinue) }, enabled = reason != null) { Text("Continue") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
@@ -104,10 +144,23 @@ fun PersonScreen(
     onSearch: (String) -> Unit,
     onLoadMore: () -> Unit,
     onSelect: (Person) -> Unit,
+    onReEnrol: (Person, ReEnrolReason) -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    // By id, so the dialog survives rotation and closes if the person leaves the list.
+    var confirmingId by rememberSaveable { mutableStateOf<String?>(null) }
+    persons.firstOrNull { it.personId == confirmingId }?.let { person ->
+        ReEnrolDialog(
+            person,
+            onContinue = { reason ->
+                confirmingId = null
+                onReEnrol(person, reason)
+            },
+            onDismiss = { confirmingId = null },
+        )
+    }
     // Waits for a pause in typing, so each keystroke does not hit the server.
     LaunchedEffect(query) {
         delay(SEARCH_DELAY_MS)
@@ -138,8 +191,11 @@ fun PersonScreen(
         )
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             persons.chunked(if (wide) 2 else 1).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    row.forEach { person -> PersonRow(person, { onSelect(person) }, Modifier.weight(1f)) }
+                // IntrinsicSize, so a row with a Re-enrol button does not stand taller than its neighbour.
+                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    row.forEach { person ->
+                        PersonRow(person, { onSelect(person) }, { confirmingId = person.personId }, Modifier.weight(1f).fillMaxHeight())
+                    }
                     // Keeps a lone last person at the same width as the others.
                     if (wide && row.size == 1) Spacer(Modifier.weight(1f))
                 }

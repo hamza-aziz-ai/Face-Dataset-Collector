@@ -2,7 +2,34 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-11-01, QR setup (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-11-01, re-enrol (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- Re-enrol with a reason (D-012): a button on enrolled rows, a confirm dialog, then the normal notice, new consent, capture, review, and upload with `reason`. A rejected re-enrolment keeps the old enrolment.
+- Mock: reasons, one open job per person, `previous` status on rejection, `POST /mock/reset`.
+- `EnrolmentFlowTest` keeps an empty activity open, because OnePlus froze the process at about 27 s and the run hung with no failure. After the fix: 3 of 3 runs `OK (10 tests)` on each device, 0 crash lines.
+
+In progress:
+- Nothing.
+
+Broken or risky:
+- `enrolment_open` and `reason_required` are my proposal, not yet confirmed by CCTV.
+- A new consent per re-enrolment is my choice, because the contract is silent. Owner or CCTV may rule otherwise.
+- Nothing compares the new face with the old one, so staff could replace someone's enrolment. See `THREAT.md`.
+- The equal row height on the wide roster was built after the last tablet install and has not been seen on the tablet. The test for it would need a tap on the tablet's install prompt.
+- Setup codes are not signed. See `THREAT.md`.
+
+Next:
+- Audit ML Kit telemetry, and disable it if possible.
+- Light theme and slow-server checks.
+- Owner's real-face test, then threshold tuning. Tell the owner before anything opens the camera.
+
+Do not touch:
+- `QualityPolicy.kt` values, until the real-face test gives measurements.
+
+Read first: `CONSTRAINTS.md`, `features/FEATURE-001-enrolment.md`, `TESTING.md`.
+
+## Earlier session: 2026-11-01, QR setup (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - QR setup with ZXing core 3.5.4 (D-011). Typed address stays as the fallback. A scanned code must name the client that answers, or nothing is stored.

@@ -10,10 +10,13 @@ Privacy rules (docs/DECISIONS.md D-004):
 - Logs carry method, path, and status only, never bodies, credentials, tokens, or identifiers.
 - All accounts are fake. All state is in memory and is lost on restart.
 
+Test runs start clean with POST /mock/reset.
+
 Run: python tools/mock_server/mock_server.py
 Then: adb reverse tcp:8081 tcp:8081 && adb reverse tcp:8082 tcp:8082
 """
 import argparse
+import copy
 import email.parser
 import email.policy
 import hashlib
@@ -33,6 +36,7 @@ MAX_BODY_BYTES = 25 * 1024 * 1024
 TOKEN_SECONDS = 8 * 60 * 60
 CHECK_SECONDS = 2.0
 SCENARIOS = {"normal", "reject", "server_error", "slow", "drop"}
+REENROL_REASONS = {"appearance_changed", "poor_photos", "other"}
 SLOW_SECONDS = 20
 
 
@@ -88,9 +92,14 @@ class State:
     """All state for one sample client. Guarded by one lock because the server is threaded."""
 
     def __init__(self, client):
-        self.client = client
+        self.original = client
         self.lock = threading.Lock()
         self.sessions = {}
+        self.reset()
+
+    def reset(self):
+        """Back to the sample roster, so test runs do not depend on each other. Sessions survive."""
+        self.client = copy.deepcopy(self.original)
         self.consents = {}
         self.jobs = {}
         self.idempotency = {}
@@ -205,6 +214,10 @@ class Handler(BaseHTTPRequestHandler):
         route = (self.command, path)
         if route == ("POST", "/mock/scenario"):
             return self.set_scenario()
+        if route == ("POST", "/mock/reset"):
+            with self.state.lock:
+                self.state.reset()
+            return self.reply(200, {})
         if route == ("GET", "/api/v1/server-info"):
             client = self.state.client
             return self.reply(200, {
@@ -305,21 +318,33 @@ class Handler(BaseHTTPRequestHandler):
         fields, files = parse_multipart(self.headers.get("Content-Type", ""), body)
         check_pose_set(files)
         person_id = fields.get("person_id")
-        self.person(person_id)
+        person = self.person(person_id)
         with self.state.lock:
             consent = self.state.consents.get(fields.get("consent_id"))
         if consent is None or not consent["active"] or consent["person_id"] != person_id:
             raise Reject(422, "no_active_consent")
+        reason = fields.get("reason")
+        if reason is not None and reason not in REENROL_REASONS:
+            raise Reject(422, "invalid_reason")
+        if person["enrolment_status"] == "pending":
+            # One open job per person. The same key was answered above, so this is a genuinely new attempt.
+            with self.state.lock:
+                open_job = [job_id for job_id, job in self.state.jobs.items() if job["person_id"] == person_id][-1]
+            self.close_connection = True
+            return self.reply(409, {"error": "enrolment_open", "job_id": open_job})
+        if person["enrolment_status"] == "enrolled" and reason is None:
+            raise Reject(422, "reason_required")
 
         # WHY only names survive this point: the photos themselves are never kept.
         poses = sorted(files)
         job_id = str(uuid.uuid4())
-        self.person(person_id)["enrolment_status"] = "pending"
         with self.state.lock:
             self.state.jobs[job_id] = {
-                "person_id": person_id, "poses": poses,
+                "person_id": person_id, "poses": poses, "reason": reason, "previous": person["enrolment_status"],
                 "reject": self.state.scenario == "reject", "ready_at": time.monotonic() + CHECK_SECONDS,
             }
+        person["enrolment_status"] = "pending"
+        with self.state.lock:
             self.state.idempotency[key] = {"digest": digest, "job_id": job_id}
         self.reply(202, {"job_id": job_id})
 
@@ -332,7 +357,8 @@ class Handler(BaseHTTPRequestHandler):
         if time.monotonic() < job["ready_at"]:
             return self.reply(200, {"status": "pending", "problems": []})
         if job["reject"]:
-            self.person(job["person_id"])["enrolment_status"] = "none"
+            # A rejected replacement leaves the old enrolment untouched.
+            self.person(job["person_id"])["enrolment_status"] = job["previous"]
             problems = [
                 {"pose": job["poses"][0], "problem": "face_too_small"},
                 {"pose": job["poses"][-1], "problem": "too_blurry"},

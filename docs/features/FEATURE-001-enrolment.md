@@ -40,12 +40,14 @@ The new job cites the same `consent_id`. Consent stays valid across retakes unti
 
 ## Re-enrolment
 
-Source: CCTV session, 2026-10-31. Not built yet.
+Source: CCTV session, 2026-10-31. Built against the mock (D-012).
 
 - Allowed for `enrolled`, behind an explicit `Re-enrol` action with a confirm step and a reason: `appearance_changed | poor_photos | other`. Roles: `client_admin`, `enrolment_operator`.
 - Same `POST /api/v1/enrolments`, plus an optional `reason` field. The server treats the job as a replacement.
 - The old vectors stay in service until the new job is accepted. A rejected or expired re-enrolment leaves the old enrolment untouched.
 - `pending` stays blocked: one open job per person. The server returns 409 with the open `job_id`.
+- Each re-enrolment shows the notice and records a new consent (D-012).
+- Proposed error codes, not yet confirmed by CCTV: `enrolment_open` for the 409, and 422 `reason_required` for an enrolled person with no reason.
 - An expired job returns the person to their previous status: `none` or `enrolled`.
 
 ## Pose set
@@ -98,5 +100,6 @@ Agreed with Codex on 2026-10-31. Login and consent ship before capture.
 - 2026-10-31: during a device check, a real face was in view of the phone and the app likely auto-captured it. Photos stayed in memory and were cleared on cancel. A file audit found no images on either device, and the mock logged no uploads.
 - 2026-10-31: roster and consent screens built.
 - 2026-10-31: connect and sign-in built and checked on the phone against the mock. QR setup not built yet.
+- 2026-11-01: re-enrol built against the mock (D-012).
 - 2026-11-01: QR setup built, with ZXing (D-011). Typed address stays as the fallback.
 - 2026-10-31: storage design and full-retake rule received from CCTV. UI design drafted: https://claude.ai/artifact/Lb5vSuHUeweB1KDiGdHGfD

@@ -11,10 +11,14 @@ import androidx.compose.ui.Modifier
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.facedatasetcollector.data.EnrolmentStatus
+import com.example.facedatasetcollector.data.Person
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.PoseProblem
 import com.example.facedatasetcollector.ui.ConnectScreen
+import com.example.facedatasetcollector.ui.PersonScreen
 import com.example.facedatasetcollector.ui.QrScanLayout
+import com.example.facedatasetcollector.ui.ReEnrolDialog
 import com.example.facedatasetcollector.ui.RejectedScreen
 import com.example.facedatasetcollector.ui.ReviewScreen
 import com.example.facedatasetcollector.ui.UploadScreen
@@ -27,7 +31,7 @@ import java.io.ByteArrayOutputStream
 /**
  * Shows one screen with synthetic data for a person to look at, or for `adb screencap`. The real app blocks screenshots on review, and real photos must never be used to check a layout.
  *
- * Pick the screen with `-e screen connect|scan|review|sending|checking|accepted|rejected`. `scan` shows an empty panel, so no camera opens.
+ * Pick the screen with `-e screen roster|reenrol|connect|scan|review|sending|checking|accepted|rejected|rejected-reenrol`. `scan` shows an empty panel, so no camera opens.
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenGalleryTest {
@@ -47,6 +51,11 @@ class ScreenGalleryTest {
     fun show() {
         val arguments = InstrumentationRegistry.getArguments()
         val screen = arguments.getString("screen") ?: "review"
+        val people = listOf(
+            Person("p1", "Sample Person A", "EMP-0412", "Stores", EnrolmentStatus.NONE),
+            Person("p2", "Sample Person B", "EMP-0418", "Dispatch", EnrolmentStatus.ENROLLED),
+            Person("p3", "Sample Person C", "EMP-0431", null, EnrolmentStatus.PENDING),
+        )
         val photos = Pose.entries.withIndex().associate { (index, pose) -> pose to placeholder(index) }
         ActivityScenario.launch(ComponentActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
@@ -54,6 +63,8 @@ class ScreenGalleryTest {
                     FaceDatasetCollectorTheme {
                         val modifier = Modifier.fillMaxSize()
                         when (screen) {
+                            "roster" -> PersonScreen(people, false, true, false, null, {}, {}, {}, { _, _ -> }, {}, modifier)
+                            "reenrol" -> ReEnrolDialog(people[1], {}, {})
                             "connect" -> ConnectScreen(false, null, {}, {}, modifier)
                             "scan" -> QrScanLayout({}, modifier) {}
                             "review" -> ReviewScreen("Sample Person A", photos, Pose.entries, true, false, null, {}, {}, {}, modifier)
@@ -64,6 +75,7 @@ class ScreenGalleryTest {
                                 "Sample Person A",
                                 10,
                                 listOf(PoseProblem("left_30", "face_too_small"), PoseProblem("chin_up_glasses", "too_blurry")),
+                                screen == "rejected-reenrol",
                                 {},
                                 {},
                                 modifier,

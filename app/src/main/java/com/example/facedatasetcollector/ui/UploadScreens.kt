@@ -146,6 +146,7 @@ fun RejectedScreen(
     personName: String,
     photoCount: Int,
     problems: List<PoseProblem>,
+    stillEnrolled: Boolean,
     onRetakeAll: () -> Unit,
     onBackToRoster: () -> Unit,
     modifier: Modifier = Modifier,
@@ -184,6 +185,7 @@ fun RejectedScreen(
                 }
             }
         }
+        if (stillEnrolled) Text("Their current enrolment stays in use.", style = MaterialTheme.typography.bodyMedium)
         Text(
             "Consent is still on record, so the person does not need to agree again.",
             style = MaterialTheme.typography.bodyMedium,

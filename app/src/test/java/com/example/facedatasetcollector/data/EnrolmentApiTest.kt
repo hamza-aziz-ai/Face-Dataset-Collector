@@ -137,6 +137,20 @@ class EnrolmentApiTest {
     }
 
     @Test
+    fun uploadSendsAReasonOnlyForAReEnrolment() {
+        signedIn()
+        respond(202, """{"job_id":"j1"}""")
+        api.upload("p1", "c1", photos)
+        assertFalse(server.takeRequest().body!!.utf8().contains("name=\"reason\""))
+
+        respond(202, """{"job_id":"j2"}""")
+        api.upload("p1", "c1", photos, reason = ReEnrolReason.POOR_PHOTOS)
+        val body = server.takeRequest().body!!.utf8()
+        assertTrue(body.contains("name=\"reason\""))
+        assertTrue(body.contains("poor_photos"))
+    }
+
+    @Test
     fun uploadRetriesWithTheSameKeyAfterAnUnknownOutcome() {
         signedIn()
         dropConnection()

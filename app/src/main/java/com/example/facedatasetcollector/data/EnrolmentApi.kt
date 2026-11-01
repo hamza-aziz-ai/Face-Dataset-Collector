@@ -33,6 +33,13 @@ data class Person(val personId: String, val name: String, val employeeCode: Stri
 data class PersonPage(val persons: List<Person>, val nextCursor: String?)
 data class PoseProblem(val pose: String, val problem: String)
 
+/** Why an enrolled person is being enrolled again. The server keeps the old enrolment until the new job is accepted. */
+enum class ReEnrolReason(val wireName: String, val label: String) {
+    APPEARANCE_CHANGED("appearance_changed", "Appearance changed"),
+    POOR_PHOTOS("poor_photos", "Poor photos"),
+    OTHER("other", "Other"),
+}
+
 enum class JobStatus { PENDING, ACCEPTED, REJECTED }
 data class JobResult(val status: JobStatus, val problems: List<PoseProblem>)
 
@@ -127,12 +134,20 @@ class EnrolmentApi(
     /**
      * Uploads one set and retries only when the outcome is unknown or the server failed. Every retry reuses the same key, so a request that did land cannot create a second job.
      *
+     * @param reason set only for a re-enrolment, which makes the server treat this job as a replacement.
      * @return the job id. After this returns the server holds the photos, so the caller may discard them (202 is durable).
      */
-    fun upload(personId: String, consentId: String, photos: Map<Pose, ByteArray>, key: String = UUID.randomUUID().toString()): String {
+    fun upload(
+        personId: String,
+        consentId: String,
+        photos: Map<Pose, ByteArray>,
+        key: String = UUID.randomUUID().toString(),
+        reason: ReEnrolReason? = null,
+    ): String {
         val parts = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart("person_id", personId)
             .addFormDataPart("consent_id", consentId)
+        if (reason != null) parts.addFormDataPart("reason", reason.wireName)
         photos.forEach { (pose, bytes) ->
             parts.addFormDataPart(pose.wireName, "${pose.wireName}.jpg", bytes.toRequestBody(JPEG))
         }

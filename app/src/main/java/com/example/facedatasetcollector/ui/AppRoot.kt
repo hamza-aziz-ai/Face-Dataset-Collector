@@ -43,6 +43,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
             onSearch = model::search,
             onLoadMore = model::loadMorePersons,
             onSelect = model::selectPerson,
+            onReEnrol = model::selectPerson,
             onSignOut = model::signOut,
             modifier = modifier,
         )
@@ -69,6 +70,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                 personName = person?.name.orEmpty(),
                 photoCount = model.poseSet.size,
                 problems = state.problems,
+                stillEnrolled = model.reEnrolReason != null,
                 onRetakeAll = model::retakeAll,
                 onBackToRoster = model::finishEnrolment,
                 modifier = modifier,

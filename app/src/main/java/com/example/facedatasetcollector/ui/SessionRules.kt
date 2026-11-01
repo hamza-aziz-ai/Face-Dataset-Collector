@@ -23,6 +23,8 @@ fun messageForCode(code: String): String? = when (code) {
     "invalid_pose_set" -> "Some photos are missing. Cancel and take them again."
     "photo_too_large", "body_too_large" -> "The photos are too large to send. Cancel and take them again."
     "role_cannot_enrol" -> "This account cannot enrol people."
+    "enrolment_open" -> "This person already has an enrolment being checked. Cancel and wait for its result."
+    "reason_required" -> "This person is already enrolled. Cancel and use Re-enrol on the roster."
     else -> null
 }
 
