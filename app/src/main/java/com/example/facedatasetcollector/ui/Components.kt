@@ -1,5 +1,7 @@
 package com.example.facedatasetcollector.ui
 
+import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,9 +25,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -63,9 +67,7 @@ fun StaffPage(
     centred: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val density = LocalDensity.current
-    val scale = tabletFontScale(LocalConfiguration.current.smallestScreenWidthDp.dp)
-    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale * scale)) {
+    TabletScaledText {
         BoxWithConstraints(
             modifier
                 .fillMaxSize()
@@ -88,6 +90,25 @@ fun StaffPage(
                 },
             ) { content() }
         }
+    }
+}
+
+/** Applies [tabletFontScale] to everything inside. */
+@Composable
+fun TabletScaledText(content: @Composable () -> Unit) {
+    val density = LocalDensity.current
+    val scale = tabletFontScale(LocalConfiguration.current.smallestScreenWidthDp.dp)
+    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale * scale), content = content)
+}
+
+/** Keeps faces out of screenshots, screen recordings, and the recent-apps thumbnail while it is on screen. */
+@Composable
+fun SecureWindow() {
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val window = (context as Activity).window
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        onDispose { window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
     }
 }
 

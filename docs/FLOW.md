@@ -1,8 +1,8 @@
 # FLOW
 
-How execution travels through the app. App version 1.0 (`versionCode` 1). F0 was checked against branch `feat/connect-sign-in`, and F1 to F3 against commit `481cb7b`.
+How execution travels through the app. App version 1.0 (`versionCode` 1). Checked against branch `feat/capture-screen`.
 
-The app connects to a server and signs staff in, then shows a front camera preview with a quality warning. It does not capture, store, or upload anything yet. The planned enrolment flows are in `features/FEATURE-001-enrolment.md`.
+The app connects to a server and signs staff in, then guides 5 or 10 poses and holds the photos in memory for review. Upload is not connected yet. The enrolment plan is in `features/FEATURE-001-enrolment.md`.
 
 ## How to read the diagrams
 
@@ -77,33 +77,11 @@ flowchart TD
 6. Needs the checkbox and a glasses answer.
 7. `personDeclined` clears the selection and sends nothing.
 8. `POST /api/v1/consents` cites the notice version. The server takes staff from the session.
-9. The old preview stands in until the capture flow lands.
+9. Continues in F1.
 
 A `401` on any of these calls signs staff out and shows `Your session ended. Sign in again.`
 
-## F1: App start and camera permission
-
-```mermaid
-flowchart TD
-    classDef way fill:#dbeafe,stroke:#1d4ed8,color:#111827
-    classDef step fill:#dcfce7,stroke:#15803d,color:#111827
-    classDef choice fill:#fef3c7,stroke:#b45309,color:#111827
-    classDef seen fill:#ede9fe,stroke:#6d28d9,color:#111827
-    A["`**1** App opens`"]:::way --> B["`**2** Ask for camera permission`"]:::step
-    B --> C{"`**3** Granted?`"}:::choice
-    C -->|No| D["`**4** Camera permission required`"]:::seen
-    C -->|Yes| E["`**5** Set up detector, thread, and camera`"]:::step
-    E --> F["`**6** Live preview`"]:::seen
-```
-
-1. After sign-in, `AppRoot` shows `CameraPreview`.
-2. A `LaunchedEffect` requests `CAMERA` on first compose.
-3. `cameraPermissionState.status.isGranted` decides the branch.
-4. Denied: a static message. There is no retry button or link to Settings yet.
-5. Granted: `remember` creates one `FaceDetector`, one single-thread executor, and the `ImageAnalysis` use case, then `bindToLifecycle` binds the front camera.
-6. Preview runs and frames start reaching F2.
-
-## F2: Judging one camera frame
+## F1: Guided capture of one pose
 
 ```mermaid
 flowchart TD
@@ -113,41 +91,43 @@ flowchart TD
     classDef seen fill:#ede9fe,stroke:#6d28d9,color:#111827
     classDef bad fill:#fee2e2,stroke:#b91c1c,color:#111827
     classDef outside fill:#f3f4f6,stroke:#4b5563,color:#111827
-    A["`**1** CameraX frame, latest only`"]:::way --> B["`**2** FaceQualityAnalyzer on background thread`"]:::step
+    A["`**1** CameraX frame, latest only`"]:::way --> B["`**2** CaptureAnalyzer on background thread`"]:::step
     B --> C["`**3** ML Kit, on-device`"]:::outside
     C --> D{"`**4** Detection worked?`"}:::choice
-    D -->|No| E["`**5** DetectorFailed`"]:::bad
-    D -->|Yes| F{"`**6** How many faces?`"}:::choice
-    F -->|None| G["`**7** NoFaceDetected`"]:::seen
-    F -->|Two or more| H["`**8** MultipleFaces`"]:::seen
-    F -->|One| I["`**9** Average luma inside face box`"]:::step
-    I --> J{"`**10** Luma within policy?`"}:::choice
-    J -->|Below 100| K["`**11** TooDark`"]:::seen
-    J -->|Above 220| L["`**12** TooBright`"]:::seen
-    J -->|Yes| M["`**13** Good, no banner`"]:::seen
+    D -->|No| E["`**5** Capture blocked`"]:::bad
+    D -->|Yes| F["`**6** Measure the frame`"]:::step
+    F --> G{"`**7** PoseGuide: all checks pass?`"}:::choice
+    G -->|No| H["`**8** Show what to fix, reset timer`"]:::seen
+    G -->|Yes| I{"`**9** Steady long enough?`"}:::choice
+    I -->|Not yet| J["`**10** Hold still, ring fills`"]:::seen
+    I -->|Yes| K["`**11** Crop and encode this frame`"]:::step
+    K --> L["`**12** Bytes in memory, next pose`"]:::step
 ```
 
-1. `STRATEGY_KEEP_ONLY_LATEST` drops frames while one is being judged.
-2. `FaceQualityAnalyzer.analyze` runs on the single background thread. Every path closes the `ImageProxy` in one `finally`.
-3. `Tasks.await(detector.process(input))` blocks that thread. ML Kit is the bundled model, so detection runs on-device. Its telemetry library is covered in `THREAT.md`.
+1. `STRATEGY_KEEP_ONLY_LATEST` drops frames while one is being judged. The requested size is 1920 x 1080.
+2. `CaptureAnalyzer.analyze` runs on one background thread. Every path closes the `ImageProxy` in one `finally`.
+3. `Tasks.await` blocks that thread, using FAST mode with landmarks. Detection runs on-device. Telemetry is covered in `THREAT.md`.
 4. An exception means the check did not happen.
-5. Shown as a failure banner, never as "no face".
-6. `qualityFor` in `FaceQuality.kt` decides from the face count.
-7. Also the result when a box lies fully outside the frame.
-8. Exactly one person must be in frame.
-9. `uprightToBuffer` converts the box from upright to buffer coordinates, then `averageLuma` reads the Y plane using its row and pixel stride.
-10. Limits are in `QualityPolicy.kt`, version 1, and are not calibrated for a face crop yet.
-11. Banner asks for more light.
-12. Banner asks for less light.
-13. The result posts to the main thread and the banner clears.
+5. Shown as a failure, never as "no face".
+6. Euler angles, luma and `blurScore` on the face box, face width, centre offset, pupil distance.
+7. `PoseGuide.problemWith` checks one face, framing, pupil distance on front poses, head level, pose angle, light, and blur. There is no eyes-open check, because eyelids drop in the chin-down pose.
+8. Any failure resets the timer. So does a frame gap over `MAX_FRAME_GAP_MS`.
+9. Uses monotonic time. Moving more than `STEADY_DEGREES` restarts the wait.
+10. Fires `TakePhoto` once per pose.
+11. `encode` rotates and crops the same frame to 4:5 with `portraitCrop`. Analysis frames are unmirrored, so the JPEG is too, unlike the preview.
+12. `onPhoto` ignores a stale photo. Bytes go in `EnrolmentViewModel.photos`, and never to disk.
 
-`TooBlurry` exists but nothing sets it yet.
+All limits are in `QualityPolicy.kt` and are not calibrated yet.
+
+## F2: Review and leaving
+
+Staff see every photo and can retake one pose, which returns to F1 for that pose only. Nothing is sent until they upload. Cancel and the back key ask first, then clear the photos, and the consent stays on record. After more than `BACKGROUND_LIMIT_MS` away from the app, photos are cleared and staff are signed out. `FLAG_SECURE` blocks screenshots and the recents thumbnail on capture and review.
 
 ## F3: Teardown
 
 ```mermaid
 sequenceDiagram
-    participant C as CameraPreview
+    participant C as CaptureCamera
     participant X as ImageAnalysis
     participant T as Analyzer thread
     participant D as FaceDetector
@@ -158,7 +138,7 @@ sequenceDiagram
     T->>D: 5 close
 ```
 
-1. `DisposableEffect.onDispose` stops new frames.
+1. `DisposableEffect.onDispose` clears the target and stops new frames.
 2. Closing runs on the analyzer thread so it cannot race the running frame.
 3. `shutdown` lets queued work finish and accepts nothing new.
 4. The frame in progress completes and closes.

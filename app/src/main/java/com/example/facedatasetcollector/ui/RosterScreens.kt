@@ -156,7 +156,7 @@ fun PersonScreen(
 }
 
 @Composable
-private fun ChoiceButton(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier) {
+fun ChoiceButton(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val fill = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
     val text = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     val outline: Color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline

@@ -99,20 +99,6 @@ class FaceQualityTest {
         assertEquals(0, buffer.position())
     }
 
-    @Test
-    fun qualityFor_coversEveryOutcome() {
-        val min = QualityPolicy.MIN_FACE_LUMA
-        val max = QualityPolicy.MAX_FACE_LUMA
-
-        assertEquals(QualityState.NoFaceDetected, qualityFor(0, null))
-        assertEquals(QualityState.MultipleFaces, qualityFor(2, null))
-        assertEquals(QualityState.NoFaceDetected, qualityFor(1, null))
-        assertEquals(QualityState.TooDark, qualityFor(1, min - 1))
-        assertEquals(QualityState.Good, qualityFor(1, min))
-        assertEquals(QualityState.Good, qualityFor(1, max))
-        assertEquals(QualityState.TooBright, qualityFor(1, max + 1))
-    }
-
     private companion object {
         const val PADDING: Byte = 0x7F
     }

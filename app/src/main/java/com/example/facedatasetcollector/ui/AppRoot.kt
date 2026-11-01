@@ -39,7 +39,35 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
         Screen.Consent -> if (person != null && notice != null) {
             ConsentScreen(person, notice, model.busy, model.error, model::recordConsent, model::personDeclined, modifier)
         }
-        // ponytail: the old preview stands in until the capture flow lands.
-        Screen.Capture -> CameraPreview(modifier)
+        Screen.Capture -> {
+            SecureWindow()
+            val pose = model.capturePose
+            if (pose != null) {
+                CaptureScreen(
+                    pose = pose,
+                    set = model.poseSet,
+                    uploadingTo = "${server?.clientName.orEmpty()} (${model.serverHost.orEmpty()})",
+                    onPhoto = model::onPhoto,
+                    onCancel = model::cancelCapture,
+                    modifier = modifier,
+                )
+            }
+        }
+        Screen.Review -> {
+            SecureWindow()
+            ReviewScreen(
+                personName = person?.name.orEmpty(),
+                photos = model.photos,
+                set = model.poseSet,
+                isMock = model.isMock,
+                busy = model.busy,
+                error = model.error,
+                onRetake = model::retake,
+                // ponytail: upload lands in the next PR. Until then this only clears the photos.
+                onUpload = model::finishEnrolment,
+                onCancel = model::cancelCapture,
+                modifier = modifier,
+            )
+        }
     }
 }

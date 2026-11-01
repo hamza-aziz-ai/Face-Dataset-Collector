@@ -13,11 +13,12 @@ There is one Gradle module, `:app`.
 | `ui/AppRoot.kt`, `ui/ConnectScreens.kt`, `ui/RosterScreens.kt`, `ui/Components.kt` | Screens and shared controls |
 | `ui/SessionRules.kt` | Client check and staff-facing error messages |
 | `data/ServerStore.kt` | The server this device is bound to |
-| `ui/CameraPreview.kt` | Permission, camera binding, lifecycle, banner |
-| `ui/FaceQualityAnalyzer.kt` | Judging a frame on the background thread, closing it, timing log |
-| `ui/FaceQuality.kt` | Pure logic: coordinates, face luma, quality decision |
+| `ui/CaptureScreen.kt` | Camera binding and teardown, guide overlay, capture layouts |
+| `ui/CaptureAnalyzer.kt` | Judging a frame on the background thread, keeping the accepted frame, timing log |
+| `ui/GuidedCapture.kt` | Pure logic: pose checks, steady timer, blur score, crop |
+| `ui/FaceQuality.kt` | Pure logic: coordinates and face luma |
 | `ui/QualityPolicy.kt` | Every quality threshold and the policy version |
-| `ui/QualityState.kt` | The possible frame results |
+| `ui/ReviewScreen.kt` | Review and retake |
 | `ui/theme/` | Colours and typography |
 | `data/EnrolmentApi.kt` | HTTP calls, upload retry, job polling |
 | `data/ServerSetup.kt` | Validates the server address and setup code |
@@ -38,7 +39,7 @@ flowchart TD
     classDef outside fill:#f3f4f6,stroke:#4b5563,color:#111827
     A["`Front camera`"]:::way --> B["`CameraX`"]:::outside
     B --> C["`Compose UI, main thread`"]:::step
-    B --> D["`FaceQualityAnalyzer, background thread`"]:::step
+    B --> D["`CaptureAnalyzer, background thread`"]:::step
     D --> E["`ML Kit, bundled, on-device`"]:::outside
     D -.->|Result posted| C
 ```
@@ -67,7 +68,8 @@ CI is defined in `.github/workflows/ci.yml` but has never run, because GitHub re
 | Camera frames | Memory, one at a time | CameraX | Closed after judging |
 | Server address and client | Private app preferences, excluded from backup | Connect step | Until reset |
 | Session token | Memory | Login | Until sign-out or process death |
-| Quality result | Compose state | Analyzer, through the main thread | Replaced on each frame |
+| Guidance | Compose state | Analyzer, through the main thread | Replaced on each frame |
+| Captured JPEGs | Memory, `EnrolmentViewModel.photos` | Analyzer, through the main thread | Until cancel, sign-out, or process death |
 | Timing log | Logcat | Analyzer | Device log buffer, aggregates only |
 
 The planned design for captured images, consent, and tokens is in `DATA.md`.
@@ -80,9 +82,9 @@ The planned design for captured images, consent, and tokens is in `DATA.md`.
 
 ## Ownership of critical logic
 
-- Frame close and detector failure handling: `FaceQualityAnalyzer.analyze`.
-- Teardown order: `DisposableEffect` in `CameraPreview`.
-- Quality decision: `qualityFor`, using `QualityPolicy`.
+- Frame close and detector failure handling: `CaptureAnalyzer.analyze`.
+- Teardown order: `DisposableEffect` in `CaptureCamera`.
+- Keep or reject a frame: `PoseGuide`, using `QualityPolicy`.
 - Backup exclusion: `AndroidManifest.xml` and the two files in `res/xml/`.
 
 ## Screen sizes

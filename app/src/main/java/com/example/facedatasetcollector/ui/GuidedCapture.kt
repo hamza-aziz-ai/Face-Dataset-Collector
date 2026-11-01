@@ -16,6 +16,8 @@ data class FrameReading(
     val blurScore: Double? = null,
     val faceWidthFraction: Float = 0f,
     val faceCentreOffset: Float = 0f,
+    /** Pupil distance in pixels of the kept photo. Null when an eye is not found, which is normal at a side pose. */
+    val pupilDistance: Float? = null,
 )
 
 sealed interface Guidance {
@@ -36,6 +38,8 @@ fun promptFor(pose: Pose): String = when (pose) {
     Pose.LEFT_30, Pose.LEFT_30_GLASSES -> "Turn your head to the left"
     Pose.RIGHT_30, Pose.RIGHT_30_GLASSES -> "Turn your head to the right"
 }
+
+private val FRONT_POSES = setOf(Pose.FRONT, Pose.FRONT_GLASSES)
 
 private data class AngleRange(val yaw: ClosedFloatingPointRange<Float>, val pitch: ClosedFloatingPointRange<Float>)
 
@@ -102,6 +106,9 @@ class PoseGuide(private val pose: Pose) {
         if (frame.faceWidthFraction < policy.MIN_FACE_WIDTH) return "Move closer"
         if (frame.faceWidthFraction > policy.MAX_FACE_WIDTH) return "Move back a little"
         if (frame.faceCentreOffset > policy.MAX_CENTRE_OFFSET) return "Centre your face in the oval"
+        // Front poses only: turning the head shortens this distance without losing any detail.
+        val pupils = frame.pupilDistance
+        if (pose in FRONT_POSES && pupils != null && pupils < policy.MIN_PUPIL_PIXELS) return "Move closer"
 
         val range = rangeFor(pose)
         val yaw = frame.yaw * policy.YAW_SIGN

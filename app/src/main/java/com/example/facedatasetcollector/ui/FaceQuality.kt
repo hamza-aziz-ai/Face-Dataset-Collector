@@ -47,13 +47,3 @@ fun averageLuma(
     }
     return (sum / ((right - left).toLong() * (bottom - top))).toInt()
 }
-
-/** @param faceLuma average luma of the single face, or null when it could not be measured. */
-fun qualityFor(faceCount: Int, faceLuma: Int?): QualityState = when {
-    faceCount == 0 -> QualityState.NoFaceDetected
-    faceCount > 1 -> QualityState.MultipleFaces
-    faceLuma == null -> QualityState.NoFaceDetected
-    faceLuma < QualityPolicy.MIN_FACE_LUMA -> QualityState.TooDark
-    faceLuma > QualityPolicy.MAX_FACE_LUMA -> QualityState.TooBright
-    else -> QualityState.Good
-}
