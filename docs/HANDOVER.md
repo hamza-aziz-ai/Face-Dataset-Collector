@@ -7,6 +7,7 @@ Newest entry on top. Read this first every session and update it last.
 Done:
 - Owner's camera session on CPH2381 and OPD2203, glasses sets, against the mock. Retake by hand works. Tablet real capture works in portrait and landscape.
 - `bridge` without glasses 1.5 to 2.1, with glasses 2.3 to 4.4. Front pitch +1 to +10, chin up 18.6 to 30, chin down -9.6 to -16.3.
+- Release builds are signed by hand from the owner's keystore (D-022). The first signed release ran on OPD2203: QR-only setup, `k1` codes accepted, unsigned codes refused.
 - The owner created the signing key offline and shared the public part, now `k1` in `SetupKeys.kt`. A code the owner signed scanned as genuine on the tablet, and a changed copy was refused.
 - Review warns when 3 of 5 photos in a half look wrong for glasses, with a cutoff of 2.4 (D-021). It never blocks upload. `QualityPolicy.VERSION` is now 2.
 
@@ -17,6 +18,7 @@ Broken or risky:
 - The glasses warning rests on one face and one pair of glasses. Rimless frames and other light are untested.
 - On the tablet, the no-glasses set was in landscape and the glasses set in portrait, so orientation and glasses are mixed in its numbers.
 - Front pitch passed at +7 to +10 on the phone, against a limit of 10, which explains the frequent `Lower your chin a little`. Left as it is, since it passes.
+- The release keystore and its password file were in `~/.ssh` on the laptop at first build. Move both to the key drives, as the setup key was.
 - `SetupKeys.kt` now holds the owner's key `k1`. The private key must stay offline, never in this repo or with an AI tool.
 - Codex and its PR bot have not reviewed PR #25 onward. Their limit resets 2026-11-04.
 - `Only one person should be in view` fired on 3 frames across earlier runs, cause unknown.
