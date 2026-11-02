@@ -8,7 +8,7 @@ Staff at a client organisation use this Android app to enrol people from their r
 
 ## How it works
 
-1. Staff set up the device once, by QR code or typed address, and sign in.
+1. Staff set up the device once, by signed QR code, and sign in.
 2. They pick a person from the roster, show the notice, and record consent.
 3. The camera checks each frame on the device and keeps the frame that passes.
 4. Photos stay in memory until staff review and upload them.
@@ -30,7 +30,7 @@ Photos are a map from pose to JPEG bytes. It makes each pose unique, so a retake
 
 ## How a malicious actor could abuse it
 
-- A forged setup code points a device at another server. Today the only defence is staff reading the host at sign-in, and codes must be signed before outside clients (D-014).
+- A forged setup code cannot bind a release build, because codes are signed with an offline key (D-020). A genuine code for one client can still be used on another client's device, though staff then see the signed name and address.
 - A staff member enrols someone without consent, or replaces a person's enrolment with another face. Consent and reason are recorded, but nothing compares faces, and server audit is unspecified.
 - A person holds up a photo. There is no liveness check, so staff must supervise.
 

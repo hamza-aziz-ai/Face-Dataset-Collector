@@ -25,7 +25,7 @@ The tenant always comes from the staff login, never from a request field (CCTV D
 Source: CCTV session, 2026-10-31. Owner decisions, relayed by that session: no certificate pinning for now, with normal HTTPS validation and a private CA only for the dedicated LAN case. One server-side encryption key for now, with per-client keys a gap to close before a real client. Photos, vectors, and crops are deleted 30 days after withdrawal or leaving. Each client supplies its own withdrawal contact, which the app shows as served.
 
 - The API host differs per client, so the app hardcodes none. Client-dedicated: the client's own server. Centralized: one HTTPS hostname per client.
-- Setup happens once, by QR code with a typed fallback. Payload: `{base_url, client_id}`.
+- Setup happens once, by signed QR code. Payload: `{base_url, client_id, client_name, kid, sig}`, signed offline by the owner (D-020, `SETUP-CODES.md`). The typed address exists in debug builds only.
 - `GET /api/v1/server-info` returns `{client_id, client_name, notice_version, notice_url}`. If `client_id` differs from the stored one, the app refuses and asks for setup again.
 - HTTPS only. A private CA is allowed only for the dedicated LAN case.
 - The enrolment contract is identical in both options. Storage is the server's concern: one bucket per client, with a separate encryption key per client.
@@ -100,6 +100,7 @@ Agreed with Codex on 2026-10-31. Login and consent ship before capture.
 - 2026-10-31: during a device check, a real face was in view of the phone and the app likely auto-captured it. Photos stayed in memory and were cleared on cancel. A file audit found no images on either device, and the mock logged no uploads.
 - 2026-10-31: roster and consent screens built.
 - 2026-10-31: connect and sign-in built and checked on the phone against the mock. QR setup not built yet.
+- 2026-11-02: setup codes signed, typed address removed from release (D-020).
 - 2026-11-02: first real-face runs by the owner on CPH2381, all 3 sample people through upload. 5 poses in about 24 s once settled, left and right correct. Glasses step added after the owner found the switch unclear (D-019).
 - 2026-11-01: consent withdrawal added to the cancel dialogs (D-018).
 - 2026-11-01: owner signed off the notice for the owner's own test only (D-015).

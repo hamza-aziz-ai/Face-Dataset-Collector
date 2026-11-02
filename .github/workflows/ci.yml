@@ -20,6 +20,8 @@ jobs:
         run: bash tools/ci/check_images.sh
       - name: Mock server tests
         run: python3 -m unittest discover -s tools/mock_server
+      - name: Setup code signing tests
+        run: python3 -m unittest discover -s tools/setup_codes
       - uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:

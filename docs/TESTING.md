@@ -6,6 +6,7 @@ A change is done only when these pass and the real output was seen.
 
 `.github/workflows/ci.yml` runs:
 
+1. `python3 -m unittest discover -s tools/setup_codes`: passes on `OK`.
 1. `gitleaks`, the same pinned action as the CCTV repo, in its own `secrets` job: passes when no secret is found in the commits scanned.
 1. `bash tools/ci/check_images.sh`: passes when every image is in `tools/ci/image-allowlist.txt`.
 2. Gradle wrapper validation.
@@ -28,6 +29,10 @@ Pass for step 4: `OK (1 test)` and 0 crash lines.
 ## Whole flow, no camera
 
 With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (20 tests)`, in about 2 minutes. Each test starts with `POST /mock/reset`. The device must be awake and unlocked, or every test fails with `No compose hierarchies found` or hangs. The test keeps an empty activity open, because these OnePlus devices freeze a process with nothing on screen after about 27 s, and the run then hangs with no failure.
+
+## Signed setup codes, no camera
+
+Run `SetupSignatureDeviceTest` with `am instrument`. Android's crypto provider differs from the JVM's, so unit tests alone are not enough. Pass: `OK (2 tests)`. No mock needed.
 
 ## Re-enrol tap path, no camera
 
@@ -68,6 +73,8 @@ Pass: all poses complete on both devices without fighting the prompts, left and 
 ## Release build check
 
 Run `./gradlew assembleRelease`, then `aapt2 dump xmltree <apk> --file AndroidManifest.xml`. Pass: no `debuggable`, `usesCleartextTraffic`, or `networkSecurityConfig`, `allowBackup` is false, both backup rule files are set, and the only permissions are `CAMERA`, `INTERNET`, and `ACCESS_NETWORK_STATE`.
+
+Also check the connect screen with `ScreenGalleryTest -e screen connect-release`, which has no typed address.
 
 Result on 2026-11-01: passed. The APK is 51 MB, with minify off. It is unsigned, so it cannot be installed and has not been run. Plain HTTP and the mock address are refused by `normalizeBaseUrl` when `BuildConfig.DEBUG` is false, which unit tests cover.
 

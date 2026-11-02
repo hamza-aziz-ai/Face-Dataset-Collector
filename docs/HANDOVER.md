@@ -2,7 +2,37 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-11-02, first real-face runs (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-11-02, signed setup codes (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- Setup codes are signed with ECDSA P-256, using an offline key the owner holds (D-020). The code signs the address, client ID, and client name, and staff see the signed name. Steps are in `SETUP-CODES.md`.
+- Release builds accept signed codes only, with no typed address. Debug builds keep typing and unsigned mock codes.
+- `tools/setup_codes/` signs codes offline. A fixture signed by that tool verifies in JVM tests and on CPH2381.
+- Review shows the numbers behind each photo against the mock, so tuning no longer depends on reading a moving panel.
+
+In progress:
+- Nothing.
+
+Broken or risky:
+- `SetupKeys.kt` is empty, so a release build cannot be set up until the owner creates the key and shares the public part. Never put the private key in this repo or give it to an AI tool.
+- Codes never expire and work on any device. A rogue client's genuine code can point another client's device at it, though staff then see the rogue's signed name and address.
+- Glasses are not detected. `bridge` and `pitch` numbers are still needed, so the warning and tuning are blocked on the next camera session.
+- Retake by hand is unconfirmed. The tablet has no real capture yet and lacks recent builds.
+- Codex and its PR bot have not reviewed PR #25 onward. Their limit resets 2026-11-04. Independent reviews covered PR #25 and the signing PR.
+- `Only one person should be in view` fired on 3 frames across the runs, cause unknown.
+
+Next:
+- Owner's short camera session: 10 photos to the review screen, read `bridge` and `pitch`, do one retake, and repeat on the tablet.
+- Owner creates the signing key and shares the public key.
+- Staff sign-off: legal basis, final notice, withdrawal contact, retention, and whether a withdrawal during re-enrolment also ends the old enrolment.
+- Release build: signing, plus private CA if the server sits on a LAN.
+
+Do not touch:
+- `QualityPolicy.kt` values, until the numbers above exist.
+
+Read first: `CONSTRAINTS.md`, `features/FEATURE-001-enrolment.md`, `TESTING.md`, `SETUP-CODES.md`.
+
+## Earlier session: 2026-11-02, first real-face runs (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - Owner ran capture on CPH2381 on their own face (D-015). `CameraLifecycleTest` passed first: `OK (1 test)`, camera closed, 0 images on disk.

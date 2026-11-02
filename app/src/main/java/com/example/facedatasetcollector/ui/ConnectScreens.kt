@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,10 +38,18 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.facedatasetcollector.BuildConfig
 import com.example.facedatasetcollector.R
 
 @Composable
-fun ConnectScreen(busy: Boolean, error: String?, onScan: () -> Unit, onConnect: (String) -> Unit, modifier: Modifier = Modifier) {
+fun ConnectScreen(
+    busy: Boolean,
+    error: String?,
+    onScan: () -> Unit,
+    onConnect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    allowTyped: Boolean = BuildConfig.DEBUG,
+) {
     var address by rememberSaveable { mutableStateOf("") }
 
     StaffPage(modifier, centred = true) {
@@ -68,24 +77,28 @@ fun ConnectScreen(busy: Boolean, error: String?, onScan: () -> Unit, onConnect: 
                 Text("Scan setup QR code", style = MaterialTheme.typography.labelLarge)
             }
         }
-        OutlinedTextField(
-            value = address,
-            onValueChange = { address = it },
-            label = { Text("Or type the server address") },
-            placeholder = { Text("https://attendance.example.com") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go, autoCorrectEnabled = false),
-            keyboardActions = KeyboardActions(onGo = { onConnect(address) }),
-            modifier = Modifier.fillMaxWidth(),
-        )
+        if (allowTyped) {
+            OutlinedTextField(
+                value = address,
+                onValueChange = { address = it },
+                label = { Text("Or type the server address") },
+                placeholder = { Text("https://attendance.example.com") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go, autoCorrectEnabled = false),
+                keyboardActions = KeyboardActions(onGo = { onConnect(address) }),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         ErrorMessage(error)
-        OutlinedButton(
-            onClick = { onConnect(address) },
-            enabled = !busy && address.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().height(if (LocalConfiguration.current.smallestScreenWidthDp >= 600) 64.dp else 52.dp),
-            shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-        ) { Text("Connect", style = MaterialTheme.typography.labelLarge) }
+        if (allowTyped) {
+            OutlinedButton(
+                onClick = { onConnect(address) },
+                enabled = !busy && address.isNotBlank(),
+                modifier = Modifier.fillMaxWidth().height(if (LocalConfiguration.current.smallestScreenWidthDp >= 600) 64.dp else 52.dp),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+            ) { Text("Connect", style = MaterialTheme.typography.labelLarge) }
+        }
         Text(
             "HTTPS only. This can be your organisation's own server or a central one run on its behalf.",
             style = MaterialTheme.typography.bodyMedium,
@@ -105,6 +118,16 @@ fun SignInScreen(
     onChangeServer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var confirmChange by remember { mutableStateOf(false) }
+    if (confirmChange) {
+        AlertDialog(
+            onDismissRequest = { confirmChange = false },
+            title = { Text("Set up this device again?") },
+            text = { Text("It will forget $clientName. You will need a new setup code from your administrator.") },
+            confirmButton = { TextButton(onClick = onChangeServer) { Text("Set up again") } },
+            dismissButton = { TextButton(onClick = { confirmChange = false }) { Text("Keep this server") } },
+        )
+    }
     var username by rememberSaveable { mutableStateOf("") }
     // WHY remember, not rememberSaveable: a password must not go into saved instance state.
     var password by remember { mutableStateOf("") }
@@ -162,7 +185,7 @@ fun SignInScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        TextButton(onClick = onChangeServer, enabled = !busy, modifier = Modifier.height(44.dp)) { Text("Use a different server") }
+        TextButton(onClick = { confirmChange = true }, enabled = !busy, modifier = Modifier.height(44.dp)) { Text("Use a different server") }
     }
 }
 

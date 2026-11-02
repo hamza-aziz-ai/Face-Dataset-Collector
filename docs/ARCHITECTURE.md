@@ -25,8 +25,10 @@ There is one Gradle module, `:app`.
 | `data/EnrolmentApi.kt` | HTTP calls, upload retry, job polling |
 | `data/ServerSetup.kt` | Validates the server address and setup code |
 | `data/QrDecoder.kt` | Finds a QR code in a brightness plane, using ZXing |
+| `data/SetupSignature.kt`, `data/SetupKeys.kt` | Verifies setup code signatures, and lists the trusted public keys |
 | `data/Pose.kt` | The pose set and its contract names |
 | `tools/ci/` | Image allowlist and its check |
+| `tools/setup_codes/` | Offline signing tool for setup codes |
 | `tools/mock_server/` | Mock enrolment server for development, never deployed |
 
 ## Legend
