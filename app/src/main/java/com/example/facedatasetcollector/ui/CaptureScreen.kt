@@ -384,6 +384,7 @@ fun CaptureScreen(
     set: List<Pose>,
     uploadingTo: String,
     showReadout: Boolean,
+    onFrameReading: (FrameReading) -> Unit,
     onPhoto: (Pose, ByteArray) -> Unit,
     onCancel: () -> Unit,
     onWithdraw: () -> Unit,
@@ -426,7 +427,10 @@ fun CaptureScreen(
                     onPhoto = onPhoto,
                     onFailure = { failed = true },
                     modifier = Modifier.fillMaxSize(),
-                    onReading = if (showReadout) ({ reading = it }) else null,
+                    onReading = if (showReadout) ({ frame ->
+                        reading = frame
+                        onFrameReading(frame)
+                    }) else null,
                 )
                 GuideOverlay(
                     cueFor(pose),

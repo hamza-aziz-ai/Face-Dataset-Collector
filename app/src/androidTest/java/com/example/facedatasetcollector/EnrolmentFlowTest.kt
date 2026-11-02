@@ -16,6 +16,7 @@ import com.example.facedatasetcollector.data.EnrolmentStatus
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.ReEnrolReason
 import com.example.facedatasetcollector.ui.EnrolmentViewModel
+import com.example.facedatasetcollector.ui.FrameReading
 import com.example.facedatasetcollector.ui.RE_ENROL_STAYS
 import com.example.facedatasetcollector.ui.Screen
 import com.example.facedatasetcollector.ui.UploadState
@@ -231,6 +232,22 @@ class EnrolmentFlowTest {
         takePhotosFromHere()
         onMain { model.retake(Pose.LEFT_30) }
         assertTrue(read { model.needsGlassesStep })
+    }
+
+    @Test
+    fun tuningNotes_followThePhotoAndClearWithIt() {
+        val person = read { model.persons[0] }
+        onMain { model.selectPerson(person) }
+        awaitUntil { model.screen == Screen.Consent && !model.busy }
+        onMain { model.recordConsent(false) }
+        awaitUntil { model.screen == Screen.Capture && !model.busy }
+        onMain {
+            model.onReading(FrameReading(0, 1, pitch = 2f, bridgeEdge = 5f))
+            model.onPhoto(Pose.FRONT, syntheticJpeg(0))
+        }
+        assertTrue(read { model.tuningNotes[Pose.FRONT] }!!.contains("bridge 5.0"))
+        onMain { model.cancelCapture() }
+        assertTrue(read { model.tuningNotes.isEmpty() })
     }
 
     @Test

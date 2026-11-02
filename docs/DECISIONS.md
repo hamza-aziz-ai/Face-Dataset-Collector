@@ -245,7 +245,7 @@ Options:
 Chosen: 1.
 Why: it keeps the data rule intact, and the numbers leave no trace once the screen closes. Prompt counts and timings still show which check holds a pose back.
 Trade-off: exact values must be read off the screen, because `FLAG_SECURE` blocks screenshots.
-Also: the readout and the tally appear only when `isMock` is true, meaning a debug build on loopback, so a real server never shows them.
+Also: the readout and the tally appear only when `isMock` is true, meaning a debug build on loopback, so a real server never shows them. Review shows the numbers behind each kept photo under the same rule, because a moving panel proved too hard to read. They live in memory and clear with the photos.
 Revisit if: tuning needs values the screen cannot show fast enough.
 
 ## D-017: Stop work when an enrolment ends, and block decline during a consent call

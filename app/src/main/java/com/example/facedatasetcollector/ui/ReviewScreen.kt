@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -43,7 +44,7 @@ private fun previewOf(jpeg: ByteArray): ImageBitmap? =
     BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, BitmapFactory.Options().apply { inSampleSize = PREVIEW_SAMPLE_SIZE })?.asImageBitmap()
 
 @Composable
-private fun PhotoTile(pose: Pose, jpeg: ByteArray, onRetake: () -> Unit, modifier: Modifier) {
+private fun PhotoTile(pose: Pose, jpeg: ByteArray, note: String?, onRetake: () -> Unit, modifier: Modifier) {
     val preview = remember(jpeg) { previewOf(jpeg) }
     Column(
         modifier
@@ -67,6 +68,9 @@ private fun PhotoTile(pose: Pose, jpeg: ByteArray, onRetake: () -> Unit, modifie
             Text(pose.label, style = MaterialTheme.typography.labelMedium)
             TextButton(onClick = onRetake) { Text("Retake") }
         }
+        if (note != null) {
+            Text(note, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 8.dp))
+        }
     }
 }
 
@@ -89,6 +93,7 @@ fun ReviewScreen(
     onWithdraw: () -> Unit,
     reEnrolling: Boolean,
     modifier: Modifier = Modifier,
+    tuningNotes: Map<Pose, String> = emptyMap(),
 ) {
     var confirmCancel by remember { mutableStateOf(false) }
     var showGlasses by remember { mutableStateOf(false) }
@@ -157,7 +162,7 @@ fun ReviewScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         row.forEach { pose ->
                             val jpeg = photos[pose]
-                            if (jpeg != null) PhotoTile(pose, jpeg, { onRetake(pose) }, Modifier.weight(1f))
+                            if (jpeg != null) PhotoTile(pose, jpeg, tuningNotes[pose], { onRetake(pose) }, Modifier.weight(1f))
                         }
                         repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                     }

@@ -103,6 +103,10 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** JPEG bytes, in memory only (D-002). Never written to disk, and lost if the process dies. */
     val photos = mutableStateMapOf<Pose, ByteArray>()
+
+    /** The numbers behind each kept photo, for tuning against the mock. Memory only, shown on review and never logged (D-016). */
+    val tuningNotes = mutableStateMapOf<Pose, String>()
+    private var lastReading: FrameReading? = null
     var poseSet by mutableStateOf<List<Pose>>(emptyList())
         private set
     var capturePose by mutableStateOf<Pose?>(null)
@@ -262,6 +266,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     private fun startCapture() {
         glassesConfirmed = null
         photos.clear()
+        tuningNotes.clear()
         uploadKey = null
         uploadState = null
         retaking = false
@@ -280,6 +285,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         val now = SystemClock.elapsedRealtime()
         if (isMock) Log.d(TAG, "pose=${pose.wireName} poseMs=${now - poseStartedAt} photoBytes=${jpeg.size}")
         poseStartedAt = now
+        if (isMock) lastReading?.let { tuningNotes[pose] = tuningNote(it) }
         photos[pose] = jpeg
         uploadKey = null
         val next = if (retaking) null else poseSet.getOrNull(poseSet.indexOf(pose) + 1)
@@ -288,6 +294,11 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
             retaking = false
             screen = Screen.Review
         }
+    }
+
+    /** Arrives before the photo from the same frame, because both are posted in order to the main thread. */
+    fun onReading(frame: FrameReading) {
+        lastReading = frame
     }
 
     fun retake(pose: Pose) {
@@ -478,6 +489,8 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         glassesConfirmed = null
         reEnrolReason = null
         photos.clear()
+        tuningNotes.clear()
+        lastReading = null
         poseSet = emptyList()
         capturePose = null
         retaking = false

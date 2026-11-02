@@ -39,7 +39,7 @@ Held in memory only. Cleared on logout and after the background timeout. Never l
 
 ## Metrics
 
-Aggregate technical timings only, with no subject or session identifiers. Per-person angles, landmarks, and quality scores are face-derived data and are not logged. In a debug build on the mock, the capture screen shows them live, and only counts of each fixed prompt, pose timings, and photo sizes are logged (D-016).
+Aggregate technical timings only, with no subject or session identifiers. Per-person angles, landmarks, and quality scores are face-derived data and are not logged. In a debug build on the mock, the capture screen shows them live, review shows them for each kept photo, and only counts of each fixed prompt, pose timings, and photo sizes are logged (D-016).
 
 ## Telemetry to Google
 
