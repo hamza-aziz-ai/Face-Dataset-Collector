@@ -4,7 +4,7 @@ How to undo a change. Nothing has been released, so today this covers code only.
 
 ## Last known good
 
-`a3c2188` on `main`, 2026-11-02, CI passing. Update this line after each merge that matters. Tag `pre-merge-2026-11-01` marks `main` before the first merges.
+`687d4b9` on `main`, 2026-11-02, CI passing. Update this line after each merge that matters. Tag `pre-merge-2026-11-01` marks `main` before the first merges.
 
 ## Undo a merged PR
 
