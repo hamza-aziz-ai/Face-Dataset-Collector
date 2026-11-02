@@ -1,12 +1,17 @@
 package com.example.facedatasetcollector.data
 
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.json.JSONException
 import org.json.JSONObject
 import java.net.URI
 import java.net.URISyntaxException
 
-/** What a setup QR code gives the app. [clientId] is null when the address was typed, and is then taken from server-info. */
-data class ServerSetup(val baseUrl: String, val clientId: String?) {
+/**
+ * What a setup QR code gives the app. [clientId] is null when the address was typed, and is then taken from server-info.
+ *
+ * @param clientName the signed name, shown to staff instead of what the server says about itself. Null for a typed address or the mock.
+ */
+data class ServerSetup(val baseUrl: String, val clientId: String?, val clientName: String? = null) {
     /** A setup code names its client, so a server answering as anyone else is refused before anything is stored. */
     fun requireClient(serverClientId: String) {
         if (clientId != null && clientId != serverClientId) {
@@ -16,6 +21,13 @@ data class ServerSetup(val baseUrl: String, val clientId: String?) {
 }
 
 class InvalidServerAddress(message: String) : Exception(message)
+
+private const val MAX_SETUP_CODE_LENGTH = 1024
+private const val MAX_CLIENT_NAME = 80
+private val UNPRINTABLE = Regex("[\\s\\p{C}]+")
+
+/** Staff trust this name beside the address, so it must not be able to push the address out of view. */
+fun cleanClientName(name: String): String = name.replace(UNPRINTABLE, " ").trim().take(MAX_CLIENT_NAME)
 
 /**
  * Trust boundary: a typed address or scanned QR code decides where face photos go, so anything other than a plain server origin is refused.
@@ -42,7 +54,10 @@ fun normalizeBaseUrl(raw: String, allowLoopbackHttp: Boolean): String {
     // URI accepts any number here, and the HTTP client would crash on it later.
     if (uri.port != -1 && uri.port !in 1..65535) throw InvalidServerAddress("This is not a valid server address.")
     val port = if (uri.port == -1) "" else ":${uri.port}"
-    return "$scheme://$host$port"
+    val address = "$scheme://$host$port"
+    // URI is looser than the HTTP client, for example on long host labels, and a mismatch here would crash later.
+    if (address.toHttpUrlOrNull() == null) throw InvalidServerAddress("This is not a valid server address.")
+    return address
 }
 
 /**
@@ -51,6 +66,8 @@ fun normalizeBaseUrl(raw: String, allowLoopbackHttp: Boolean): String {
  * @param keys public keys allowed to sign, by key ID.
  */
 fun parseSetupCode(raw: String, allowLoopbackHttp: Boolean, keys: Map<String, String> = SetupKeys.trusted): ServerSetup {
+    // WHY: the JSON parser recurses, so a code of nested brackets could overflow the stack. A real code is far shorter.
+    if (raw.length > MAX_SETUP_CODE_LENGTH) throw InvalidServerAddress("This is not a setup code.")
     val json = try {
         JSONObject(raw)
     } catch (_: JSONException) {
@@ -59,11 +76,16 @@ fun parseSetupCode(raw: String, allowLoopbackHttp: Boolean, keys: Map<String, St
     val baseUrl = json.optString("base_url")
     val clientId = json.optString("client_id")
     if (baseUrl.isEmpty() || clientId.isEmpty()) throw InvalidServerAddress("This setup code is incomplete.")
-    val normalized = normalizeBaseUrl(baseUrl, allowLoopbackHttp)
-    // Only the local mock runs unsigned, and normalizeBaseUrl allows http only for loopback in debug builds.
-    val mockCode = allowLoopbackHttp && normalized.startsWith("http://")
-    if (!mockCode && !isSignedSetupCode(baseUrl, clientId, json.optString("kid"), json.optString("sig"), keys)) {
-        throw InvalidServerAddress("This setup code could not be verified. Ask your administrator for a new one.")
+    val unverified = InvalidServerAddress("This setup code could not be verified. Ask your administrator for a new one.")
+    val normalized = try {
+        normalizeBaseUrl(baseUrl, allowLoopbackHttp)
+    } catch (_: InvalidServerAddress) {
+        throw unverified
     }
-    return ServerSetup(normalized, clientId)
+    // Only the local mock runs unsigned, and normalizeBaseUrl allows http only for loopback in debug builds.
+    if (allowLoopbackHttp && normalized.startsWith("http://")) return ServerSetup(normalized, clientId)
+
+    val clientName = json.optString("client_name")
+    if (!isSignedSetupCode(baseUrl, clientId, clientName, json.optString("kid"), json.optString("sig"), keys)) throw unverified
+    return ServerSetup(normalized, clientId, cleanClientName(clientName))
 }

@@ -309,6 +309,6 @@ Options:
 
 Chosen: 1.
 Why: Android has ECDSA P-256 from API 23 with no new dependency, while Ed25519 needs API 33 or a library. A warning can be talked past, and a typed address would bypass the signature. An online key means one server breach could forge codes for every client.
-Trade-off: the owner must sign each client's code, and changing the key needs an app release. An unreadable code stops setup until an administrator helps. Until `SetupKeys.kt` has a key, a release build cannot be set up.
-Also: debug builds keep the typed address and accept unsigned codes for the local mock only. Format and steps are in `SETUP-CODES.md`.
+Trade-off: the owner must sign each client's code, and changing the key needs an app release. Codes never expire and are not tied to a device. An unreadable code stops setup until an administrator helps. Until `SetupKeys.kt` has a key, a release build cannot be set up.
+Also: the code signs `client_name` as well, and staff see that name, so a rogue client with a genuine code cannot pose as another client. Debug builds keep the typed address and accept unsigned codes for the local mock only. Format and steps are in `SETUP-CODES.md`.
 Revisit if: the number of clients makes signing by hand a bottleneck.

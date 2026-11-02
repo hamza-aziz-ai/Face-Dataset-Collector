@@ -30,6 +30,10 @@ Pass for step 4: `OK (1 test)` and 0 crash lines.
 
 With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (20 tests)`, in about 2 minutes. Each test starts with `POST /mock/reset`. The device must be awake and unlocked, or every test fails with `No compose hierarchies found` or hangs. The test keeps an empty activity open, because these OnePlus devices freeze a process with nothing on screen after about 27 s, and the run then hangs with no failure.
 
+## Signed setup codes, no camera
+
+Run `SetupSignatureDeviceTest` with `am instrument`. Android's crypto provider differs from the JVM's, so unit tests alone are not enough. Pass: `OK (2 tests)`. No mock needed.
+
 ## Re-enrol tap path, no camera
 
 With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `ReEnrolTapPathTest` with `am instrument`. It taps the real screens from connect to the notice, checks that `Continue` waits for a reason and that the notice shows the Google line, then declines, so capture never starts. Pass: `OK (1 test)`.

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -117,6 +118,16 @@ fun SignInScreen(
     onChangeServer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var confirmChange by remember { mutableStateOf(false) }
+    if (confirmChange) {
+        AlertDialog(
+            onDismissRequest = { confirmChange = false },
+            title = { Text("Set up this device again?") },
+            text = { Text("It will forget $clientName. You will need a new setup code from your administrator.") },
+            confirmButton = { TextButton(onClick = onChangeServer) { Text("Set up again") } },
+            dismissButton = { TextButton(onClick = { confirmChange = false }) { Text("Keep this server") } },
+        )
+    }
     var username by rememberSaveable { mutableStateOf("") }
     // WHY remember, not rememberSaveable: a password must not go into saved instance state.
     var password by remember { mutableStateOf("") }
@@ -174,7 +185,7 @@ fun SignInScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        TextButton(onClick = onChangeServer, enabled = !busy, modifier = Modifier.height(44.dp)) { Text("Use a different server") }
+        TextButton(onClick = { confirmChange = true }, enabled = !busy, modifier = Modifier.height(44.dp)) { Text("Use a different server") }
     }
 }
 

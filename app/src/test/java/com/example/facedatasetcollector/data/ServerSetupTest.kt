@@ -6,8 +6,8 @@ import org.junit.Test
 
 class ServerSetupTest {
     // Made once by tools/setup_codes/sign_setup_code.py with a throwaway key, since deleted, so these prove the tool and the app agree on the format.
-    private val keys = mapOf("k1" to "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEPD0j6W5TDETIzzy1hPKPGFl9hcbRB5sF8HRqZQQZknvdadBJsCkttTe3c5SZXnRLzYVa/cMeytU/E6DWE/4JtA==")
-    private val signedCode = """{"base_url":"https://client.example.com","client_id":"client-a","kid":"k1","sig":"MEUCIDlNUqqaR6jiEoIUXcrx9YK7+8xmPGPaSPwEzwRpj/fSAiEAp0xvqu7dm+7eVe6X8keouxryA8A6+q8y6Qbmug08LPM="}"""
+    private val keys = mapOf("k1" to "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEvdZaPNBI0sFh+WeU2e+fbJ6ohz6JmmH9gB4vfyVXEYpe0GqO/kEcEdt1AHtgDOfN2btkp2/N/H4D5iplrmilww==")
+    private val signedCode = """{"base_url":"https://client.example.com/","client_id":"client-a","client_name":"M\u00fcller GmbH","kid":"k1","sig":"MEUCIBtyvB6lOheP0CJ+1GA46TQLj4Uqz5HoclvAkzGmHoONAiEAzrc9xORINJY5jR9utoatRKeroxAkn9+QerhgVyw0Mq0="}"""
 
     @Test
     fun acceptsPlainHttpsOriginAndNormalizesIt() {
@@ -49,7 +49,8 @@ class ServerSetupTest {
 
     @Test
     fun acceptsACodeSignedByTheTool() {
-        assertEquals(ServerSetup("https://client.example.com", "client-a"), parseSetupCode(signedCode, false, keys))
+        // The trailing slash and the umlaut prove the raw signed text is verified, as UTF-8, and only then normalized.
+        assertEquals(ServerSetup("https://client.example.com", "client-a", "Müller GmbH"), parseSetupCode(signedCode, false, keys))
     }
 
     @Test
@@ -58,7 +59,8 @@ class ServerSetupTest {
             signedCode.replace("client.example.com", "evil.example.com"),
             signedCode.replace("client-a", "client-b"),
             signedCode.replace("\"k1\"", "\"k2\""),
-            signedCode.replace("MEUCIDlN", "MEUCIDlM"),
+            signedCode.replace("MEUCIBty", "MEUCIBtA"),
+            signedCode.replace("Müller", "Other").replace("M\\u00fcller", "Other"),
             signedCode.replace("\"sig\"", "\"nope\""),
             """{"base_url":"https://client.example.com","client_id":"client-a"}""",
         ).forEach { code ->
@@ -78,6 +80,16 @@ class ServerSetupTest {
         assertEquals(ServerSetup("http://127.0.0.1:8081", "mock-dedicated"), parseSetupCode(mock, true, keys))
         assertThrows(InvalidServerAddress::class.java) { parseSetupCode(mock, false, keys) }
         assertThrows(InvalidServerAddress::class.java) { parseSetupCode(unsignedHttps, true, keys) }
+    }
+
+    @Test
+    fun anOversizedCodeIsRefusedBeforeParsing() {
+        assertThrows(InvalidServerAddress::class.java) { parseSetupCode("[".repeat(3000), false, keys) }
+    }
+
+    @Test
+    fun refusesHostsTheHttpClientWouldRejectLater() {
+        assertThrows(InvalidServerAddress::class.java) { normalizeBaseUrl("https://${"a".repeat(64)}.example.com", false) }
     }
 
     @Test

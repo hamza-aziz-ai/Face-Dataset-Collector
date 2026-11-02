@@ -156,12 +156,12 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         run { connectTo(parseSetupCode(raw, allowLoopbackHttp = BuildConfig.DEBUG)) }
     }
 
-    /** Trusts the server's identity only after it answers. */
+    /** Trusts the server's identity only after it answers. A signed name wins, because a genuine code for one client must not let its server pose as another. */
     private suspend fun connectTo(setup: ServerSetup) {
         val client = EnrolmentApi(setup.baseUrl)
         val info = client.serverInfo()
         setup.requireClient(info.clientId)
-        val connected = StoredServer(setup.baseUrl, info.clientId, info.clientName)
+        val connected = StoredServer(setup.baseUrl, info.clientId, setup.clientName ?: info.clientName)
         store.save(connected)
         onMain {
             api = client

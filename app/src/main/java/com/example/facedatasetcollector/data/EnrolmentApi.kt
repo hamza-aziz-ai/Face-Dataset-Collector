@@ -65,9 +65,7 @@ class EnrolmentApi(
     fun serverInfo(): ServerInfo {
         val json = send(request("/api/v1/server-info").get().build())
         return parsed {
-            // WHY: the host beside this name is the defence against a forged server, so the name must not be able to push it out of view.
-            val name = json.getString("client_name").replace(UNPRINTABLE, " ").trim().take(MAX_CLIENT_NAME)
-            ServerInfo(json.getString("client_id"), name, json.getString("notice_version"), json.getString("notice_url"))
+            ServerInfo(json.getString("client_id"), cleanClientName(json.getString("client_name")), json.getString("notice_version"), json.getString("notice_url"))
         }
     }
 
@@ -263,8 +261,6 @@ class EnrolmentApi(
         const val POLL_MS = 2_000L
         const val MAX_POLLS = 30
         const val PAGE_SIZE = 50
-        const val MAX_CLIENT_NAME = 80
-        val UNPRINTABLE = Regex("[\\s\\p{C}]+")
 
         fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)

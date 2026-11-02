@@ -18,7 +18,7 @@ How the app fails, dependency by dependency. Limits marked unmeasured are first 
 
 ## Camera
 
-Denied permission shows a screen pointing to Settings, and on setup the typed address still works. A camera that fails to bind stops capture with a message. Real devices differ here, and only two have been tried.
+Denied permission shows a screen pointing to Settings. Release builds have no typed address, so setup then needs an administrator. A camera that fails to bind stops capture with a message. Real devices differ here, and only two have been tried.
 
 ## ML Kit
 

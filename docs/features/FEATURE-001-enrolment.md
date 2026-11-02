@@ -25,7 +25,7 @@ The tenant always comes from the staff login, never from a request field (CCTV D
 Source: CCTV session, 2026-10-31. Owner decisions, relayed by that session: no certificate pinning for now, with normal HTTPS validation and a private CA only for the dedicated LAN case. One server-side encryption key for now, with per-client keys a gap to close before a real client. Photos, vectors, and crops are deleted 30 days after withdrawal or leaving. Each client supplies its own withdrawal contact, which the app shows as served.
 
 - The API host differs per client, so the app hardcodes none. Client-dedicated: the client's own server. Centralized: one HTTPS hostname per client.
-- Setup happens once, by signed QR code. Payload: `{base_url, client_id, kid, sig}`, signed offline by the owner (D-020, `SETUP-CODES.md`). The typed address exists in debug builds only.
+- Setup happens once, by signed QR code. Payload: `{base_url, client_id, client_name, kid, sig}`, signed offline by the owner (D-020, `SETUP-CODES.md`). The typed address exists in debug builds only.
 - `GET /api/v1/server-info` returns `{client_id, client_name, notice_version, notice_url}`. If `client_id` differs from the stored one, the app refuses and asks for setup again.
 - HTTPS only. A private CA is allowed only for the dedicated LAN case.
 - The enrolment contract is identical in both options. Storage is the server's concern: one bucket per client, with a separate encryption key per client.

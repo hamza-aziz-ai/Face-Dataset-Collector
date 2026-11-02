@@ -7,17 +7,18 @@ import java.security.Signature
 import java.security.spec.X509EncodedKeySpec
 
 /** The bytes a setup code signs. The prefix stops a signature made for anything else from passing as one of these. tools/setup_codes must build the same bytes. */
-fun setupCodeMessage(baseUrl: String, clientId: String): ByteArray = "enrolment-setup-v1\n$baseUrl\n$clientId".toByteArray()
+fun setupCodeMessage(baseUrl: String, clientId: String, clientName: String): ByteArray =
+    "enrolment-setup-v1\n$baseUrl\n$clientId\n$clientName".toByteArray()
 
 /** True only when [signature] is a valid ECDSA P-256 signature over this address and client, from a key in [keys]. */
-fun isSignedSetupCode(baseUrl: String, clientId: String, keyId: String, signature: String, keys: Map<String, String>): Boolean {
+fun isSignedSetupCode(baseUrl: String, clientId: String, clientName: String, keyId: String, signature: String, keys: Map<String, String>): Boolean {
     val publicKey = keys[keyId]?.decodeBase64()?.toByteArray() ?: return false
     val signed = signature.decodeBase64()?.toByteArray() ?: return false
     return try {
         val key = KeyFactory.getInstance("EC").generatePublic(X509EncodedKeySpec(publicKey))
         Signature.getInstance("SHA256withECDSA").run {
             initVerify(key)
-            update(setupCodeMessage(baseUrl, clientId))
+            update(setupCodeMessage(baseUrl, clientId, clientName))
             verify(signed)
         }
     } catch (_: GeneralSecurityException) {

@@ -39,6 +39,7 @@ Face images and consent records of real people, staff credentials, and session t
   - Limits: this read the queue, not network traffic. The format is private, so not every integer has a known meaning, and one small value could be a count of faces. Most events wait for an idle, unmetered moment. Earlier urgent ones were probably sent, because the urgent queue is empty and has a next-send time, and that is an inference.
   - The per-install ID with a timestamp shows when a device ran detection, though not who was in front of it. The notice must disclose these metrics before real enrollees.
 - Anyone holding the signing key can forge a code for any server, so a leak needs a new key and a new app build. See `SETUP-CODES.md`.
+- A genuine code works on any device and never expires. Someone with client A's code can point client B's device at A, though staff then see A's signed name and address at sign-in.
 - Consent can be withdrawn in the app only before upload (D-018). After that, a person uses the contact in the notice.
 - Face detection establishes neither liveness nor identity continuity. One detected face does not mean the same consenting person throughout.
 - Clearing references to JPEG bytes in memory is not secure erasure. Bytes can remain in the heap until overwritten.
