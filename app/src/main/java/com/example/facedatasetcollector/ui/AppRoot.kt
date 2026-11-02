@@ -53,7 +53,16 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
         Screen.Capture -> {
             SecureWindow()
             val pose = model.capturePose
-            if (pose != null) {
+            if (pose != null && model.needsGlassesStep) {
+                GlassesStepScreen(
+                    withGlasses = pose.withGlasses,
+                    reEnrolling = model.reEnrolReason != null,
+                    onContinue = model::confirmGlasses,
+                    onCancel = model::cancelCapture,
+                    onWithdraw = model::withdrawConsent,
+                    modifier = modifier,
+                )
+            } else if (pose != null) {
                 CaptureScreen(
                     pose = pose,
                     set = model.poseSet,

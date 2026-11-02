@@ -107,7 +107,20 @@ class CaptureAnalyzer(
             faceCentreOffset = abs((box.left + box.right) / 2f - frameWidth / 2f) / usableWidth,
             pupilDistance = pupilDistance(face),
             faceInFrame = box.left >= 0 && box.top >= 0 && box.right <= frameWidth && box.bottom <= frameHeight,
+            bridgeEdge = if (onReading == null) null else bridgeEdge(face, imageProxy, rotation),
         )
+    }
+
+    /** Samples a small box between the eyes, sized from the eye distance so it does not change with how close the face is. */
+    private fun bridgeEdge(face: Face, imageProxy: ImageProxy, rotation: Int): Float? {
+        val left = face.getLandmark(FaceLandmark.LEFT_EYE)?.position ?: return null
+        val right = face.getLandmark(FaceLandmark.RIGHT_EYE)?.position ?: return null
+        val half = (hypot(left.x - right.x, left.y - right.y) * BRIDGE_BOX_FRACTION).toInt()
+        val x = ((left.x + right.x) / 2).toInt()
+        val y = ((left.y + right.y) / 2).toInt()
+        val inBuffer = uprightToBuffer(Box(x - half, y - half, x + half, y + half), rotation, imageProxy.width, imageProxy.height)
+        val plane = imageProxy.planes[0]
+        return bridgeEdgeScore(plane.buffer, plane.rowStride, plane.pixelStride, imageProxy.width, imageProxy.height, inBuffer)
     }
 
     private fun pupilDistance(face: Face): Float? {
@@ -176,5 +189,6 @@ class CaptureAnalyzer(
     private companion object {
         const val TAG = "CaptureAnalyzer"
         const val TIMING_WINDOW = 100
+        const val BRIDGE_BOX_FRACTION = 0.2f
     }
 }

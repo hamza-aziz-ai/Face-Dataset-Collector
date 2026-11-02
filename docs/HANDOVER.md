@@ -2,7 +2,37 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-11-01, review findings (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-11-02, first real-face runs (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- Owner ran capture on CPH2381 on their own face (D-015). `CameraLifecycleTest` passed first: `OK (1 test)`, camera closed, 0 images on disk.
+- 3 runs reached the end of capture, with 0 crash lines. A settled 5-pose set took about 24 s. Most poses took 2.5 to 4 s. Upload of 5 photos took 171 ms on the mock.
+- Owner confirmed left and right are correct, so `YAW_SIGN` stays. Owner saw the photos on review and they looked right.
+- Glasses stop screen added, after the owner could not tell when to switch (D-019). `bridge` score added to the readout.
+
+In progress:
+- Nothing.
+
+Broken or risky:
+- Glasses are not detected. The owner took the glasses set with glasses off and the app accepted it. No `bridge` numbers were collected, so a warning cannot be decided yet.
+- `front` is the slowest pose: `Lower your chin a little` held it for 49 of 67 frames in run 2. Pitch was not read, so `STRAIGHT_LIMIT` is unchanged.
+- Not done by hand: retake, and a re-enrolment through to upload. `ReEnrolTapPathTest` covers re-enrol up to the notice.
+- Not run on the tablet: no real capture, and the readout and glasses screen are not installed there.
+- Photo sizes were 246 to 408 KB, above the 200 to 240 KB target. They fit the 2 MB limit. Measured against one face, on one device.
+- One frame in run 1 reported more than one face. Cause unknown.
+- Codex and its PR bot have not reviewed PR #25 or later. Their limit resets 2026-11-04.
+
+Next:
+- Collect `bridge` with glasses off and on, read pitch on `front`, and run the tablet. Tune `QualityPolicy.kt` only from those numbers.
+- Staff sign-off: legal basis, final notice, withdrawal contact, retention, and whether a withdrawal during re-enrolment also ends the old enrolment.
+- Release build: signing, plus private CA if the server sits on a LAN.
+
+Do not touch:
+- `QualityPolicy.kt` values, until the numbers above exist.
+
+Read first: `CONSTRAINTS.md`, `features/FEATURE-001-enrolment.md`, `TESTING.md`.
+
+## Earlier session: 2026-11-01, review findings (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - 21 Codex PR bot comments were found unread after merging. Codex, a separate review, and the bot found real defects, fixed in one PR with four commits.

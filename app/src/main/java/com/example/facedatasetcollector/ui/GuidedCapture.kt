@@ -21,6 +21,8 @@ data class FrameReading(
     val pupilDistance: Float? = null,
     /** False when the face box runs past an edge of the frame, so part of the head would be missing from the photo. */
     val faceInFrame: Boolean = true,
+    /** Set only for tuning against the mock. See [bridgeEdgeScore]. */
+    val bridgeEdge: Float? = null,
 )
 
 sealed interface Guidance {
@@ -37,7 +39,7 @@ sealed interface Guidance {
 /** The numbers behind a decision, for tuning against the mock. Shown on screen only and never logged, because per-person angles are face-derived (docs/DATA.md). */
 fun readoutText(frame: FrameReading): String = String.format(
     Locale.US,
-    "policy v%d  faces %d\nyaw %.1f  pitch %.1f  roll %.1f\nwidth %.2f  centre %.2f\nluma %s  blur %s  pupils %s",
+    "policy v%d  faces %d\nyaw %.1f  pitch %.1f  roll %.1f\nwidth %.2f  centre %.2f\nluma %s  blur %s  pupils %s\nbridge %s",
     QualityPolicy.VERSION,
     frame.faceCount,
     frame.yaw * QualityPolicy.YAW_SIGN,
@@ -48,6 +50,7 @@ fun readoutText(frame: FrameReading): String = String.format(
     frame.faceLuma?.toString() ?: "-",
     frame.blurScore?.roundToInt()?.toString() ?: "-",
     frame.pupilDistance?.roundToInt()?.toString() ?: "-",
+    frame.bridgeEdge?.let { String.format(Locale.US, "%.1f", it) } ?: "-",
 )
 
 fun promptFor(pose: Pose): String = when (pose) {

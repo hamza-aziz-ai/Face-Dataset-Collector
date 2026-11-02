@@ -202,6 +202,17 @@ class GuidedCaptureTest {
     }
 
     @Test
+    fun aDarkBarAcrossTheBridgeScoresHigherThanSmoothSkin() {
+        val size = 40
+        val skin = ByteBuffer.wrap(ByteArray(size * size) { 150.toByte() })
+        val frame = ByteBuffer.wrap(ByteArray(size * size) { if (it / size in 18..21) 20 else 150.toByte() })
+        val box = Box(10, 10, 30, 30)
+        assertEquals(0f, bridgeEdgeScore(skin, size, 1, size, size, box))
+        assertTrue(bridgeEdgeScore(frame, size, 1, size, size, box)!! > 5f)
+        assertNull(bridgeEdgeScore(skin, size, 1, size, size, Box(39, 39, 60, 60)))
+    }
+
+    @Test
     fun readoutShowsEveryNumberAndMarksWhatIsMissing() {
         val text = readoutText(FrameReading(0, 1, yaw = 12.34f, pitch = -2f, roll = 1f, faceLuma = 130, blurScore = 88.4, faceWidthFraction = 0.42f, faceCentreOffset = 0.03f))
         assertTrue(text, text.contains("faces 1"))
