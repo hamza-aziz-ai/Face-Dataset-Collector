@@ -24,13 +24,17 @@ openssl ec -in setup-signing-key.pem -pubout -outform DER | base64 -w0
 
 The second command prints the public key. Give only that to the developer, to add to `SetupKeys.kt` under a key ID such as `k1`. Then keep `setup-signing-key.pem` offline, with one backup, and never send it to anyone or any AI tool.
 
+## Keys in the app
+
+- `k1`: the owner's key, added 2026-11-02. SHA-256 of the DER public key: `73796d21dbe463e259f3c6d1b8c3fbd472f85f234801c1fabba69b53252f48d2`. To check the key you hold matches, run `openssl ec -in setup-signing-key.pem -pubout -outform DER | sha256sum`.
+
 ## Sign a code for a client
 
 ```bash
 python tools/setup_codes/sign_setup_code.py --key PATH --kid k1 --base-url https://client.example.com --client-id client-a --client-name "Client A"
 ```
 
-Put the printed JSON in any offline QR generator, and hand the code to the client's administrator.
+Run it from Git Bash, which has `openssl` on its PATH. Elsewhere, set `OPENSSL` to the full path of `openssl` first. Put the printed JSON in any offline QR generator, and hand the code to the client's administrator.
 
 ## If the key is lost or leaked
 
@@ -42,5 +46,5 @@ Codes never expire, and any genuine code works on any device. Someone holding a 
 
 ## Rules by build
 
-- Release: signed codes only. The typed address is gone. With `SetupKeys.kt` empty, every code is refused.
+- Release: signed codes only. The typed address is gone.
 - Debug: signed codes, a typed address, and unsigned codes for the local mock only.

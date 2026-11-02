@@ -9,12 +9,15 @@ Usage:
 import argparse
 import base64
 import json
+import os
 import re
 import subprocess
 import sys
 from urllib.parse import urlsplit
 
 PREFIX = "enrolment-setup-v1"
+# Git Bash has openssl on its PATH, but PowerShell and Anaconda Prompt usually do not.
+OPENSSL = os.environ.get("OPENSSL", "openssl")
 HOST_LABEL = re.compile(r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?")
 
 
@@ -39,7 +42,7 @@ def validate(base_url, client_id, client_name):
 def sign(key_path, kid, base_url, client_id, client_name):
     validate(base_url, client_id, client_name)
     result = subprocess.run(
-        ["openssl", "dgst", "-sha256", "-sign", key_path],
+        [OPENSSL, "dgst", "-sha256", "-sign", key_path],
         input=message(base_url, client_id, client_name), capture_output=True, check=True,
     )
     return {
@@ -61,6 +64,8 @@ def main():
     args = parser.parse_args()
     try:
         print(json.dumps(sign(args.key, args.kid, args.base_url, args.client_id, args.client_name), separators=(",", ":")))
+    except FileNotFoundError:
+        sys.exit("Could not sign: openssl was not found. Run this from Git Bash, or set OPENSSL to the full path of openssl.")
     except (ValueError, subprocess.CalledProcessError) as error:
         sys.exit(f"Could not sign: {error}")
 
