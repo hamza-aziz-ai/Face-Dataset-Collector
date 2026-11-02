@@ -32,7 +32,9 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.facedatasetcollector.data.Pose
@@ -74,6 +76,26 @@ private fun PhotoTile(pose: Pose, jpeg: ByteArray, note: String?, onRetake: () -
     }
 }
 
+/** Staff decide: the check is a guess from one measured face, so it never stops an upload (D-021). */
+@Composable
+private fun GlassesWarning(withGlasses: Boolean, tenPhotoSet: Boolean) {
+    val text = when {
+        withGlasses -> "The with-glasses photos look like they were taken without glasses. If so, ask the person to put them on and retake those photos."
+        tenPhotoSet -> "The no-glasses photos look like glasses were on. If so, ask the person to take them off and retake those photos."
+        else -> "These photos look like glasses were on. If so, ask the person to take them off and retake the photos."
+    }
+    Text(
+        text,
+        color = MaterialTheme.colorScheme.onErrorContainer,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(10.dp))
+            .padding(14.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    )
+}
+
 /**
  * Staff check every photo before anything leaves the device.
  *
@@ -94,6 +116,7 @@ fun ReviewScreen(
     reEnrolling: Boolean,
     modifier: Modifier = Modifier,
     tuningNotes: Map<Pose, String> = emptyMap(),
+    glassesWarnings: List<Boolean> = emptyList(),
 ) {
     var confirmCancel by remember { mutableStateOf(false) }
     var showGlasses by remember { mutableStateOf(false) }
@@ -151,6 +174,8 @@ fun ReviewScreen(
             } else {
                 title(Modifier)
             }
+            // Above the tabs, so a warning about the hidden half is still seen.
+            glassesWarnings.forEach { GlassesWarning(it, hasGlasses) }
             if (hasGlasses && !wide) {
                 Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     ChoiceButton("No glasses, 5", !showGlasses, { showGlasses = false }, Modifier.weight(1f))

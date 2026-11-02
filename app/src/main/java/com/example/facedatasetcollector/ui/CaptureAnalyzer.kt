@@ -28,7 +28,8 @@ import kotlin.math.hypot
 class CaptureAnalyzer(
     private val detector: FaceDetector,
     private val onGuidance: (Guidance) -> Unit,
-    private val onPhoto: (Pose, ByteArray) -> Unit,
+    /** The score is the nose-bridge edge score of the kept frame, for the glasses warning. Null when the eyes were not found. */
+    private val onPhoto: (Pose, ByteArray, Float?) -> Unit,
     private val onFailure: () -> Unit,
     /** Set only for tuning against the mock. Also turns on the per-pose tally. */
     private val onReading: ((FrameReading) -> Unit)? = null,
@@ -68,7 +69,7 @@ class CaptureAnalyzer(
             val guidance = guide?.onFrame(reading) ?: return
             if (onReading != null) tally(pose, guidance)
             when (guidance) {
-                Guidance.TakePhoto -> keep(pose, faces.single(), imageProxy, rotation)
+                Guidance.TakePhoto -> keep(pose, faces.single(), imageProxy, rotation, reading.bridgeEdge)
                 else -> onGuidance(guidance)
             }
         } catch (e: Exception) {
@@ -130,14 +131,16 @@ class CaptureAnalyzer(
         return hypot(left.x - right.x, left.y - right.y)
     }
 
-    private fun keep(pose: Pose, face: Face, imageProxy: ImageProxy, rotation: Int) {
+    private fun keep(pose: Pose, face: Face, imageProxy: ImageProxy, rotation: Int, measured: Float?) {
+        // Measured on the kept frame only, unless the tuning readout already did, so normal capture pays for it once per photo.
+        val bridge = measured ?: bridgeEdge(face, imageProxy, rotation)
         val jpeg = encode(face, imageProxy, rotation)
         if (jpeg == null) {
             // Too large to send. Forget this attempt, so the person is not left waiting on a pose that already fired.
             guidePose = null
             onGuidance(Guidance.Fix("Hold still"))
         } else {
-            onPhoto(pose, jpeg)
+            onPhoto(pose, jpeg, bridge)
         }
     }
 

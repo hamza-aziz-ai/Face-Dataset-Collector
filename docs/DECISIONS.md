@@ -294,7 +294,7 @@ Options:
 Chosen: 1.
 Why: the stop screen fixes the reported problem, with the camera closed until staff confirm. The score costs no dependency, and real numbers decide whether a warning can work.
 Trade-off: the score decides nothing yet. Rimless frames and heavy eyebrows may not separate, and one face proves little.
-Revisit if: with and without glasses clearly separate across several people. Then add a soft warning that never blocks.
+Revisit if: with and without glasses clearly separate across several people. Then add a soft warning that never blocks. Done early, on the owner's face only, in D-021.
 
 ## D-020: Sign setup codes with an offline key, and allow only signed codes in release
 
@@ -312,3 +312,19 @@ Why: Android has ECDSA P-256 from API 23 with no new dependency, while Ed25519 n
 Trade-off: the owner must sign each client's code, and changing the key needs an app release. Codes never expire and are not tied to a device. An unreadable code stops setup until an administrator helps. Until `SetupKeys.kt` has a key, a release build cannot be set up.
 Also: the code signs `client_name` as well, and staff see that name, so a rogue client with a genuine code cannot pose as another client. Debug builds keep the typed address and accept unsigned codes for the local mock only. Format and steps are in `SETUP-CODES.md`.
 Revisit if: the number of clients makes signing by hand a bottleneck.
+
+## D-021: Warn on review when most photos in a half look wrong for glasses
+
+Date: 2026-11-02. Model: Claude Opus 5.5 (claude-opus-5-5). Owner said go, after the owner's own camera session on both devices.
+Context: the owner took a glasses set with glasses off and the app accepted it. D-019 measured an edge score across the nose bridge. Owner's face only, in pose order: without glasses 1.5 to 2.1, with glasses 2.3 to 4.4, on CPH2381 and OPD2203. Chin up with glasses scored lowest on both devices, and on the tablet the two sets were also in different orientations.
+Options:
+
+1. Per photo: warn when one photo crosses a cutoff.
+2. Per half: warn when 3 of the 5 photos in a half look wrong, with a cutoff of 2.4.
+3. Block upload on either.
+4. Leave it to staff.
+
+Chosen: 2.
+Why: one photo alone misfires, since tablet Chin up with glasses scored 2.3. Most of a half must agree, and both measured runs then pass cleanly. A warning lets staff decide, because one face proves little.
+Trade-off: rimless frames, other faces, and other light are untested, so it can miss or misfire. The score is kept per photo in memory, never logged or sent.
+Revisit if: staff report misses or false alarms, or more people are measured. Only then consider a block, or a server check.

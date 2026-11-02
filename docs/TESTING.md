@@ -44,7 +44,7 @@ Opens the back camera. Tell the owner first. Show a code for `{"base_url":"http:
 
 A code with a different `client_id` must return to the connect screen with a message and store nothing.
 
-`ScreenGalleryTest` with `-e screen connect` or `-e screen scan` checks these layouts with no camera. `roster`, `reenrol`, and `rejected-reenrol` do the same for re-enrolment.
+`ScreenGalleryTest` with `-e screen connect` or `-e screen scan` checks these layouts with no camera. `review-glasses` shows the glasses warning. `roster`, `reenrol`, and `rejected-reenrol` do the same for re-enrolment.
 
 ## Real-face test script
 
@@ -62,7 +62,7 @@ Run on the phone, then on the tablet:
 2. Read the notice and record consent.
 3. Follow the prompts through all 5 poses, or 10 with glasses. The panel on the camera shows live numbers.
 4. For each pose, note any prompt that will not clear and the numbers shown. If `Centre your face in the oval` stays on with the face centred, the face box may run past the frame edge, so try moving back. For `Turn your head to the left`, check that turning your own left is what passes. If left and right are swapped, `YAW_SIGN` flips.
-5. With glasses, read `bridge` and `pitch` under each photo on review, for glasses off and glasses on (D-019).
+5. With glasses, read `bridge` and `pitch` under each photo on review, for glasses off and glasses on (D-019). A text-only `adb shell uiautomator dump` reads them without an image. The two halves are tabs on narrow screens.
 6. Review the photos, retake one, and upload.
 7. Tap `Re-enrol` on an enrolled person, choose a reason, and repeat with one retake.
 

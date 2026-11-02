@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
 class CameraLifecycleTest {
     private fun show(scenario: ActivityScenario<ComponentActivity>) {
         scenario.onActivity { activity ->
-            activity.setContent { CaptureCamera(Pose.FRONT, {}, { _, _ -> }, {}, Modifier.fillMaxSize()) }
+            activity.setContent { CaptureCamera(Pose.FRONT, {}, { _, _, _ -> }, {}, Modifier.fillMaxSize()) }
         }
     }
 
