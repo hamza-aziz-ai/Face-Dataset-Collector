@@ -68,6 +68,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                     set = model.poseSet,
                     uploadingTo = "${server?.clientName.orEmpty()} (${model.serverAddress.orEmpty()})",
                     showReadout = model.isMock,
+                    onFrameReading = model::onReading,
                     onPhoto = model::onPhoto,
                     onCancel = model::cancelCapture,
                     onWithdraw = model::withdrawConsent,
@@ -112,6 +113,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                 onWithdraw = model::withdrawConsent,
                 reEnrolling = model.reEnrolReason != null,
                 modifier = modifier,
+                tuningNotes = model.tuningNotes,
             )
         }
     }

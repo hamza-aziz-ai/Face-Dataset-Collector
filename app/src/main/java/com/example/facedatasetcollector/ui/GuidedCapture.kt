@@ -53,6 +53,16 @@ fun readoutText(frame: FrameReading): String = String.format(
     frame.bridgeEdge?.let { String.format(Locale.US, "%.1f", it) } ?: "-",
 )
 
+/** The numbers behind one kept photo, short enough for a review tile. Same rule as [readoutText]: on screen only. */
+fun tuningNote(frame: FrameReading): String = String.format(
+    Locale.US,
+    "yaw %.1f  pitch %.1f\nbridge %s  pupils %s",
+    frame.yaw * QualityPolicy.YAW_SIGN,
+    frame.pitch,
+    frame.bridgeEdge?.let { String.format(Locale.US, "%.1f", it) } ?: "-",
+    frame.pupilDistance?.roundToInt()?.toString() ?: "-",
+)
+
 fun promptFor(pose: Pose): String = when (pose) {
     Pose.FRONT, Pose.FRONT_GLASSES -> "Look straight at the camera"
     Pose.CHIN_UP, Pose.CHIN_UP_GLASSES -> "Lift your chin"

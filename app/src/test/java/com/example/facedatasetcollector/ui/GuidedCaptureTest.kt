@@ -213,6 +213,12 @@ class GuidedCaptureTest {
     }
 
     @Test
+    fun tuningNoteShowsTheDecidingNumbers() {
+        val note = tuningNote(FrameReading(0, 1, yaw = 3f, pitch = -12.34f, bridgeEdge = 6.25f, pupilDistance = 120f))
+        assertEquals("yaw 3.0  pitch -12.3\nbridge 6.3  pupils 120", note)
+    }
+
+    @Test
     fun readoutShowsEveryNumberAndMarksWhatIsMissing() {
         val text = readoutText(FrameReading(0, 1, yaw = 12.34f, pitch = -2f, roll = 1f, faceLuma = 130, blurScore = 88.4, faceWidthFraction = 0.42f, faceCentreOffset = 0.03f))
         assertTrue(text, text.contains("faces 1"))
