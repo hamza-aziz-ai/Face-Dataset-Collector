@@ -97,6 +97,11 @@ class EnrolmentFlowTest {
         takePhotos()
     }
 
+    private fun takePhotosFromHere() {
+        Pose.entries.filter { it.withGlasses }.forEachIndexed { index, pose -> onMain { model.onPhoto(pose, syntheticJpeg(index)) } }
+        awaitUntil { model.screen == Screen.Review }
+    }
+
     private fun takePhotos() {
         val set = read { model.poseSet }
         set.forEachIndexed { index, pose -> onMain { model.onPhoto(pose, syntheticJpeg(index)) } }
@@ -203,6 +208,35 @@ class EnrolmentFlowTest {
         assertTrue(read { model.photos.isEmpty() })
         assertEquals(Screen.SignIn, read { model.screen })
         assertFalse(read { model.error }.isNullOrEmpty())
+    }
+
+    @Test
+    fun glassesSet_stopsBeforeEachSwitchAndOnRetake() {
+        val person = read { model.persons[0] }
+        onMain { model.selectPerson(person) }
+        awaitUntil { model.screen == Screen.Consent && !model.busy }
+        onMain { model.recordConsent(true) }
+        awaitUntil { model.screen == Screen.Capture && !model.busy }
+        assertTrue(read { model.needsGlassesStep })
+
+        onMain { model.confirmGlasses() }
+        Pose.setFor(false).forEachIndexed { index, pose ->
+            assertFalse(read { model.needsGlassesStep })
+            onMain { model.onPhoto(pose, syntheticJpeg(index)) }
+        }
+        assertEquals(Pose.FRONT_GLASSES, read { model.capturePose })
+        assertTrue(read { model.needsGlassesStep })
+
+        onMain { model.confirmGlasses() }
+        takePhotosFromHere()
+        onMain { model.retake(Pose.LEFT_30) }
+        assertTrue(read { model.needsGlassesStep })
+    }
+
+    @Test
+    fun noGlasses_neverStops() {
+        signInAndCapture(personIndex = 0, glasses = false)
+        assertFalse(read { model.needsGlassesStep })
     }
 
     @Test

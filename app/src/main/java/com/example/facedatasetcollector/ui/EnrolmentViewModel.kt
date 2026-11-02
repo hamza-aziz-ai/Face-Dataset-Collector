@@ -91,6 +91,12 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     var wearsGlasses = false
         private set
 
+    /** The glasses state staff last confirmed. Null means ask, so a wrong set cannot start by accident. */
+    private var glassesConfirmed by mutableStateOf<Boolean?>(null)
+
+    /** A 10-photo set stops the camera and asks before each switch, because a small label is easy to miss. */
+    val needsGlassesStep: Boolean get() = wearsGlasses && capturePose?.let { it.withGlasses != glassesConfirmed } == true
+
     /** Set only while re-enrolling. It travels with the upload, and the job then replaces the old enrolment if accepted. */
     var reEnrolReason: ReEnrolReason? = null
         private set
@@ -248,7 +254,13 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun confirmGlasses() {
+        glassesConfirmed = capturePose?.withGlasses
+        poseStartedAt = SystemClock.elapsedRealtime()
+    }
+
     private fun startCapture() {
+        glassesConfirmed = null
         photos.clear()
         uploadKey = null
         uploadState = null
@@ -280,6 +292,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun retake(pose: Pose) {
         retaking = true
+        glassesConfirmed = null
         capturePose = pose
         poseStartedAt = SystemClock.elapsedRealtime()
         screen = Screen.Capture
@@ -462,6 +475,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         notice = null
         consentId = null
         wearsGlasses = false
+        glassesConfirmed = null
         reEnrolReason = null
         photos.clear()
         poseSet = emptyList()

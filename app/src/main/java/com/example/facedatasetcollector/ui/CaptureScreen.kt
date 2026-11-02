@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -246,7 +247,7 @@ private fun DrawScope.drawCue(cue: TurnCue, oval: Offset, ovalSize: CanvasSize) 
 private fun PoseProgress(done: Int, total: Int, photoNumber: Int, photoTotal: Int, withGlasses: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(if (withGlasses) "With glasses" else "Without glasses", color = NightMuted, style = MaterialTheme.typography.bodySmall)
+            Text(if (withGlasses) "With glasses" else "Without glasses", color = NightText, style = MaterialTheme.typography.titleMedium)
             Text("$done of $total done", color = NightMuted, style = MaterialTheme.typography.bodySmall)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -322,6 +323,57 @@ fun CancelButton(text: String = "Cancel and delete", onClick: () -> Unit) {
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(containerColor = NightControl, contentColor = NightText),
     ) { Text(text, style = MaterialTheme.typography.labelMedium) }
+}
+
+/** A full stop before glasses go on or off. The camera stays closed here, so nothing can capture until staff confirm. */
+@Composable
+fun GlassesStepScreen(
+    withGlasses: Boolean,
+    reEnrolling: Boolean,
+    onContinue: () -> Unit,
+    onCancel: () -> Unit,
+    onWithdraw: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var confirmCancel by remember { mutableStateOf(false) }
+    BackHandler { confirmCancel = true }
+    if (confirmCancel) {
+        AlertDialog(
+            onDismissRequest = { confirmCancel = false },
+            title = { Text("Delete these photos?") },
+            text = { CancelDialogText("Photos taken so far are deleted from this device. The person's consent stays on record unless they withdraw it.", reEnrolling, onWithdraw) },
+            confirmButton = { TextButton(onClick = onCancel) { Text("Cancel and delete") } },
+            dismissButton = { TextButton(onClick = { confirmCancel = false }) { Text("Keep going") } },
+        )
+    }
+    TabletScaledText {
+        Column(
+            modifier.fillMaxSize().background(Night).padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                if (withGlasses) "Put your glasses on" else "Take your glasses off",
+                color = NightText,
+                style = MaterialTheme.typography.displaySmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+            Text(
+                if (withGlasses) "These photos are with glasses, worn as usual." else "These photos are without glasses.",
+                color = NightMuted,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+            )
+            Button(
+                onClick = onContinue,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).widthIn(max = 480.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = GuideMint, contentColor = OnGuideMint),
+            ) { Text(if (withGlasses) "Glasses are on, continue" else "Glasses are off, continue", style = MaterialTheme.typography.labelLarge) }
+            CancelButton { confirmCancel = true }
+        }
+    }
 }
 
 /** Always dark, whatever the device theme, so attention stays on the guide. */

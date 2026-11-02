@@ -161,7 +161,9 @@ class Handler(BaseHTTPRequestHandler):
     state = None  # Set per server in make_server.
 
     def log_message(self, format, *args):
-        sys.stderr.write(f"{self.server.server_port} {self.command} {loggable_path(self.path)}\n")
+        # A malformed request is logged before `path` and `command` exist.
+        path = loggable_path(getattr(self, "path", ""))
+        sys.stderr.write(f"{self.server.server_port} {getattr(self, 'command', '-')} {path}\n")
 
     def reply(self, status, body):
         data = json.dumps(body).encode("utf-8")

@@ -86,6 +86,8 @@ A `401` on any of these calls signs staff out and shows `Your session ended. Sig
 
 ## F1: Guided capture of one pose
 
+A 10-photo set first stops on `GlassesStepScreen`, and again before each switch and each retake (D-019). The camera stays closed there, so nothing captures until staff confirm.
+
 ```mermaid
 flowchart TD
     classDef way fill:#dbeafe,stroke:#1d4ed8,color:#111827

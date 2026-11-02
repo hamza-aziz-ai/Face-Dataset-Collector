@@ -279,3 +279,19 @@ Trade-off: after an upload has been accepted, withdrawal still goes through the 
 Also: on a re-enrolment, the call ends that attempt only, and the existing enrolment stays in service (CCTV, provisional 8c). The dialog and the roster both say so, because staff could otherwise believe the person has left while the old enrolment keeps matching.
 Open for the owner, on the sign-off list: whether a person's withdrawal during re-enrolment should also end the old enrolment. It is a legal question.
 Revisit if: staff need to withdraw for already enrolled people in the app. Then the contract needs a lookup by person.
+
+## D-019: Stop before each glasses switch, and measure before detecting glasses
+
+Date: 2026-11-02. Model: Claude Opus 5.5 (claude-opus-5-5). Owner found the problem in the real-face test, and chose to measure first.
+Context: in a 10-photo set, the only sign of the switch was a small label, so the owner could not tell when glasses should go on. ML Kit face detection has no glasses check.
+Options:
+
+1. A full-screen stop before each switch, plus a measured edge score across the nose bridge, shown on the tuning readout.
+2. A trained glasses model.
+3. A check on the CCTV server.
+4. Stop screens only.
+
+Chosen: 1.
+Why: the stop screen fixes the reported problem, with the camera closed until staff confirm. The score costs no dependency, and real numbers decide whether a warning can work.
+Trade-off: the score decides nothing yet. Rimless frames and heavy eyebrows may not separate, and one face proves little.
+Revisit if: with and without glasses clearly separate across several people. Then add a soft warning that never blocks.

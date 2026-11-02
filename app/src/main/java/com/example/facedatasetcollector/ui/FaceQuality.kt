@@ -1,6 +1,7 @@
 package com.example.facedatasetcollector.ui
 
 import java.nio.ByteBuffer
+import kotlin.math.abs
 
 /** Plain box with right and bottom exclusive. Not android.graphics.Rect, so this file can run in JVM unit tests. */
 data class Box(val left: Int, val top: Int, val right: Int, val bottom: Int)
@@ -20,6 +21,28 @@ fun uprightToBuffer(box: Box, rotationDegrees: Int, bufferWidth: Int, bufferHeig
         270 -> Box(bufferWidth - box.bottom, box.left, bufferWidth - box.top, box.right)
         else -> throw IllegalArgumentException("Unsupported rotation: $rotationDegrees")
     }
+
+/**
+ * Mean brightness step between neighbouring pixels inside [box]. Measured across the nose bridge, where a glasses frame adds sharp edges to smooth skin. A tuning aid only: it decides nothing yet (D-019).
+ *
+ * @return null when the box has too few pixels inside the buffer to measure.
+ */
+fun bridgeEdgeScore(buffer: ByteBuffer, rowStride: Int, pixelStride: Int, bufferWidth: Int, bufferHeight: Int, box: Box): Float? {
+    val left = box.left.coerceAtLeast(0)
+    val top = box.top.coerceAtLeast(0)
+    val right = box.right.coerceAtMost(bufferWidth - 1)
+    val bottom = box.bottom.coerceAtMost(bufferHeight - 1)
+    if (right - left < 2 || bottom - top < 2) return null
+
+    fun luma(x: Int, y: Int) = buffer.get(y * rowStride + x * pixelStride).toInt() and 0xFF
+    var sum = 0L
+    for (y in top until bottom) {
+        for (x in left until right) {
+            sum += abs(luma(x, y) - luma(x + 1, y)) + abs(luma(x, y) - luma(x, y + 1))
+        }
+    }
+    return sum.toFloat() / ((right - left) * (bottom - top) * 2)
+}
 
 /**
  * Average luma inside [box], or null when the box lies fully outside the buffer. Assumes [buffer] is the Y plane of a YUV frame. Uses absolute reads, so the buffer position is unchanged.

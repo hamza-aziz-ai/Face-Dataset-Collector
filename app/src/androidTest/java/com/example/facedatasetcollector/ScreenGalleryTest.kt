@@ -17,6 +17,7 @@ import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.PoseProblem
 import com.example.facedatasetcollector.ui.ConnectScreen
 import com.example.facedatasetcollector.ui.FrameReading
+import com.example.facedatasetcollector.ui.GlassesStepScreen
 import com.example.facedatasetcollector.ui.PersonScreen
 import com.example.facedatasetcollector.ui.QrScanLayout
 import com.example.facedatasetcollector.ui.ReEnrolDialog
@@ -34,7 +35,7 @@ import java.io.ByteArrayOutputStream
 /**
  * Shows one screen with synthetic data for a person to look at, or for `adb screencap`. The real app blocks screenshots on review, and real photos must never be used to check a layout.
  *
- * Pick the screen with `-e screen readout|roster|reenrol|connect|scan|review|sending|checking|accepted|rejected|rejected-reenrol`. `scan` shows an empty panel, so no camera opens.
+ * Pick the screen with `-e screen glasses-on|glasses-off|readout|roster|reenrol|connect|scan|review|sending|checking|accepted|rejected|rejected-reenrol`. `scan` shows an empty panel, so no camera opens.
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenGalleryTest {
@@ -68,6 +69,8 @@ class ScreenGalleryTest {
                         when (screen) {
                             "roster" -> PersonScreen(people, false, true, false, null, {}, {}, {}, { _, _ -> }, {}, modifier)
                             "reenrol" -> ReEnrolDialog(people[1], {}, {})
+                            "glasses-on" -> GlassesStepScreen(true, false, {}, {}, {}, modifier)
+                            "glasses-off" -> GlassesStepScreen(false, false, {}, {}, {}, modifier)
                             "readout" -> ReadoutPanel(readoutText(FrameReading(0, 1, 12.3f, -2f, 1f, 130, 88.0, 0.42f, 0.03f, 120f)), modifier)
                             "connect" -> ConnectScreen(false, null, {}, {}, modifier)
                             "scan" -> QrScanLayout({}, modifier) {}
