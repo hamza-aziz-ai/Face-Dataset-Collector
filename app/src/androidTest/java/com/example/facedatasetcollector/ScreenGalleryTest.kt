@@ -35,7 +35,7 @@ import java.io.ByteArrayOutputStream
 /**
  * Shows one screen with synthetic data for a person to look at, or for `adb screencap`. The real app blocks screenshots on review, and real photos must never be used to check a layout.
  *
- * Pick the screen with `-e screen glasses-on|glasses-off|readout|roster|reenrol|connect|scan|review|sending|checking|accepted|rejected|rejected-reenrol`. `scan` shows an empty panel, so no camera opens.
+ * Pick the screen with `-e screen glasses-on|glasses-off|readout|roster|reenrol|connect|connect-release|scan|review|sending|checking|accepted|rejected|rejected-reenrol`. `scan` shows an empty panel, so no camera opens.
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenGalleryTest {
@@ -73,6 +73,7 @@ class ScreenGalleryTest {
                             "glasses-off" -> GlassesStepScreen(false, false, {}, {}, {}, modifier)
                             "readout" -> ReadoutPanel(readoutText(FrameReading(0, 1, 12.3f, -2f, 1f, 130, 88.0, 0.42f, 0.03f, 120f)), modifier)
                             "connect" -> ConnectScreen(false, null, {}, {}, modifier)
+                            "connect-release" -> ConnectScreen(false, null, {}, {}, modifier, allowTyped = false)
                             "scan" -> QrScanLayout({}, modifier) {}
                             "review" -> ReviewScreen("Sample Person A", photos, Pose.entries, true, false, null, {}, {}, {}, {}, false, modifier)
                             "sending" -> UploadScreen("Sample Person A", 10, "0.1-mock", UploadState.Sending, true, {}, modifier)

@@ -130,9 +130,10 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         api = server?.let { EnrolmentApi(it.baseUrl) }
     }
 
-    /** First-time setup from a typed address. */
-    fun connect(address: String) = run {
-        connectTo(ServerSetup(normalizeBaseUrl(address, allowLoopbackHttp = BuildConfig.DEBUG), null))
+    /** First-time setup from a typed address. Debug builds only: a typed address has no signature to check (D-020). */
+    fun connect(address: String) {
+        if (!BuildConfig.DEBUG) return
+        run { connectTo(ServerSetup(normalizeBaseUrl(address, allowLoopbackHttp = true), null)) }
     }
 
     fun startScan() {
@@ -146,7 +147,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun scanFailed() {
         screen = Screen.Connect
-        error = "The camera could not start. Type the server address instead."
+        error = if (BuildConfig.DEBUG) "The camera could not start. Type the server address instead." else "The camera could not start. Ask your administrator for help."
     }
 
     /** First-time setup from a scanned code. Any failure lands on the connect screen, where the typed fallback is. */

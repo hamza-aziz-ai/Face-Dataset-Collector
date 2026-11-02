@@ -5,6 +5,10 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class ServerSetupTest {
+    // Made once by tools/setup_codes/sign_setup_code.py with a throwaway key, since deleted, so these prove the tool and the app agree on the format.
+    private val keys = mapOf("k1" to "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEPD0j6W5TDETIzzy1hPKPGFl9hcbRB5sF8HRqZQQZknvdadBJsCkttTe3c5SZXnRLzYVa/cMeytU/E6DWE/4JtA==")
+    private val signedCode = """{"base_url":"https://client.example.com","client_id":"client-a","kid":"k1","sig":"MEUCIDlNUqqaR6jiEoIUXcrx9YK7+8xmPGPaSPwEzwRpj/fSAiEAp0xvqu7dm+7eVe6X8keouxryA8A6+q8y6Qbmug08LPM="}"""
+
     @Test
     fun acceptsPlainHttpsOriginAndNormalizesIt() {
         assertEquals("https://client.example.com", normalizeBaseUrl("  HTTPS://Client.Example.com/ ", false))
@@ -44,11 +48,36 @@ class ServerSetupTest {
     }
 
     @Test
-    fun parsesSetupCode() {
-        assertEquals(
-            ServerSetup("https://client.example.com", "client-a"),
-            parseSetupCode("""{"base_url":"https://client.example.com","client_id":"client-a"}""", false),
-        )
+    fun acceptsACodeSignedByTheTool() {
+        assertEquals(ServerSetup("https://client.example.com", "client-a"), parseSetupCode(signedCode, false, keys))
+    }
+
+    @Test
+    fun refusesAnyChangeToASignedCode() {
+        listOf(
+            signedCode.replace("client.example.com", "evil.example.com"),
+            signedCode.replace("client-a", "client-b"),
+            signedCode.replace("\"k1\"", "\"k2\""),
+            signedCode.replace("MEUCIDlN", "MEUCIDlM"),
+            signedCode.replace("\"sig\"", "\"nope\""),
+            """{"base_url":"https://client.example.com","client_id":"client-a"}""",
+        ).forEach { code ->
+            assertThrows(code, InvalidServerAddress::class.java) { parseSetupCode(code, false, keys) }
+        }
+    }
+
+    @Test
+    fun aReleaseBuildWithNoKeysRefusesEveryCode() {
+        assertThrows(InvalidServerAddress::class.java) { parseSetupCode(signedCode, false, emptyMap()) }
+    }
+
+    @Test
+    fun onlyTheLocalMockRunsUnsignedAndOnlyInDebug() {
+        val mock = """{"base_url":"http://127.0.0.1:8081","client_id":"mock-dedicated"}"""
+        val unsignedHttps = """{"base_url":"https://client.example.com","client_id":"client-a"}"""
+        assertEquals(ServerSetup("http://127.0.0.1:8081", "mock-dedicated"), parseSetupCode(mock, true, keys))
+        assertThrows(InvalidServerAddress::class.java) { parseSetupCode(mock, false, keys) }
+        assertThrows(InvalidServerAddress::class.java) { parseSetupCode(unsignedHttps, true, keys) }
     }
 
     @Test

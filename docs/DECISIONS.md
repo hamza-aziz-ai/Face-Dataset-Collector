@@ -295,3 +295,20 @@ Chosen: 1.
 Why: the stop screen fixes the reported problem, with the camera closed until staff confirm. The score costs no dependency, and real numbers decide whether a warning can work.
 Trade-off: the score decides nothing yet. Rimless frames and heavy eyebrows may not separate, and one face proves little.
 Revisit if: with and without glasses clearly separate across several people. Then add a soft warning that never blocks.
+
+## D-020: Sign setup codes with an offline key, and allow only signed codes in release
+
+Date: 2026-11-02. Model: Claude Opus 5.5 (claude-opus-5-5). Owner chose. Supersedes the timing in D-014: the owner asked to build it now.
+Context: a forged code or a told-to-type address could send staff passwords and photos to any HTTPS server. The `client_id` check cannot stop that, because a forger controls both ends.
+Options:
+
+1. ECDSA P-256, with the private key held offline by the owner, and no typed address in release.
+2. Ed25519 with the same rules.
+3. Keep the typed address behind a full-screen warning.
+4. The CCTV server holds the signing key.
+
+Chosen: 1.
+Why: Android has ECDSA P-256 from API 23 with no new dependency, while Ed25519 needs API 33 or a library. A warning can be talked past, and a typed address would bypass the signature. An online key means one server breach could forge codes for every client.
+Trade-off: the owner must sign each client's code, and changing the key needs an app release. An unreadable code stops setup until an administrator helps. Until `SetupKeys.kt` has a key, a release build cannot be set up.
+Also: debug builds keep the typed address and accept unsigned codes for the local mock only. Format and steps are in `SETUP-CODES.md`.
+Revisit if: the number of clients makes signing by hand a bottleneck.

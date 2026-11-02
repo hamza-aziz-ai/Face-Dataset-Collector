@@ -45,8 +45,12 @@ fun normalizeBaseUrl(raw: String, allowLoopbackHttp: Boolean): String {
     return "$scheme://$host$port"
 }
 
-/** Parses the QR payload `{base_url, client_id}`. */
-fun parseSetupCode(raw: String, allowLoopbackHttp: Boolean): ServerSetup {
+/**
+ * Parses the signed QR payload. Without a valid signature a forged code could send staff passwords and photos to any server (D-020).
+ *
+ * @param keys public keys allowed to sign, by key ID.
+ */
+fun parseSetupCode(raw: String, allowLoopbackHttp: Boolean, keys: Map<String, String> = SetupKeys.trusted): ServerSetup {
     val json = try {
         JSONObject(raw)
     } catch (_: JSONException) {
@@ -55,5 +59,11 @@ fun parseSetupCode(raw: String, allowLoopbackHttp: Boolean): ServerSetup {
     val baseUrl = json.optString("base_url")
     val clientId = json.optString("client_id")
     if (baseUrl.isEmpty() || clientId.isEmpty()) throw InvalidServerAddress("This setup code is incomplete.")
-    return ServerSetup(normalizeBaseUrl(baseUrl, allowLoopbackHttp), clientId)
+    val normalized = normalizeBaseUrl(baseUrl, allowLoopbackHttp)
+    // Only the local mock runs unsigned, and normalizeBaseUrl allows http only for loopback in debug builds.
+    val mockCode = allowLoopbackHttp && normalized.startsWith("http://")
+    if (!mockCode && !isSignedSetupCode(baseUrl, clientId, json.optString("kid"), json.optString("sig"), keys)) {
+        throw InvalidServerAddress("This setup code could not be verified. Ask your administrator for a new one.")
+    }
+    return ServerSetup(normalized, clientId)
 }

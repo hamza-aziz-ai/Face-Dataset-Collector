@@ -41,7 +41,7 @@ flowchart TD
 
 1. `MainActivity` creates `EnrolmentViewModel`.
 2. `ServerStore` holds the address and client, never a token.
-3. `QrScanScreen` reads the back camera and keeps no frame. `parseSetupCode` needs `base_url` and `client_id`. `normalizeBaseUrl` refuses anything but a plain HTTPS origin, for both routes. Debug builds also accept loopback HTTP for the mock. A bad code, a camera failure, or cancel returns to the connect screen.
+3. `QrScanScreen` reads the back camera and keeps no frame. `parseSetupCode` needs `base_url`, `client_id`, and a valid signature (D-020). `normalizeBaseUrl` refuses anything but a plain HTTPS origin, for both routes. Debug builds also accept loopback HTTP for the mock. A bad code, a camera failure, or cancel returns to the connect screen.
 4. The device binds to the client that answers. A scanned code must name that client, or `requireClient` refuses and nothing is stored. A typed address has no client to compare.
 5. Shows `Uploading to:` with the client and host, and a `MOCK SERVER` chip on debug loopback.
 6. Runs before the password is sent, so a changed server never receives credentials.

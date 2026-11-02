@@ -163,7 +163,7 @@ fun QrScanScreen(onCode: (String) -> Unit, onFailure: () -> Unit, onCancel: () -
             }
         } else {
             CameraPermissionNeeded(
-                "Turn on camera access in Settings, then come back. Or cancel and type the server address.",
+                "Turn on camera access in Settings, then come back.",
                 cameraModifier,
             )
         }

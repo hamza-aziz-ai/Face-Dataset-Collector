@@ -21,9 +21,8 @@ class QrDecoderTest {
     }
 
     @Test
-    fun readsACodeAndItParsesAsSetup() {
-        val text = decodeQr(frame(480, 0), 480, 480, 480)
-        assertEquals(ServerSetup("https://client.example.com", "client-a"), parseSetupCode(text!!, false))
+    fun readsACode() {
+        assertEquals(payload, decodeQr(frame(480, 0), 480, 480, 480))
     }
 
     @Test
