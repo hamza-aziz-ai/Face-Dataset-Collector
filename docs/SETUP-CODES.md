@@ -26,7 +26,7 @@ The second command prints the public key. Give only that to the developer, to ad
 
 ## Keys in the app
 
-- `k1`: the owner's key, added 2026-11-02. SHA-256 of the DER public key: `73796d21dbe463e259f3c6d1b8c3fbd472f85f234801c1fabba69b53252f48d2`. To check the key you hold matches, run `openssl ec -in setup-signing-key.pem -pubout -outform DER | sha256sum`.
+- `k1`: the owner's key, added 2026-11-02. To check the key you hold matches, run `openssl ec -in setup-signing-key.pem -pubout -outform DER | base64 -w0` and compare the output with `k1` in `SetupKeys.kt`.
 
 ## Sign a code for a client
 
