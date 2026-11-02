@@ -328,3 +328,18 @@ Chosen: 2.
 Why: one photo alone misfires, since tablet Chin up with glasses scored 2.3. Most of a half must agree, and both measured runs then pass cleanly. A warning lets staff decide, because one face proves little.
 Trade-off: rimless frames, other faces, and other light are untested, so it can miss or misfire. The score is kept per photo in memory, never logged or sent.
 Revisit if: staff report misses or false alarms, or more people are measured. Only then consider a block, or a server check.
+
+## D-022: Sign release builds by hand, from a keystore the owner holds offline
+
+Date: 2026-11-02. Model: Claude Opus 5.5 (claude-opus-5-5). Owner said go.
+Context: no release build had run on a device, because it was unsigned. D-006 defers release automation.
+Options:
+
+1. The owner signs by hand. The build reads the keystore path, alias, and password from the environment of the shell that builds.
+2. Store them in `~/.gradle/gradle.properties` or `local.properties`.
+3. Sign in CI, with the keystore in GitHub secrets.
+
+Chosen: 1.
+Why: nothing secret touches the repo or this machine's disk, and AI tools on this machine never see it. Without the variables, the release stays unsigned, so CI is unchanged. CI signing waits for D-006 to be revisited.
+Trade-off: every release needs the owner, with the drive plugged in. A lost keystore means installed apps cannot be updated in place, so they must be uninstalled first, which loses only the stored server.
+Revisit if: releases become frequent, or a store or device manager takes over distribution.

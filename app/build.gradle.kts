@@ -3,6 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Release signing (D-022). Read only from the shell of whoever builds, so no keystore path or password lives in the repo or on this machine's disk. Without them the release stays unsigned, as in CI.
+val releaseStoreFile: String? = providers.environmentVariable("RELEASE_STORE_FILE").orNull
+
 android {
     namespace = "com.example.facedatasetcollector"
     compileSdk = 37
@@ -17,8 +20,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                // PKCS12 keystores use one password for the store and the key.
+                storePassword = providers.environmentVariable("RELEASE_STORE_PASSWORD").get()
+                keyPassword = providers.environmentVariable("RELEASE_STORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("RELEASE_KEY_ALIAS").get()
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

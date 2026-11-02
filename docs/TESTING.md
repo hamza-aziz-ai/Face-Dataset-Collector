@@ -74,9 +74,23 @@ Pass: all poses complete on both devices without fighting the prompts, left and 
 
 ## Release build check
 
-Run `./gradlew assembleRelease`, then `aapt2 dump xmltree <apk> --file AndroidManifest.xml`. Pass: no `debuggable`, `usesCleartextTraffic`, or `networkSecurityConfig`, `allowBackup` is false, both backup rule files are set, and the only permissions are `CAMERA`, `INTERNET`, and `ACCESS_NETWORK_STATE`.
+Run `./gradlew assembleRelease`, then `aapt2 dump xmltree <apk> --file AndroidManifest.xml`. Pass: no `debuggable`, `usesCleartextTraffic`, or `networkSecurityConfig`, `allowBackup` is false, both backup rule files are set, and the only permissions are `CAMERA`, `INTERNET`, and `ACCESS_NETWORK_STATE`, plus AndroidX's own `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which only this app can hold.
 
 Also check the connect screen with `ScreenGalleryTest -e screen connect-release`, which has no typed address.
+
+To sign it (D-022), the owner runs this in their own Git Bash, with the keystore drive plugged in. The password is read from the owner's password file, so it is never typed or shown. `tr` strips the `` that Windows openssl leaves at the end of the file, which keytool ignores but Gradle does not:
+
+```bash
+export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" RELEASE_STORE_FILE=E:/enrolment-release.jks RELEASE_KEY_ALIAS=enrolment
+export RELEASE_STORE_PASSWORD="$(tr -d '
+' < E:/enrolment-release.pass)"
+./gradlew assembleRelease --no-daemon
+unset RELEASE_STORE_PASSWORD
+```
+
+`--no-daemon` stops the password living on in a background Gradle process. Check with `apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk`. Then install it on a device, scan a signed code, and check there is no typed address, no `MOCK SERVER` chip, and no tuning readout. The debug app must be uninstalled first, because the two are signed differently.
+
+Result on 2026-11-02, OPD2203: signed with the owner's key, v1 and v2 schemes. Connect screen showed QR only, with no mock chip. The owner's `k1` code gave `Could not reach the server`, and the unsigned mock code gave `This setup code could not be verified`. No crash, and no app log lines.
 
 Result on 2026-11-01: passed. The APK is 51 MB, with minify off. It is unsigned, so it cannot be installed and has not been run. Plain HTTP and the mock address are refused by `normalizeBaseUrl` when `BuildConfig.DEBUG` is false, which unit tests cover.
 
