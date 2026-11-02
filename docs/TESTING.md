@@ -32,7 +32,9 @@ With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlo
 
 ## Signed setup codes, no camera
 
-Run `SetupSignatureDeviceTest` with `am instrument`. Android's crypto provider differs from the JVM's, so unit tests alone are not enough. Pass: `OK (2 tests)`. No mock needed.
+Run `SetupSignatureDeviceTest` with `am instrument`. Android's crypto provider differs from the JVM's, so unit tests alone are not enough. Pass: `OK (3 tests)`. No mock needed.
+
+Result on 2026-11-02, OPD2203: `OK (3 tests)`, including a code the owner signed with `k1` for `https://enrol-test.invalid`. Scanned by hand, that code gave `Could not reach the server`, so its signature passed. The same code with the name changed gave `This setup code could not be verified`.
 
 ## Re-enrol tap path, no camera
 

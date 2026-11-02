@@ -23,4 +23,13 @@ class SetupSignatureDeviceTest {
     fun refusesAChangedCode() {
         assertThrows(InvalidServerAddress::class.java) { parseSetupCode(signedCode.replace("client-a", "client-b"), false, keys) }
     }
+
+    /** Signed by the owner with the shipped key k1, for a host that cannot exist. Proves the key in SetupKeys is the one the owner holds. */
+    private val ownerCode = """{"base_url":"https://enrol-test.invalid","client_id":"client-test","client_name":"Signing Test","kid":"k1","sig":"MEQCIGsPZR5jaHMh3L/lmogpIS9GRPA++vUj2noNcN9zD/POAiAVuNMzD4Qr195ok0LRh4M6iqnLQTNU6XKqx67b33mIug=="}"""
+
+    @Test
+    fun theShippedKeyVerifiesTheOwnersCode() {
+        assertEquals("Signing Test", parseSetupCode(ownerCode, false).clientName)
+        assertThrows(InvalidServerAddress::class.java) { parseSetupCode(ownerCode.replace("Signing Test", "Other Ltd"), false) }
+    }
 }
