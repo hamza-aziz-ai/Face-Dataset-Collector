@@ -6,7 +6,7 @@ Newest entry on top. Read this first every session and update it last.
 
 Done:
 - Owner ran capture on CPH2381 on their own face (D-015). `CameraLifecycleTest` passed first: `OK (1 test)`, camera closed, 0 images on disk.
-- 3 runs reached the end of capture, with 0 crash lines. A settled 5-pose set took about 24 s. Most poses took 2.5 to 4 s. Upload of 5 photos took 171 ms on the mock.
+- Owner completed all 3 sample people through upload, including Sample Person B's re-enrolment: 3 uploads reached the mock after the last reset, and all 3 show enrolled, with 0 crash lines. A settled 5-pose set took about 24 s. Most poses took 2.5 to 4 s. Upload of 5 photos took 171 to 206 ms on the mock.
 - Owner confirmed left and right are correct, so `YAW_SIGN` stays. Owner saw the photos on review and they looked right.
 - Glasses stop screen added, after the owner could not tell when to switch (D-019). `bridge` score added to the readout.
 
@@ -16,10 +16,10 @@ In progress:
 Broken or risky:
 - Glasses are not detected. The owner took the glasses set with glasses off and the app accepted it. No `bridge` numbers were collected, so a warning cannot be decided yet.
 - `front` is the slowest pose: `Lower your chin a little` held it for 49 of 67 frames in run 2. Pitch was not read, so `STRAIGHT_LIMIT` is unchanged.
-- Not done by hand: retake, and a re-enrolment through to upload. `ReEnrolTapPathTest` covers re-enrol up to the notice.
+- Retake by hand is unconfirmed.
 - Not run on the tablet: no real capture, and the readout and glasses screen are not installed there.
 - Photo sizes were 246 to 408 KB, above the 200 to 240 KB target. They fit the 2 MB limit. Measured against one face, on one device.
-- One frame in run 1 reported more than one face. Cause unknown.
+- `Only one person should be in view` fired on 1 frame in run 1 and 2 frames in a later `left_30`. Cause unknown: a detector glitch, or something in view.
 - Codex and its PR bot have not reviewed PR #25 or later. Their limit resets 2026-11-04.
 
 Next:
