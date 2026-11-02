@@ -88,7 +88,7 @@ private val AnalysisSize = Size(1920, 1080)
 fun CaptureCamera(
     target: Pose?,
     onGuidance: (Guidance) -> Unit,
-    onPhoto: (Pose, ByteArray) -> Unit,
+    onPhoto: (Pose, ByteArray, Float?) -> Unit,
     onFailure: () -> Unit,
     modifier: Modifier = Modifier,
     onReading: ((FrameReading) -> Unit)? = null,
@@ -117,7 +117,7 @@ fun CaptureCamera(
         CaptureAnalyzer(
             faceDetector,
             onGuidance = { guidance -> main.execute { currentGuidance(guidance) } },
-            onPhoto = { pose, bytes -> main.execute { if (onScreen.value) currentPhoto(pose, bytes) } },
+            onPhoto = { pose, bytes, bridge -> main.execute { if (onScreen.value) currentPhoto(pose, bytes, bridge) } },
             onFailure = { main.execute { currentFailure() } },
             onReading = if (onReading == null) null else { frame -> main.execute { currentReading?.invoke(frame) } },
         )
@@ -385,7 +385,7 @@ fun CaptureScreen(
     uploadingTo: String,
     showReadout: Boolean,
     onFrameReading: (FrameReading) -> Unit,
-    onPhoto: (Pose, ByteArray) -> Unit,
+    onPhoto: (Pose, ByteArray, Float?) -> Unit,
     onCancel: () -> Unit,
     onWithdraw: () -> Unit,
     reEnrolling: Boolean,

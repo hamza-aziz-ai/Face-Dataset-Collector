@@ -251,6 +251,28 @@ class EnrolmentFlowTest {
     }
 
     @Test
+    fun glassesWarning_followsTheScoresAndClearsWithThePhotos() {
+        val person = read { model.persons[0] }
+        onMain { model.selectPerson(person) }
+        awaitUntil { model.screen == Screen.Consent && !model.busy }
+        onMain { model.recordConsent(false) }
+        awaitUntil { model.screen == Screen.Capture && !model.busy }
+        val set = read { model.poseSet }
+        // Glasses on for 3 of 5 no-glasses photos: warn.
+        set.forEachIndexed { index, pose -> onMain { model.onPhoto(pose, syntheticJpeg(index), if (index < 3) 4f else 1.5f) } }
+        assertEquals(listOf(false), read { model.glassesWarnings })
+        // A retake that scores as no glasses leaves 2 of 5: the warning goes.
+        onMain { model.retake(set[0]) }
+        onMain { model.onPhoto(set[0], syntheticJpeg(9), 1.5f) }
+        assertTrue(read { model.glassesWarnings.isEmpty() })
+        onMain { model.retake(set[0]) }
+        onMain { model.onPhoto(set[0], syntheticJpeg(9), 4f) }
+        assertEquals(listOf(false), read { model.glassesWarnings })
+        onMain { model.cancelCapture() }
+        assertTrue(read { model.glassesWarnings.isEmpty() })
+    }
+
+    @Test
     fun noGlasses_neverStops() {
         signInAndCapture(personIndex = 0, glasses = false)
         assertFalse(read { model.needsGlassesStep })

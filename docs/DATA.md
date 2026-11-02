@@ -13,6 +13,13 @@ Draft 2026-10-31 by Claude Opus 5.5, reviewed with Codex gpt-6.1-sol. It describ
 - Lifetime: cleared on a durable 202, cancel, logout, and background timeout. The timeout fires while the app is in the background, unless the device has frozen the process or is in deep sleep, in which case it is applied on return. A failed upload keeps them. Process death loses the batch, so staff retake.
 - Trade-off: no persistent file means no leftovers and no disk cleanup, but an upload cannot survive process death.
 
+## Nose-bridge score
+
+- Shape: one `Float` per kept photo, keyed by pose, measured on the kept frame (D-021).
+- Why: it drives the glasses warning on review, which judges each half of the set together.
+- Location: memory only, in the ViewModel beside the photos. Never logged, stored, or sent, because it is a measurement of the person.
+- Lifetime: replaced on retake, and cleared whenever the photos clear.
+
 ## Stored frame
 
 The stored image is the `ImageAnalysis` frame that passed the checks, so the frame judged is the frame stored. If its resolution proves too low, use `ImageCapture` and validate that result again, because a capture request produces a different frame.

@@ -76,6 +76,7 @@ class ScreenGalleryTest {
                             "connect-release" -> ConnectScreen(false, null, {}, {}, modifier, allowTyped = false)
                             "scan" -> QrScanLayout({}, modifier) {}
                             "review" -> ReviewScreen("Sample Person A", photos, Pose.entries, true, false, null, {}, {}, {}, {}, false, modifier)
+                            "review-glasses" -> ReviewScreen("Sample Person A", photos, Pose.entries, true, false, null, {}, {}, {}, {}, false, modifier, glassesWarnings = listOf(true))
                             "sending" -> UploadScreen("Sample Person A", 10, "0.1-mock", UploadState.Sending, true, {}, modifier)
                             "checking" -> UploadScreen("Sample Person A", 10, "0.1-mock", UploadState.Checking, true, {}, modifier)
                             "accepted" -> UploadScreen("Sample Person A", 10, "0.1-mock", UploadState.Accepted, true, {}, modifier)

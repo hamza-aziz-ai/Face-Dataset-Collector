@@ -107,6 +107,12 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     /** The numbers behind each kept photo, for tuning against the mock. Memory only, shown on review and never logged (D-016). */
     val tuningNotes = mutableStateMapOf<Pose, String>()
     private var lastReading: FrameReading? = null
+
+    /** Nose-bridge edge score per kept photo. Memory only, never logged or sent: it is a measurement of the person (D-021). */
+    private val bridgeScores = mutableStateMapOf<Pose, Float>()
+
+    /** Halves of the set that look wrong for glasses, for a warning on review that never blocks upload. */
+    val glassesWarnings: List<Boolean> get() = glassesMismatches(poseSet, bridgeScores)
     var poseSet by mutableStateOf<List<Pose>>(emptyList())
         private set
     var capturePose by mutableStateOf<Pose?>(null)
@@ -268,6 +274,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         glassesConfirmed = null
         photos.clear()
         tuningNotes.clear()
+        bridgeScores.clear()
         uploadKey = null
         uploadState = null
         retaking = false
@@ -280,7 +287,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     fun retakeAll() = startCapture()
 
     /** Ignores a stale photo: one that arrives after cancel or for a pose no longer being captured. */
-    fun onPhoto(pose: Pose, jpeg: ByteArray) {
+    fun onPhoto(pose: Pose, jpeg: ByteArray, bridge: Float? = null) {
         if (screen != Screen.Capture || pose != capturePose) return
         // Timing and size only, with no person in the line.
         val now = SystemClock.elapsedRealtime()
@@ -288,6 +295,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         poseStartedAt = now
         if (isMock) lastReading?.let { tuningNotes[pose] = tuningNote(it) }
         photos[pose] = jpeg
+        if (bridge == null) bridgeScores.remove(pose) else bridgeScores[pose] = bridge
         uploadKey = null
         val next = if (retaking) null else poseSet.getOrNull(poseSet.indexOf(pose) + 1)
         capturePose = next
@@ -491,6 +499,7 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         reEnrolReason = null
         photos.clear()
         tuningNotes.clear()
+        bridgeScores.clear()
         lastReading = null
         poseSet = emptyList()
         capturePose = null

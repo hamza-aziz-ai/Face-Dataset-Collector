@@ -100,6 +100,7 @@ Agreed with Codex on 2026-10-31. Login and consent ship before capture.
 - 2026-10-31: during a device check, a real face was in view of the phone and the app likely auto-captured it. Photos stayed in memory and were cleared on cancel. A file audit found no images on either device, and the mock logged no uploads.
 - 2026-10-31: roster and consent screens built.
 - 2026-10-31: connect and sign-in built and checked on the phone against the mock. QR setup not built yet.
+- 2026-11-02: glasses warning on review, from the owner's numbers on both devices (D-021). Retake by hand confirmed, and real capture on the tablet in portrait and landscape.
 - 2026-11-02: setup codes signed, typed address removed from release (D-020).
 - 2026-11-02: first real-face runs by the owner on CPH2381, all 3 sample people through upload. 5 poses in about 24 s once settled, left and right correct. Glasses step added after the owner found the switch unclear (D-019).
 - 2026-11-01: consent withdrawal added to the cancel dialogs (D-018).

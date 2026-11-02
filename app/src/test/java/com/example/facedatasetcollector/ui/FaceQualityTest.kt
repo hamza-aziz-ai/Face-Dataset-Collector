@@ -1,5 +1,6 @@
 package com.example.facedatasetcollector.ui
 
+import com.example.facedatasetcollector.data.Pose
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -101,5 +102,32 @@ class FaceQualityTest {
 
     private companion object {
         const val PADDING: Byte = 0x7F
+    }
+    private val plain = Pose.entries.filter { !it.withGlasses }
+    private val glasses = Pose.entries.filter { it.withGlasses }
+    private fun scores(poses: List<Pose>, vararg values: Float) = poses.zip(values.toList()).toMap()
+
+    @Test
+    fun theMeasuredSetsRaiseNoWarning() {
+        // The owner's real runs, in pose order: phone, then tablet.
+        val phone = scores(plain, 1.7f, 1.9f, 1.8f, 1.6f, 1.6f) + scores(glasses, 4.4f, 3.0f, 4.0f, 3.7f, 3.3f)
+        val tablet = scores(plain, 1.7f, 1.5f, 2.1f, 1.8f, 1.8f) + scores(glasses, 3.5f, 2.3f, 3.7f, 3.3f, 3.1f)
+        assertEquals(emptyList<Boolean>(), glassesMismatches(Pose.entries, phone))
+        assertEquals(emptyList<Boolean>(), glassesMismatches(Pose.entries, tablet))
+    }
+
+    @Test
+    fun mostOfAHalfMustDisagree() {
+        val noGlassesOn = scores(glasses, 1.6f, 1.8f, 1.7f, 3.5f, 3.5f)
+        assertEquals(listOf(true), glassesMismatches(Pose.entries, scores(plain, 1.7f, 1.7f, 1.7f, 1.7f, 1.7f) + noGlassesOn))
+        val twoOdd = scores(plain, 3.0f, 3.0f, 1.7f, 1.7f, 1.7f)
+        assertEquals(emptyList<Boolean>(), glassesMismatches(plain, twoOdd))
+        val swapped = scores(plain, 3.5f, 3.5f, 3.5f, 1.7f, 1.7f) + scores(glasses, 1.7f, 1.7f, 1.7f, 3.5f, 3.5f)
+        assertEquals(setOf(true, false), glassesMismatches(Pose.entries, swapped).toSet())
+    }
+
+    @Test
+    fun missingScoresNeverCountAgainstAHalf() {
+        assertEquals(emptyList<Boolean>(), glassesMismatches(glasses, scores(glasses, 1.5f, 1.5f)))
     }
 }

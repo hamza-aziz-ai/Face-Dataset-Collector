@@ -1,10 +1,19 @@
 package com.example.facedatasetcollector.ui
 
+import com.example.facedatasetcollector.data.Pose
 import java.nio.ByteBuffer
 import kotlin.math.abs
 
 /** Plain box with right and bottom exclusive. Not android.graphics.Rect, so this file can run in JVM unit tests. */
 data class Box(val left: Int, val top: Int, val right: Int, val bottom: Int)
+
+/**
+ * Halves of [set] whose photos look wrong for glasses, as their withGlasses value. Most photos in a half must agree, so one odd frame cannot raise it (D-021). A photo with no score does not count against its half.
+ */
+fun glassesMismatches(set: List<Pose>, bridge: Map<Pose, Float>): List<Boolean> =
+    set.groupBy { it.withGlasses }
+        .filter { (glasses, poses) -> poses.count { pose -> bridge[pose]?.let { (it > QualityPolicy.GLASSES_BRIDGE_EDGE) != glasses } == true } >= QualityPolicy.GLASSES_VOTES }
+        .keys.toList()
 
 /**
  * Converts a box from ML Kit coordinates to camera buffer coordinates. ML Kit reports faces in the upright image, but the buffer stays in sensor orientation, so reading it without this samples the wrong pixels.
@@ -23,7 +32,7 @@ fun uprightToBuffer(box: Box, rotationDegrees: Int, bufferWidth: Int, bufferHeig
     }
 
 /**
- * Mean brightness step between neighbouring pixels inside [box]. Measured across the nose bridge, where a glasses frame adds sharp edges to smooth skin. A tuning aid only: it decides nothing yet (D-019).
+ * Mean brightness step between neighbouring pixels inside [box]. Measured across the nose bridge, where a glasses frame adds sharp edges to smooth skin. It feeds a warning only, never a block (D-021).
  *
  * @return null when the box has too few pixels inside the buffer to measure.
  */

@@ -114,6 +114,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
                 reEnrolling = model.reEnrolReason != null,
                 modifier = modifier,
                 tuningNotes = model.tuningNotes,
+                glassesWarnings = model.glassesWarnings,
             )
         }
     }
