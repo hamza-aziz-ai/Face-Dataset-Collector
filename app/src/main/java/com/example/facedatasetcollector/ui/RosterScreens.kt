@@ -387,9 +387,9 @@ private fun NoticeCard(notice: Notice, modifier: Modifier, roomy: Boolean) {
         modifier
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(10.dp))
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-            .padding(if (roomy) 24.dp else 14.dp),
-        // Roomy: the sections share the extra height, so the card fills its space evenly.
-        verticalArrangement = if (roomy) Arrangement.SpaceBetween else Arrangement.spacedBy(10.dp),
+            .padding(if (roomy) 18.dp else 14.dp),
+        // A fixed gap after every section, so a long notice never runs its paragraphs together (owner, 2026-11-03).
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         notice.sections.forEach { section ->
             Column {
