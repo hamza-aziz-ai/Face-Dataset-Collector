@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
 
-# Read-only on purpose: this workflow needs no secrets and never deploys.
+# Read-only on purpose: this workflow never deploys. Its only secret is the token in notify-cctv.
 permissions:
   contents: read
 
@@ -51,3 +51,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
           GITLEAKS_ENABLE_COMMENTS: false
+
+  # After main passes, asks CCTV to move its submodule pin to this commit (owner's rule, CCTV PR #95). A daily CCTV run catches anything missed, including [skip ci] pushes.
+  notify-cctv:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [checks, secrets]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Its own fine-grained token does the work, so GITHUB_TOKEN gets nothing.
+    permissions: {}
+    steps:
+      - name: Dispatch submodule-main to CCTV
+        env:
+          GH_TOKEN: ${{ secrets.SUBMODULES_TOKEN }}
+        run: |
+          # Skips quietly until the owner saves SUBMODULES_TOKEN in this repo, so CI stays green.
+          if [ -z "$GH_TOKEN" ]; then echo "SUBMODULES_TOKEN not set, skipping."; exit 0; fi
+          gh api repos/hamza-aziz-ai/CCTV-Face-Recognition-Attendance-System/dispatches -f event_type=submodule-main
