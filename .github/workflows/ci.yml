@@ -67,4 +67,5 @@ jobs:
         run: |
           # Skips quietly until the owner saves SUBMODULES_TOKEN in this repo, so CI stays green.
           if [ -z "$GH_TOKEN" ]; then echo "SUBMODULES_TOKEN not set, skipping."; exit 0; fi
-          gh api repos/hamza-aziz-ai/CCTV-Face-Recognition-Attendance-System/dispatches -f event_type=submodule-main
+          # A refused dispatch only warns: CCTV's daily run is the fallback, so a bad token must not turn main red.
+          gh api repos/hamza-aziz-ai/CCTV-Face-Recognition-Attendance-System/dispatches -f event_type=submodule-main || echo "::warning::CCTV dispatch failed. Check that SUBMODULES_TOKEN has Contents read and write on CCTV. CCTV's daily run catches up."
