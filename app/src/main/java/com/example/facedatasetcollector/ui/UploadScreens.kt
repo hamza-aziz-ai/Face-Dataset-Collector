@@ -163,7 +163,7 @@ fun RejectedScreen(
             )
             Text(personName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text("The server deleted this set. Take all $photoCount photos again and these should pass.", style = MaterialTheme.typography.bodyLarge)
+        Text("The server deleted this set. Take all $photoCount photos again.", style = MaterialTheme.typography.bodyLarge)
         if (problems.isNotEmpty()) {
             Column(
                 Modifier

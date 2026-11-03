@@ -47,7 +47,9 @@ Opens the back camera. Tell the owner first. Show a code for `{"base_url":"http:
 
 A code with a different `client_id` must return to the connect screen with a message and store nothing.
 
-`ScreenGalleryTest` with `-e screen connect` or `-e screen scan` checks these layouts with no camera. `review-glasses` shows the glasses warning. `roster`, `reenrol`, and `rejected-reenrol` do the same for re-enrolment.
+`ScreenGalleryTest` with `-e screen connect` or `-e screen scan` checks these layouts with no camera. `review-glasses` shows the glasses warning. `roster`, `reenrol`, and `rejected-reenrol` do the same for re-enrolment. `register` and `register-confirm` show registration (D-023).
+
+Result on 2026-11-03, OPD2203: `EnrolmentFlowTest` `OK (22 tests)` against the mock, including registration, a full upload for the new person, and a taken ID in another letter case refused with `This ID is already registered. Find the person in the list.` `register`, `register-confirm`, `roster`, and `rejected` seen in light and dark, portrait and landscape. 0 crash lines, and no JPEG on the device.
 
 ## Real-face test script
 
