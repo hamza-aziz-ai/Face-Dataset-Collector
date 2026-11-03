@@ -343,6 +343,7 @@ Chosen: 1.
 Why: nothing secret touches the repo or this machine's disk, and AI tools on this machine never see it. Without the variables, the release stays unsigned, so CI is unchanged. CI signing waits for D-006 to be revisited.
 Trade-off: every release needs the owner, with the drive plugged in. A lost keystore means installed apps cannot be updated in place, so they must be uninstalled first, which loses only the stored server.
 Revisit if: releases become frequent, or a store or device manager takes over distribution.
+Update 2026-11-03: the owner chose to keep the keystore and its password file in `~/.ssh` on the laptop, with backups on other drives. So the keystore is on this machine's disk after all. AI tools must still never open either file, and the password still reaches Gradle only through the owner's shell.
 
 ## D-023: Staff register people by their organisation ID
 

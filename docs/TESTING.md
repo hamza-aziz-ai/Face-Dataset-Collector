@@ -91,12 +91,11 @@ Run `./gradlew assembleRelease`, then `aapt2 dump xmltree <apk> --file AndroidMa
 
 Also check the connect screen with `ScreenGalleryTest -e screen connect-release`, which has no typed address.
 
-To sign it (D-022), the owner runs this in their own Git Bash, with the keystore drive plugged in. The password is read from the owner's password file, so it is never typed or shown. `tr` strips the `` that Windows openssl leaves at the end of the file, which keytool ignores but Gradle does not:
+To sign it (D-022), the owner runs this in their own Git Bash. The keystore and its password file live in the owner's `~/.ssh`, with backups on other drives. The password is read from the file, so it is never typed or shown. `tr` strips the `\r` that Windows openssl leaves at the end of the file, which keytool ignores but Gradle does not:
 
 ```bash
-export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" RELEASE_STORE_FILE=E:/enrolment-release.jks RELEASE_KEY_ALIAS=enrolment
-export RELEASE_STORE_PASSWORD="$(tr -d '
-' < E:/enrolment-release.pass)"
+export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" RELEASE_STORE_FILE="$HOME/.ssh/enrolment-release.jks" RELEASE_KEY_ALIAS=enrolment
+export RELEASE_STORE_PASSWORD="$(tr -d '\r\n' < "$HOME/.ssh/enrolment-release.pass")"
 ./gradlew assembleRelease --no-daemon
 unset RELEASE_STORE_PASSWORD
 ```

@@ -21,7 +21,7 @@ Broken or risky:
 - Only one real-server run, on one device, with one face. The phone has not been tried.
 - Debug builds trust user-installed CAs (D-024). The owner removed Caddy's certificate from the tablet on 2026-11-03, and CCTV removed its test site name, account, and tunnel.
 - Retaking cannot fix `matches someone already enrolled`, but the app offers it. CCTV agreed to add a `code` to each problem; the app will use it once it is on CCTV main.
-- The release keystore and its password file may still be in `~/.ssh`. Move both to the key drives.
+- The release keystore and its password file stay in `~/.ssh` by the owner's choice, backed up on other drives (D-022 update). Never open either file.
 - The tablet now has the debug app. Uninstall it before installing a release build.
 
 Next:
