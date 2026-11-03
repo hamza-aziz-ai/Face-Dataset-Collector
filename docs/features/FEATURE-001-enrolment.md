@@ -100,6 +100,7 @@ Agreed with Codex on 2026-10-31. Login and consent ship before capture.
 
 ## Log
 
+- 2026-11-04: owner approved notice 1.2 in plain words, measured to fit OPD2203 in both orientations. Deletion after withdrawal or leaving becomes 90 days "for now"; attendance records are kept, and their camera pictures for 3 more years. CCTV serves it, and 8e must match.
 - 2026-11-03: first run against the real 8c server, the owner's face only (D-024). A duplicate was rejected, and a re-enrolment was accepted, published, and then rolled back by CCTV at the owner's choice. Notice paragraphs now have space between them, and the owner approved a shorter notice 1.1 so it fits one tablet screen.
 - 2026-11-03: client moved to the built 8c API: sign-in at `/api/auth/token`, registration by organisation ID (D-023), plain-English problems, a 2,000,000-byte limit, and a 480 px guard.
 - 2026-10-31: plan agreed, contract received from CCTV.
