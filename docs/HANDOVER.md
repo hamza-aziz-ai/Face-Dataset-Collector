@@ -19,7 +19,7 @@ In progress:
 Broken or risky:
 - Nothing checks a typed ID against a real ID card. A wrong ID enrols photos under it, and nothing in the app can rename a person.
 - Only one real-server run, on one device, with one face. The phone has not been tried.
-- Debug builds trust user-installed CAs (D-024). Check that the owner removed Caddy's certificate from the tablet.
+- Debug builds trust user-installed CAs (D-024). The owner removed Caddy's certificate from the tablet on 2026-11-03, and CCTV removed its test site name, account, and tunnel.
 - Retaking cannot fix `matches someone already enrolled`, but the app offers it. CCTV agreed to add a `code` to each problem; the app will use it once it is on CCTV main.
 - The release keystore and its password file may still be in `~/.ssh`. Move both to the key drives.
 - The tablet now has the debug app. Uninstall it before installing a release build.
