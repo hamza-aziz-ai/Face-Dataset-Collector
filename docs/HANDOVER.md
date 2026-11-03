@@ -25,8 +25,9 @@ Broken or risky:
 - The tablet now has the debug app. Uninstall it before installing a release build.
 
 Next:
-- Use the problem `code` from CCTV once it is on main.
-- See notice 1.1 in the app at the next real-server run. CCTV serves it since 2026-11-03, but the test route was removed before the app read it. The gallery `consent` screen shows the same section lengths fitting.
+- Owner policy sign-off is done (D-025): new consent per re-enrolment, withdrawal during re-enrolment ends only that attempt, contact and retention as in notice 1.2. Enrolment stays limited to the owner until legal advice and CCTV 8e.
+- Use the problem `code` and build 8e removal from the roster, once CCTV ships them together.
+- See notice 1.2 in the app at the next real-server run. CCTV serves it since 2026-11-04, measured to fit OPD2203 in both orientations.
 - Codex review of PR #25 onward from 2026-11-04.
 - Glasses warning check with the glasses-off set taken on purpose with glasses on.
 

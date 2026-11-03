@@ -374,3 +374,18 @@ Scope: the owner's own face only, on OPD2203, with the debug build. Accepted pho
 App changes: debug builds also trust user-installed CAs, through `<debug-overrides>`, so release builds still trust system CAs only. The `MOCK SERVER` label and tuning readout need the mock's plain-HTTP loopback address, so the real server on `https://localhost` is not labelled as the mock.
 Trade-off: a debug build on a device with a user CA installed trusts anything that CA signs. The CA is removed after the test, and debug builds never go to staff.
 Revisit if: anyone other than the owner is to be enrolled, or a release build needs this server. Both need the domain and certificate decision.
+
+## D-025: Owner policy sign-off, enrolment still limited to the owner
+
+Date: 2026-11-04. Model: Claude Opus 5.5 (claude-opus-5-5). Owner chose in this session.
+Context: D-015 limits real-face enrolment to the owner until the policy items are signed off. Notice 1.2, live on the owner's laptop site, settled most of them.
+Signed off:
+
+1. Every re-enrolment shows the notice and records a new consent. This closes the open ruling in D-012.
+2. A withdrawal during a re-enrolment cancels only the new attempt. The earlier enrolment stays until the person withdraws it, which is a separate action (CCTV 8e). This closes the open item in D-018.
+3. Withdrawal contact and retention as in notice 1.2. The owner is the contact for the owner's own site, and client sites name their own contact. Everything is deleted within 90 days after a person leaves or withdraws, except attendance records, which are kept, and their camera pictures, kept 3 more years.
+
+Not signed off: enrolling anyone but the owner.
+Why: no lawyer has reviewed the legal basis or notice 1.2 (D-005), and the 90-day deletion that the notice promises is not automated until CCTV 8e exists.
+Trade-off: staff trials wait. The settled items will not need deciding again.
+Revisit when: legal advice is in, including the open end date for attendance records and whether the owner's company is controller or processor in central deployments, and 8e is on CCTV main.

@@ -49,7 +49,7 @@ Source: CCTV session, 2026-10-31. Built against the mock (D-012).
 - Same `POST /api/v1/enrolments`, plus an optional `reason` field. The server treats the job as a replacement.
 - The old vectors stay in service until the new job is accepted. A rejected or expired re-enrolment leaves the old enrolment untouched.
 - `pending` stays blocked: one open job per person. The server returns 409 with the open `job_id`.
-- Each re-enrolment shows the notice and records a new consent (D-012). CCTV agreed on 2026-11-01 as a cautious default. Owner ruling pending.
+- Each re-enrolment shows the notice and records a new consent (D-012). The owner signed this off on 2026-11-04 (D-025).
 - Error codes, confirmed by CCTV on 2026-11-01: 409 `{"error": "enrolment_open", "job_id": ...}`, and 422 `{"error": "reason_required"}` for an enrolled person with no reason.
 - An expired job returns the person to their previous status: `none` or `enrolled`.
 
