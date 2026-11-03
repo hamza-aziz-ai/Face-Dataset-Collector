@@ -185,6 +185,19 @@ class GuidedCaptureTest {
     }
 
     @Test
+    fun theSmallestFaceAllowedMakesAPhotoTheServerTakesFromA1080pFrame() {
+        // The narrowest face the framing check passes, in the widest crop each frame allows.
+        fun narrowest(width: Int, height: Int) = (minOf(width, height * 4 / 5) * policy.MIN_FACE_WIDTH).toInt()
+        val portrait = portraitCrop(Box(350, 500, 350 + narrowest(1080, 1920), 900), 1080, 1920)
+        val landscape = portraitCrop(Box(800, 100, 800 + narrowest(1920, 1080), 500), 1920, 1080)
+        val vga = portraitCrop(Box(250, 100, 250 + narrowest(640, 480), 250), 640, 480)
+        assertTrue(portrait.right - portrait.left >= policy.MIN_PHOTO_SIDE)
+        assertTrue(landscape.right - landscape.left >= policy.MIN_PHOTO_SIDE)
+        // Why the capture guard exists: a device that falls back to 640x480 cannot reach the server's minimum.
+        assertTrue(vga.right - vga.left < policy.MIN_PHOTO_SIDE)
+    }
+
+    @Test
     fun aHeadRockingSideToSideNeverCounts() {
         val rock = policy.STEADY_DEGREES * 2
         val guide = PoseGuide(Pose.FRONT)

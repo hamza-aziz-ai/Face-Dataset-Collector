@@ -132,6 +132,19 @@ class CaptureAnalyzer(
     }
 
     private fun keep(pose: Pose, face: Face, imageProxy: ImageProxy, rotation: Int, measured: Float?) {
+        val turned = rotation == 90 || rotation == 270
+        val bounds = face.boundingBox
+        val crop = portraitCrop(
+            Box(bounds.left, bounds.top, bounds.right, bounds.bottom),
+            if (turned) imageProxy.height else imageProxy.width,
+            if (turned) imageProxy.width else imageProxy.height,
+        )
+        if (crop.right - crop.left < QualityPolicy.MIN_PHOTO_SIDE) {
+            // The server would refuse it. A closer face makes a wider crop.
+            guidePose = null
+            onGuidance(Guidance.Fix("Move closer"))
+            return
+        }
         // Measured on the kept frame only, unless the tuning readout already did, so normal capture pays for it once per photo.
         val bridge = measured ?: bridgeEdge(face, imageProxy, rotation)
         val jpeg = encode(face, imageProxy, rotation)

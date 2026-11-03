@@ -2,7 +2,30 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-11-02, glasses warning (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-11-03, CCTV 8c client (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- CI tells CCTV after a green `main` (PR #32), and only warns if CCTV refuses (PR #33). The owner's re-saved `SUBMODULES_TOKEN` works: CCTV ran `submodules` from the dispatch.
+- The client now follows the 8c API on CCTV `main`: sign-in at `/api/auth/token`, plain-English problems with a null pose for whole-set problems, 2,000,000 bytes per photo, and a 480 px short-side guard.
+- Staff register people by organisation ID, with a confirm step that shows the ID large (D-023). The roster shows the ID large and the name beneath.
+- CI saves minutes: docs-only changes skip the build, a newer PR push cancels the older run, and the secret scan moved to `secrets.yml` so it still covers docs.
+- CCTV's site notice 1.0 is based on the mock's notice text. CCTV flagged to the owner that 30-day deletion is not automated yet and that legal advice is still needed.
+
+In progress:
+- Nothing.
+
+Broken or risky:
+- Nothing checks a typed ID against a real ID card. A wrong ID enrols photos under it, and nothing in the app can rename a person.
+- The app has not run against the real 8c server, only against the mock that follows it.
+- The release keystore and its password file may still be in `~/.ssh`. Move both to the key drives.
+- The tablet now has the debug app. Uninstall it before installing a release build.
+
+Next:
+- A run against the real 8c server, once the owner approves it as a destination with its own DECISIONS entry.
+- Codex review of PR #25 onward from 2026-11-04.
+- Glasses warning check with the glasses-off set taken on purpose with glasses on.
+
+## Earlier session: 2026-11-02, glasses warning (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - Owner's camera session on CPH2381 and OPD2203, glasses sets, against the mock. Retake by hand works. Tablet real capture works in portrait and landscape.

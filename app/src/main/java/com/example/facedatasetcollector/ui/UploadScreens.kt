@@ -163,7 +163,7 @@ fun RejectedScreen(
             )
             Text(personName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text("The server deleted this set. Take all $photoCount photos again and these should pass.", style = MaterialTheme.typography.bodyLarge)
+        Text("The server deleted this set. Take all $photoCount photos again.", style = MaterialTheme.typography.bodyLarge)
         if (problems.isNotEmpty()) {
             Column(
                 Modifier
@@ -173,11 +173,12 @@ fun RejectedScreen(
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                problems.forEach { problem ->
+                // Problems with the whole set first, because retaking single photos cannot fix them.
+                problems.sortedBy { it.pose != null }.forEach { problem ->
                     Column {
-                        Text(poseNameFor(problem.pose), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(problem.pose?.let(::poseNameFor) ?: "Whole set", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         Text(
-                            adviceFor(problem.problem),
+                            problem.problem,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -147,6 +147,31 @@ class EnrolmentFlowTest {
     }
 
     @Test
+    fun registeredPerson_goesStraightToTheNoticeAndATakenIdIsRefused() {
+        onMain { model.startRegistration() }
+        assertEquals(Screen.Register, read { model.screen })
+        onMain { model.registerPerson("INST-0477", "Sample Person D", null) }
+        awaitUntil { model.screen == Screen.Consent && !model.busy }
+        assertEquals("INST-0477", read { model.selectedPerson?.personId })
+        onMain { model.recordConsent(false) }
+        awaitUntil { model.screen == Screen.Capture && !model.busy }
+        takePhotos()
+        onMain { model.upload() }
+        awaitUntil { model.uploadState == UploadState.Accepted }
+
+        onMain {
+            model.finishEnrolment()
+            model.startRegistration()
+            model.registerPerson("inst-0477", "Someone Else", null)
+        }
+        awaitUntil { !model.busy }
+        assertEquals(Screen.Register, read { model.screen })
+        assertEquals("This ID is already registered. Find the person in the list.", read { model.error })
+        onMain { model.cancelRegistration() }
+        assertEquals(Screen.SelectPerson, read { model.screen })
+    }
+
+    @Test
     fun rejectedEnrolment_retakesEverythingUnderTheSameConsent() {
         scenario("reject")
         signInAndCapture(personIndex = 2, glasses = false)

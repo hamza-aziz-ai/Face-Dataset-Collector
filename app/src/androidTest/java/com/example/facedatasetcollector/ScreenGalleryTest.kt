@@ -21,6 +21,8 @@ import com.example.facedatasetcollector.ui.GlassesStepScreen
 import com.example.facedatasetcollector.ui.PersonScreen
 import com.example.facedatasetcollector.ui.QrScanLayout
 import com.example.facedatasetcollector.ui.ReEnrolDialog
+import com.example.facedatasetcollector.ui.RegisterConfirmDialog
+import com.example.facedatasetcollector.ui.RegisterScreen
 import com.example.facedatasetcollector.ui.ReadoutPanel
 import com.example.facedatasetcollector.ui.RejectedScreen
 import com.example.facedatasetcollector.ui.ReviewScreen
@@ -35,7 +37,7 @@ import java.io.ByteArrayOutputStream
 /**
  * Shows one screen with synthetic data for a person to look at, or for `adb screencap`. The real app blocks screenshots on review, and real photos must never be used to check a layout.
  *
- * Pick the screen with `-e screen glasses-on|glasses-off|readout|roster|reenrol|connect|connect-release|scan|review|sending|checking|accepted|rejected|rejected-reenrol`. `scan` shows an empty panel, so no camera opens.
+ * Pick the screen with `-e screen glasses-on|glasses-off|readout|roster|reenrol|register|register-confirm|connect|connect-release|scan|review|sending|checking|accepted|rejected|rejected-reenrol`. `scan` shows an empty panel, so no camera opens.
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenGalleryTest {
@@ -56,9 +58,9 @@ class ScreenGalleryTest {
         val arguments = InstrumentationRegistry.getArguments()
         val screen = arguments.getString("screen") ?: "review"
         val people = listOf(
-            Person("p1", "Sample Person A", "EMP-0412", "Stores", EnrolmentStatus.NONE),
-            Person("p2", "Sample Person B", "EMP-0418", "Dispatch", EnrolmentStatus.ENROLLED),
-            Person("p3", "Sample Person C", "EMP-0431", null, EnrolmentStatus.PENDING),
+            Person("INST-0412", "Sample Person A", null, "Stores", EnrolmentStatus.NONE),
+            Person("INST-0418", "Sample Person B", "EMP-0418", "Dispatch", EnrolmentStatus.ENROLLED),
+            Person("INST-0431", "Sample Person C", null, null, EnrolmentStatus.PENDING),
         )
         val photos = Pose.entries.withIndex().associate { (index, pose) -> pose to placeholder(index) }
         ActivityScenario.launch(ComponentActivity::class.java).use { scenario ->
@@ -67,7 +69,9 @@ class ScreenGalleryTest {
                     FaceDatasetCollectorTheme {
                         val modifier = Modifier.fillMaxSize()
                         when (screen) {
-                            "roster" -> PersonScreen(people, false, true, false, null, {}, {}, {}, { _, _ -> }, {}, modifier)
+                            "roster" -> PersonScreen(people, false, true, false, null, {}, {}, {}, { _, _ -> }, {}, {}, modifier)
+                            "register" -> RegisterScreen(true, false, null, { _, _, _ -> }, {}, modifier)
+                            "register-confirm" -> RegisterConfirmDialog("INST-0477", "Sample Person D", "Stores", {}, {})
                             "reenrol" -> ReEnrolDialog(people[1], {}, {})
                             "glasses-on" -> GlassesStepScreen(true, false, {}, {}, {}, modifier)
                             "glasses-off" -> GlassesStepScreen(false, false, {}, {}, {}, modifier)
@@ -83,7 +87,10 @@ class ScreenGalleryTest {
                             else -> RejectedScreen(
                                 "Sample Person A",
                                 10,
-                                listOf(PoseProblem("left_30", "face_too_small"), PoseProblem("chin_up_glasses", "too_blurry")),
+                                listOf(
+                                    PoseProblem("left_30", "the face is blurred (sharpness 14, below 40)"),
+                                    PoseProblem(null, "does not match this person's other photos (0.41 is below 0.5)"),
+                                ),
                                 screen == "rejected-reenrol",
                                 {},
                                 {},

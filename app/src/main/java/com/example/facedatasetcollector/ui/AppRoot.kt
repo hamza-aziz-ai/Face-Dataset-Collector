@@ -12,6 +12,7 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
     val notice = model.notice
     BackHandler(enabled = model.screen == Screen.Consent) { model.personDeclined() }
     BackHandler(enabled = model.screen == Screen.ScanCode) { model.cancelScan() }
+    BackHandler(enabled = model.screen == Screen.Register) { model.cancelRegistration() }
     // While photos are on their way or being checked, back does nothing, so a rejection is not missed. After that the flow is finished, so back goes to the roster.
     BackHandler(enabled = model.screen == Screen.Upload) {
         if (model.uploadState != UploadState.Sending && model.uploadState != UploadState.Checking) model.finishEnrolment()
@@ -44,9 +45,11 @@ fun AppRoot(model: EnrolmentViewModel, modifier: Modifier = Modifier) {
             onLoadMore = model::loadMorePersons,
             onSelect = model::selectPerson,
             onReEnrol = model::selectPerson,
+            onRegister = model::startRegistration,
             onSignOut = model::signOut,
             modifier = modifier,
         )
+        Screen.Register -> RegisterScreen(model.isMock, model.busy, model.error, model::registerPerson, model::cancelRegistration, modifier)
         Screen.Consent -> if (person != null && notice != null) {
             ConsentScreen(person, notice, model.busy, model.error, model::recordConsent, model::personDeclined, modifier)
         }

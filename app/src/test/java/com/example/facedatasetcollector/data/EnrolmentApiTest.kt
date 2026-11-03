@@ -3,6 +3,7 @@ package com.example.facedatasetcollector.data
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.SocketEffect
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -45,8 +46,9 @@ class EnrolmentApiTest {
 
     @Test
     fun loginKeepsTokenInMemoryAndSignOutClearsIt() {
-        respond(200, """{"token":"abc"}""")
+        respond(200, """{"token":"abc","role":"enrolment_operator","expires_at":"2026-11-03T20:00:00Z"}""")
         api.login("enrol.operator", "secret")
+        assertEquals("/api/auth/token", server.takeRequest().url.encodedPath)
         assertEquals("abc", api.token)
         api.signOut()
         assertNull(api.token)
@@ -77,7 +79,7 @@ class EnrolmentApiTest {
     @Test
     fun personsSendsBearerTokenAndEncodesTheQuery() {
         signedIn()
-        respond(200, """{"persons":[{"person_id":"p1","name":"Sample","employee_code":"E1","department":"D","enrolment_status":"pending"},{"person_id":"p2","name":"Other","employee_code":"E2","enrolment_status":"none"}],"next_cursor":"n2"}""")
+        respond(200, """{"persons":[{"person_id":"p1","name":"Sample","employee_code":"E1","department":"D","enrolment_status":"pending"},{"person_id":"p2","name":"Other","employee_code":null,"enrolment_status":"none"}],"next_cursor":"n2"}""")
         val page = api.persons("a b&c", cursor = "n1")
         val request = server.takeRequest()
         assertEquals("Bearer test-token", request.headers["Authorization"])
@@ -88,12 +90,36 @@ class EnrolmentApiTest {
             PersonPage(
                 listOf(
                     Person("p1", "Sample", "E1", "D", EnrolmentStatus.PENDING),
-                    Person("p2", "Other", "E2", null, EnrolmentStatus.NONE),
+                    Person("p2", "Other", null, null, EnrolmentStatus.NONE),
                 ),
                 "n2",
             ),
             page,
         )
+    }
+
+    @Test
+    fun registerSendsTheIdNameAndOptionalDepartment() {
+        signedIn()
+        respond(201, """{"person_id":"INST-7"}""")
+        respond(201, """{"person_id":"INST-8"}""")
+        assertEquals(Person("INST-7", "Sample Person", null, "Stores", EnrolmentStatus.NONE), api.registerPerson("INST-7", "Sample Person", "Stores"))
+        api.registerPerson("INST-8", "Other", null)
+        val first = server.takeRequest()
+        assertEquals("/api/v1/persons", first.url.encodedPath)
+        assertEquals("Bearer test-token", first.headers["Authorization"])
+        val sent = JSONObject(first.body!!.utf8())
+        assertEquals(listOf("INST-7", "Sample Person", "Stores"), listOf(sent.getString("person_id"), sent.getString("name"), sent.getString("department")))
+        assertFalse(JSONObject(server.takeRequest().body!!.utf8()).has("department"))
+    }
+
+    @Test
+    fun aTakenIdIsAConflictWithItsCode() {
+        signedIn()
+        respond(409, """{"error":"person_exists"}""")
+        val failure = assertThrows(ApiException::class.java) { api.registerPerson("INST-7", "Sample", null) }
+        assertEquals(ApiFailure.CONFLICT, failure.failure)
+        assertEquals("person_exists", failure.code)
     }
 
     @Test
@@ -246,10 +272,10 @@ class EnrolmentApiTest {
     fun awaitJobPollsUntilDone() {
         signedIn()
         respond(200, """{"status":"pending","problems":[]}""")
-        respond(200, """{"status":"rejected","problems":[{"pose":"left_30","problem":"face_too_small"}]}""")
+        respond(200, """{"status":"rejected","problems":[{"pose":"left_30","problem":"the face is blurred (sharpness 14, below 40)"},{"pose":null,"problem":"missing photo"}]}""")
         val result = api.awaitJob("j1")
         assertEquals(JobStatus.REJECTED, result.status)
-        assertEquals(listOf(PoseProblem("left_30", "face_too_small")), result.problems)
+        assertEquals(listOf(PoseProblem("left_30", "the face is blurred (sharpness 14, below 40)"), PoseProblem(null, "missing photo")), result.problems)
         assertEquals(listOf(2_000L), sleeps)
     }
 

@@ -41,6 +41,7 @@ sealed interface Screen {
     data object SignIn : Screen
     data object ClientChanged : Screen
     data object SelectPerson : Screen
+    data object Register : Screen
     data object Consent : Screen
 
     data object Capture : Screen
@@ -228,12 +229,38 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     /** @param reason set for a re-enrolment, which still shows the notice and records a new consent. */
     fun selectPerson(person: Person, reason: ReEnrolReason? = null) = run {
         withdrawalMessage = null
+        openConsent(person, reason)
+    }
+
+    fun startRegistration() {
+        if (busy) return
+        withdrawalMessage = null
+        error = null
+        screen = Screen.Register
+    }
+
+    fun cancelRegistration() {
+        if (busy) return
+        error = null
+        screen = Screen.SelectPerson
+    }
+
+    /** Staff already confirmed the ID. A registered person goes straight to the notice, as if picked from the list. */
+    fun registerPerson(personId: String, name: String, department: String?) = run {
         val client = api ?: return@run
-        val expected = server ?: return@run
+        val person = client.registerPerson(personId, name, department)
+        // Registered now, so if the notice fails the person waits on the roster rather than being registered twice.
+        onMain { screen = Screen.SelectPerson }
+        openConsent(person, null)
+    }
+
+    private suspend fun openConsent(person: Person, reason: ReEnrolReason?) {
+        val client = api ?: return
+        val expected = server ?: return
         val info = client.serverInfo()
         if (!isSameClient(expected.clientId, info.clientId)) {
             onMain { screen = Screen.ClientChanged }
-            return@run
+            return
         }
         val current = client.notice(info.noticeUrl)
         onMain {

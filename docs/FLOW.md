@@ -60,6 +60,9 @@ flowchart TD
     classDef seen fill:#ede9fe,stroke:#6d28d9,color:#111827
     classDef outside fill:#f3f4f6,stroke:#4b5563,color:#111827
     A["`**1** Search the roster`"]:::way --> B{"`**2** Status?`"}:::choice
+    A -->|Not on the roster| R["`**11** Register: ID, name, confirm`"]:::way
+    R --> S["`**12** Add person on server`"]:::outside
+    S --> D
     B -->|Checking| C["`**3** Shown, not selectable`"]:::seen
     B -->|Not enrolled| D["`**4** Fetch notice from server`"]:::outside
     B -->|Enrolled| K["`**10** Re-enrol: confirm, choose reason`"]:::seen
@@ -81,6 +84,8 @@ flowchart TD
 8. `POST /api/v1/consents` cites the notice version. The server takes staff from the session.
 9. Continues in F1.
 10. An enrolled row has a `Re-enrol` button. `ReEnrolDialog` needs a reason, which is held until the upload. The person still sees the notice and agrees again (D-012).
+11. `Register a new person` opens `RegisterScreen`. `isValidPersonId` applies the server's rule as staff type, and `RegisterConfirmDialog` shows the ID large before anything is sent (D-023). Rows show the ID large and the name beneath.
+12. `POST /api/v1/persons`. On 201 the person goes straight to the notice. If the notice then fails, they wait on the roster, so they are never registered twice. A taken ID shows `This ID is already registered. Find the person in the list.`
 
 A `401` on any of these calls signs staff out and shows `Your session ended. Sign in again.`
 
@@ -119,7 +124,7 @@ flowchart TD
 8. Any failure resets the timer. So does a frame gap over `MAX_FRAME_GAP_MS`.
 9. Uses monotonic time. Moving more than `STEADY_DEGREES` restarts the wait.
 10. Fires `TakePhoto` once per pose.
-11. `encode` rotates and crops the same frame to 4:5 with `portraitCrop`. Analysis frames are unmirrored, so the JPEG is too, unlike the preview.
+11. `encode` rotates and crops the same frame to 4:5 with `portraitCrop`. Analysis frames are unmirrored, so the JPEG is too, unlike the preview. A crop narrower than `MIN_PHOTO_SIDE`, 480 px, is not kept, and the prompt says `Move closer`, because the server refuses it.
 12. `onPhoto` ignores a stale photo. Bytes go in `EnrolmentViewModel.photos`, and never to disk.
 
 All limits are in `QualityPolicy.kt` and are not calibrated yet.
@@ -145,7 +150,7 @@ flowchart TD
     E --> F["`**6** Poll job, bounded`"]:::outside
     F --> G{"`**7** Result`"}:::choice
     G -->|accepted| H["`**8** Accepted`"]:::seen
-    G -->|rejected| I["`**9** Advice, then retake all`"]:::bad
+    G -->|rejected| I["`**9** Problems, then retake all`"]:::bad
     G -->|Limit or lost connection| J["`**10** Still checking`"]:::seen
 ```
 
@@ -157,7 +162,7 @@ flowchart TD
 6. `awaitJob`, every 2 s, up to 30 polls.
 7. A poll that loses the connection is not a failed enrolment, because the server already has the photos.
 8. `Enrol next person` returns to a refreshed roster.
-9. The server deleted the set. `retakeAll` restarts capture under a new key with the same consent. A re-enrolment keeps its reason, and the old enrolment stays in use.
+9. The server deleted the set. Its problems are shown as the server wrote them, with whole-set problems first under `Whole set`. `retakeAll` restarts capture under a new key with the same consent. A re-enrolment keeps its reason, and the old enrolment stays in use.
 10. The result appears on the roster.
 
 ## F3: Teardown

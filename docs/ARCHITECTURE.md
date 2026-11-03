@@ -68,7 +68,7 @@ flowchart TD
     D --> E["`adb install on test devices`"]:::outside
 ```
 
-CI runs from `.github/workflows/ci.yml` on every pull request and every push to `main`, except commits marked `[skip ci]`. After a green push to `main`, it asks the CCTV repo to update its submodule pin, using `SUBMODULES_TOKEN`. Deployment and release automation are deferred (D-006). Release builds are signed by hand by the owner, from a keystore kept offline (D-022). There is no store release and no production monitoring.
+CI runs from `.github/workflows/ci.yml` on every pull request and every push to `main`, except commits marked `[skip ci]` and changes that touch only Markdown and `docs/`. `secrets.yml` scans every change for secrets, docs included. After a green push to `main`, CI asks the CCTV repo to update its submodule pin, using `SUBMODULES_TOKEN`. Deployment and release automation are deferred (D-006). Release builds are signed by hand by the owner, from a keystore kept offline (D-022). There is no store release and no production monitoring.
 
 ## A3: Where data lives
 

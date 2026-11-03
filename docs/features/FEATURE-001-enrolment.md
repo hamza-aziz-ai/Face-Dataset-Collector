@@ -2,21 +2,24 @@
 
 Goal: staff enrol a person from the client's roster by capturing 5 poses, or 10 with glasses, and uploading them to the CCTV Face Recognition Attendance System.
 
-Status: in progress, against a mock server. The real API is CCTV item 8c and is not built.
+Status: in progress. The real API, CCTV item 8c, is on CCTV `main` (PRs #103 and #104, 2026-11-03), with its reference in CCTV `docs/features/enrolment-api.md`. The app is checked against the local mock, which follows it.
 
-## Provisional contract
+## Contract
 
-Source: CCTV session, 2026-10-31. Provisional. Items 1 and 6 still need owner sign-off on policy.
+Source: CCTV session, 2026-10-31, updated 2026-11-03 when 8c was built. Items 1 and 6 still need owner sign-off on policy.
 
 The tenant always comes from the staff login, never from a request field (CCTV D-036). Roles: `client_admin`, `enrolment_operator`, `viewer`. Only the first two may enrol.
 
-- `POST /api/v1/auth/login` with `{username, password}` returns `{token}`.
-- `GET /api/v1/persons?query=&limit=50&cursor=` lists the login's client roster and returns `{persons: [{person_id, name, employee_code, department?, enrolment_status}], next_cursor}`. `enrolment_status` is `none | pending | enrolled`. The operator selects a person; IDs are never typed. A cross-client ID returns 404.
+- `POST /api/auth/token` with `{username, password}` returns `{token, role, expires_at}`. It is outside `/api/v1`, because browsers use the cookie login beside it. Any role gets a token: a viewer gets 403 `role_cannot_enrol` on persons, consents, and enrolments, and 401 always means signed out.
+- `GET /api/v1/server-info` and `GET /api/v1/notice` need no login, because they carry nothing about people.
+- `GET /api/v1/persons?query=&limit=50&cursor=` lists the login's client roster and returns `{persons: [{person_id, name, employee_code?, department?, enrolment_status}], next_cursor}`. `enrolment_status` is `none | pending | enrolled`. `employee_code` is null unless an admin import set it. A cross-client ID returns 404.
+- `POST /api/v1/persons` with `{person_id, name, department?}` registers a person and returns 201 `{person_id}` (D-023). `person_id` is the organisational or institutional ID: a letter or digit first, then up to 63 of `A-Z a-z 0-9 . _ -`, and no Windows device name (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`9`, `LPT1`-`9`, with or without an extension), because it becomes a folder name. `name` is 1 to 120 characters, trimmed. Errors: 409 `person_exists`, unique in any letter case; 422 `invalid_person_id` or `invalid_name`.
 - `POST /api/v1/consents` with `{person_id, notice_version, captured_at, method: "staff_attested_in_app"}` returns 201 `{consent_id}`. The server records staff from the session.
 - `DELETE /api/v1/consents/{id}` withdraws consent. The mock returns 202 `{deletion_id}` until CCTV item 8e exists.
 - `POST /api/v1/enrolments` uses a Bearer token and multipart: `person_id`, `consent_id`, one image per pose. Header `Idempotency-Key` is one UUIDv4 per attempt. It returns 202 `{job_id}`.
 - Same key and same body returns the original job. Same key and different body returns 409. After an ambiguous timeout, retry with the same key and bounded backoff. An upload without active consent for that person and client returns 422.
-- `GET /api/v1/enrolments/{job_id}` returns `pending | accepted | rejected` plus per-photo problems. This replaces the earlier `queued|checking|published|rejected`.
+- `GET /api/v1/enrolments/{job_id}` returns `{status: pending | accepted | rejected, problems: [{pose, problem}]}`. `problem` is plain English, such as "the face is blurred (sharpness 14, below 40)", and the app shows it as it is. `pose` is null for a problem with the whole set, such as a missing photo.
+- Errors are `{"error": code}`. Until a site has a notice, notice and consents return 503 `no_notice`. A consent citing an old notice version gets 422 `notice_version_superseded`. The proxy strips `/api`, so the server mounts these routes at `/v1/...`.
 
 202 is durable: every photo is stored and the job committed, so the app discards local images on 202. A rejected job means a retake under a new key.
 
@@ -54,7 +57,9 @@ Source: CCTV session, 2026-10-31. Built against the mock (D-012).
 
 Required, each exactly once: `front`, `chin_up`, `chin_down`, `left_30`, `right_30`. Optional, all or none: the 5 `<pose>_glasses` photos. Anything else is rejected.
 
-Limits: JPEG, at most 2 MB each, short side at least 480 px, 10 photos per job. Aspect ratio does not matter to the server. The server checks exactly 1 face, detection confidence at least 0.7, and re-checks pose and blur.
+Limits: JPEG, at most 2,000,000 bytes each, short side at least 480 px, 10 photos per job. Aspect ratio does not matter to the server. The server checks exactly 1 face, detection confidence at least 0.7, face sharpness at least 40 (Laplacian variance of the face scaled to 112 x 112), and each pose against the same set's front photo: the turns at least 0.08 of the eye distance the right way, chin up and down at least 0.04, and front within 0.10. A swapped left and right pair is rejected. These are calibrated on the owner's photos and still provisional. The app's own sharpness check is on a different scale (128 px, minimum 60), so the server's is the one that counts.
+
+The app refuses to keep a photo whose crop is narrower than 480 px, and asks the person to move closer. From an about 1080p frame the narrowest allowed face still gives 672 px in landscape and 840 px in portrait, so this matters only on a device that falls back to a small frame.
 
 Face detail: pupils at least 28 px apart in the received image. The app aims for 60 px or more.
 
@@ -95,6 +100,7 @@ Agreed with Codex on 2026-10-31. Login and consent ship before capture.
 
 ## Log
 
+- 2026-11-03: client moved to the built 8c API: sign-in at `/api/auth/token`, registration by organisation ID (D-023), plain-English problems, a 2,000,000-byte limit, and a 480 px guard.
 - 2026-10-31: plan agreed, contract received from CCTV.
 - 2026-10-31: capture and review screens built. Not yet exercised end to end with deliberate poses.
 - 2026-10-31: during a device check, a real face was in view of the phone and the app likely auto-captured it. Photos stayed in memory and were cleared on cancel. A file audit found no images on either device, and the mock logged no uploads.

@@ -29,9 +29,11 @@ data class Notice(
 )
 
 enum class EnrolmentStatus { NONE, PENDING, ENROLLED }
-data class Person(val personId: String, val name: String, val employeeCode: String, val department: String?, val status: EnrolmentStatus)
+/** [personId] is the organisational or institutional ID staff typed at registration (D-023). [employeeCode] is set only by an admin import. */
+data class Person(val personId: String, val name: String, val employeeCode: String?, val department: String?, val status: EnrolmentStatus)
 data class PersonPage(val persons: List<Person>, val nextCursor: String?)
-data class PoseProblem(val pose: String, val problem: String)
+/** [pose] is null for a problem with the whole set, such as a missing photo. [problem] is the server's plain-English text, shown as it is. */
+data class PoseProblem(val pose: String?, val problem: String)
 
 /** Why an enrolled person is being enrolled again. The server keeps the old enrolment until the new job is accepted. */
 enum class ReEnrolReason(val wireName: String, val label: String) {
@@ -96,7 +98,8 @@ class EnrolmentApi(
 
     fun login(username: String, password: String) {
         val body = JSONObject().put("username", username).put("password", password)
-        val json = send(request("/api/v1/auth/login").post(body.toRequestBody()).build())
+        // The reply also has role and expires_at. The server enforces both: 403 for a role that cannot enrol, 401 once expired.
+        val json = send(request("/api/auth/token").post(body.toRequestBody()).build())
         token = parsed { json.getString("token") }
     }
 
@@ -119,13 +122,21 @@ class EnrolmentApi(
                 List(people.length()) { index ->
                     val person = people.getJSONObject(index)
                     Person(
-                        person.getString("person_id"), person.getString("name"), person.getString("employee_code"),
+                        person.getString("person_id"), person.getString("name"), person.optionalString("employee_code"),
                         person.optionalString("department"), enrolmentStatus(person.getString("enrolment_status")),
                     )
                 },
                 json.optionalString("next_cursor"),
             )
         }
+    }
+
+    /** Adds a person to this client's roster. The server takes the client from the login, and refuses an ID that exists in any letter case. */
+    fun registerPerson(personId: String, name: String, department: String?): Person {
+        val body = JSONObject().put("person_id", personId).put("name", name)
+        if (department != null) body.put("department", department)
+        val json = send(authorized(request("/api/v1/persons")).post(body.toRequestBody()).build())
+        return parsed { Person(json.getString("person_id"), name, null, department, EnrolmentStatus.NONE) }
     }
 
     /** @param capturedAt ISO-8601 UTC time. Staff identity is deliberately absent: the server takes it from the session. */
@@ -195,7 +206,7 @@ class EnrolmentApi(
                 },
                 List(problems.length()) { index ->
                     val problem = problems.getJSONObject(index)
-                    PoseProblem(problem.getString("pose"), problem.getString("problem"))
+                    PoseProblem(problem.optionalString("pose"), problem.getString("problem"))
                 },
             )
         }

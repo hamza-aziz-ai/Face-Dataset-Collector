@@ -40,6 +40,13 @@ Pose ranges, steady duration, minimum face size, blur and brightness thresholds,
 - A re-enrolment records a new consent. A retake after rejection reuses the current one.
 - Camera permission is not consent.
 
+## Registered person
+
+- Fields: `person_id`, the person's organisational or institutional ID; full name; optional department (D-023).
+- Written by: staff through the register screen, sent once with `POST /api/v1/persons`. Stored by the server in the client's own database, which refuses an ID that exists in any letter case.
+- On the device: the typed text lives in the screen's saved state until the screen closes, and the person lives in the ViewModel while they are being enrolled. Never written to disk or logged.
+- A wrong ID cannot be fixed in the app. The confirm step shows it large for that reason.
+
 ## Session token
 
 Held in memory only. Cleared on logout and after the background timeout. Never logged.
