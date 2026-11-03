@@ -20,6 +20,15 @@ class SessionRulesTest {
     }
 
     @Test
+    fun onlyTheHttpLoopbackMockIsTheMock() {
+        assertTrue(isMockAddress("http://127.0.0.1:8081"))
+        assertTrue(isMockAddress("http://localhost:8081"))
+        assertFalse(isMockAddress("https://localhost:8443"))
+        assertFalse(isMockAddress("https://127.0.0.1:8443"))
+        assertFalse(isMockAddress("https://attendance.example.com"))
+    }
+
+    @Test
     fun twoPanesOnlyOnALargeScreenHeldSideways() {
         assertTrue(isWideLayout(1647.dp, 1100.dp))
         assertFalse(isWideLayout(1176.dp, 1647.dp))

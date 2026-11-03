@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.facedatasetcollector.BuildConfig
@@ -483,12 +482,10 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
         screen = Screen.Connect
     }
 
-    val serverHost: String? get() = server?.baseUrl?.toUri()?.host
-
     /** What staff read: the whole address, because the same host on another port can be another server. */
     val serverAddress: String? get() = server?.baseUrl?.substringAfter("://")
 
-    val isMock: Boolean get() = BuildConfig.DEBUG && (serverHost == "127.0.0.1" || serverHost == "localhost")
+    val isMock: Boolean get() = BuildConfig.DEBUG && server?.baseUrl?.let(::isMockAddress) == true
 
     private fun run(block: suspend () -> Unit) {
         if (busy) return

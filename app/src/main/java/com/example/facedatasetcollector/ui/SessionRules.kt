@@ -10,6 +10,9 @@ import java.util.TimeZone
 /** The device stays bound to the client it was set up for. Any difference means staff must set up again. */
 fun isSameClient(expected: String, actual: String): Boolean = expected == actual
 
+/** The mock speaks plain HTTP on loopback. A real server reached over USB is HTTPS on localhost, and must not be labelled as the mock (D-024). */
+fun isMockAddress(baseUrl: String): Boolean = baseUrl.startsWith("http://127.0.0.1") || baseUrl.startsWith("http://localhost")
+
 /** Withdrawing during a re-enrolment ends that attempt only (CCTV 8c). */
 const val RE_ENROL_STAYS = "This cancels this re-enrolment only. Their existing enrolment stays until they ask for it to be removed, through the withdrawal contact in the notice."
 

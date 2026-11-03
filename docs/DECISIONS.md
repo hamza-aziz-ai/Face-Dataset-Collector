@@ -357,3 +357,19 @@ Chosen: 1.
 Why: enrolment no longer waits for an admin import. The ID staff already use on ID cards is what the display shows.
 Trade-off: a typed ID can be wrong, and photos would then be enrolled under it. The confirm step shows the ID large and asks staff to check it against the person's ID card. The app applies the server's ID rule before sending, and the server refuses a taken ID in any letter case. Nothing in the app can rename a person afterwards.
 Revisit if: wrong IDs show up in practice. Then add a second entry of the ID, or a scan of the ID card.
+
+## D-024: The laptop's CCTV server is an approved destination for the owner's own test
+
+Date: 2026-11-03. Model: Claude Opus 5.5 (claude-opus-5-5). Owner approved directly in this session.
+Context: until now the only approved destination was the local mock, which checks and discards photos. CCTV 8c v2.13.0 runs on the owner's laptop behind Caddy, with an internal certificate that Android does not trust.
+Options:
+
+1. Over adb: `adb reverse tcp:8443 tcp:443`, the app at `https://localhost:8443`, and Caddy's root certificate installed on the test device as a user CA, trusted by debug builds only.
+2. The laptop's LAN IP, with a certificate for it.
+3. Wait for a real domain and a public certificate.
+
+Chosen: 1.
+Scope: the owner's own face only, on OPD2203, with the debug build. Accepted photos stay on the laptop, in CCTV's storage and face database, and the owner's name appears on the display. Rejected photos are deleted at once. CCTV's automatic 30-day deletion (8e) is not built, so removing the enrolment afterwards is a manual CCTV step. After the test, CCTV removes the temporary `localhost` site name and the test account, and the owner removes the certificate.
+App changes: debug builds also trust user-installed CAs, through `<debug-overrides>`, so release builds still trust system CAs only. The `MOCK SERVER` label and tuning readout need the mock's plain-HTTP loopback address, so the real server on `https://localhost` is not labelled as the mock.
+Trade-off: a debug build on a device with a user CA installed trusts anything that CA signs. The CA is removed after the test, and debug builds never go to staff.
+Revisit if: anyone other than the owner is to be enrolled, or a release build needs this server. Both need the domain and certificate decision.

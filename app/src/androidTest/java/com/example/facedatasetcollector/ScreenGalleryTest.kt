@@ -12,10 +12,14 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.facedatasetcollector.data.EnrolmentStatus
+import com.example.facedatasetcollector.data.Notice
+import com.example.facedatasetcollector.data.NoticeContact
+import com.example.facedatasetcollector.data.NoticeSection
 import com.example.facedatasetcollector.data.Person
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.PoseProblem
 import com.example.facedatasetcollector.ui.ConnectScreen
+import com.example.facedatasetcollector.ui.ConsentScreen
 import com.example.facedatasetcollector.ui.FrameReading
 import com.example.facedatasetcollector.ui.GlassesStepScreen
 import com.example.facedatasetcollector.ui.PersonScreen
@@ -37,7 +41,7 @@ import java.io.ByteArrayOutputStream
 /**
  * Shows one screen with synthetic data for a person to look at, or for `adb screencap`. The real app blocks screenshots on review, and real photos must never be used to check a layout.
  *
- * Pick the screen with `-e screen glasses-on|glasses-off|readout|roster|reenrol|register|register-confirm|connect|connect-release|scan|review|sending|checking|accepted|rejected|rejected-reenrol`. `scan` shows an empty panel, so no camera opens.
+ * Pick the screen with `-e screen consent|glasses-on|glasses-off|readout|roster|reenrol|register|register-confirm|connect|connect-release|scan|review|sending|checking|accepted|rejected|rejected-reenrol`. `scan` shows an empty panel, so no camera opens.
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenGalleryTest {
@@ -62,6 +66,13 @@ class ScreenGalleryTest {
             Person("INST-0418", "Sample Person B", "EMP-0418", "Dispatch", EnrolmentStatus.ENROLLED),
             Person("INST-0431", "Sample Person C", null, null, EnrolmentStatus.PENDING),
         )
+        // Section lengths of the owner's site notice 1.1, so the consent layout is checked at a real length. Sample text and contact only.
+        val notice = Notice(
+            "1.0", "2026-11-03", "Sample Controller", null, NoticeContact("Sample Privacy Desk", "privacy@example.com", null),
+            listOf(
+                "What we collect" to 208, "Why" to 102, "Legal basis" to 114, "Where they go" to 106, "How long" to 153, "Re-enrolment" to 114, "The enrolment app" to 227, "Your choice and your rights" to 112,
+            ).map { (heading, length) -> NoticeSection(heading, "Sample notice text of the same length as the real one. ".repeat(10).take(length)) },
+        )
         val photos = Pose.entries.withIndex().associate { (index, pose) -> pose to placeholder(index) }
         ActivityScenario.launch(ComponentActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
@@ -69,6 +80,7 @@ class ScreenGalleryTest {
                     FaceDatasetCollectorTheme {
                         val modifier = Modifier.fillMaxSize()
                         when (screen) {
+                            "consent" -> ConsentScreen(people[0], notice, false, null, {}, {}, modifier)
                             "roster" -> PersonScreen(people, false, true, false, null, {}, {}, {}, { _, _ -> }, {}, {}, modifier)
                             "register" -> RegisterScreen(true, false, null, { _, _, _ -> }, {}, modifier)
                             "register-confirm" -> RegisterConfirmDialog("INST-0477", "Sample Person D", "Stores", {}, {})

@@ -43,6 +43,7 @@ Face images and consent records of real people, staff credentials, and session t
 - A genuine code works on any device and never expires. Someone with client A's code can point client B's device at A, though staff then see A's signed name and address at sign-in.
 - Consent can be withdrawn in the app only before upload (D-018). After that, a person uses the contact in the notice.
 - Face detection establishes neither liveness nor identity continuity. One detected face does not mean the same consenting person throughout.
+- Debug builds trust user-installed CAs, for the owner's test against the laptop server (D-024). A debug build on a device with a hostile user CA installed could be intercepted. Release builds trust system CAs only, and debug builds never go to staff.
 - Clearing references to JPEG bytes in memory is not secure erasure. Bytes can remain in the heap until overwritten.
 - An unlocked or debug-enabled device exposes process memory to anyone with `adb` access.
 - Legal basis, notice wording, and retention period are owner decisions and are not settled here.

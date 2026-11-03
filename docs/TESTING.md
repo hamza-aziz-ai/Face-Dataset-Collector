@@ -16,6 +16,16 @@ A change is done only when these pass and the real output was seen.
 
 CI has no camera or device, so it cannot test capture, pose, or blur.
 
+## Against the real server (D-024)
+
+The owner's own face only, on OPD2203, with the debug build. CCTV adds `localhost` as a temporary site name and runs `adb reverse tcp:8443 tcp:443`. The owner installs Caddy's root certificate as a user CA, and creates an `enrolment_operator` account, typing its password into the app. The app is pointed at `https://localhost:8443`. Afterwards CCTV removes the site name, the account, and the tunnel, and the owner removes the certificate.
+
+Result on 2026-11-03, CCTV v2.14.1:
+- Connect showed `Uploading to: owner (localhost:8443)` with no `MOCK SERVER` chip. Sign-in, registration of `hamza-test-01`, and notice 1.0 all worked.
+- `hamza-test-01`, 5 photos: rejected. Each pose showed `matches someone already enrolled`, scores 0.70 to 0.79, with no name. CCTV confirmed the job rejected, no photos kept, and nothing published.
+- Re-enrolment of `hamza_aziz`, 5 photos: accepted. Upload took 371 ms and the check 8.2 s. CCTV confirmed Milvus v5 with 5 rows and the name on the display. At the owner's choice, CCTV then rolled back to v4 and the backed-up 10 photos.
+- 0 crash lines, and no JPEG on the tablet.
+
 ## By hand, on both devices
 
 Devices: CPH2381 API 34 and OPD2203 API 36.
@@ -47,7 +57,7 @@ Opens the back camera. Tell the owner first. Show a code for `{"base_url":"http:
 
 A code with a different `client_id` must return to the connect screen with a message and store nothing.
 
-`ScreenGalleryTest` with `-e screen connect` or `-e screen scan` checks these layouts with no camera. `review-glasses` shows the glasses warning. `roster`, `reenrol`, and `rejected-reenrol` do the same for re-enrolment. `register` and `register-confirm` show registration (D-023).
+`ScreenGalleryTest` with `-e screen connect` or `-e screen scan` checks these layouts with no camera. `review-glasses` shows the glasses warning. `roster`, `reenrol`, and `rejected-reenrol` do the same for re-enrolment. `register` and `register-confirm` show registration (D-023). `consent` shows the notice at the length of the owner's site notice 1.1, which must fit on one tablet screen in both orientations.
 
 Result on 2026-11-03, OPD2203: `EnrolmentFlowTest` `OK (22 tests)` against the mock, including registration, a full upload for the new person, and a taken ID in another letter case refused with `This ID is already registered. Find the person in the list.` `register`, `register-confirm`, `roster`, and `rejected` seen in light and dark, portrait and landscape. 0 crash lines, and no JPEG on the device.
 
