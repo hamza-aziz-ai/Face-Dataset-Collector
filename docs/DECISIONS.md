@@ -343,3 +343,17 @@ Chosen: 1.
 Why: nothing secret touches the repo or this machine's disk, and AI tools on this machine never see it. Without the variables, the release stays unsigned, so CI is unchanged. CI signing waits for D-006 to be revisited.
 Trade-off: every release needs the owner, with the drive plugged in. A lost keystore means installed apps cannot be updated in place, so they must be uninstalled first, which loses only the stored server.
 Revisit if: releases become frequent, or a store or device manager takes over distribution.
+
+## D-023: Staff register people by their organisation ID
+
+Date: 2026-11-03. Model: Claude Opus 5.5 (claude-opus-5-5). Owner decided, relayed by the CCTV session and confirmed to this session directly.
+Context: staff could only pick people from a roster the client admin loads, and IDs were never typed. The owner wants staff to add people in the app, with the person's organisational or institutional ID as their unique `person_id`. The display shows that ID large, with the name beneath.
+Options:
+
+1. A registration screen before person selection: ID, full name, optional department, then a confirm step.
+2. Keep admin-only roster loading.
+
+Chosen: 1.
+Why: enrolment no longer waits for an admin import. The ID staff already use on ID cards is what the display shows.
+Trade-off: a typed ID can be wrong, and photos would then be enrolled under it. The confirm step shows the ID large and asks staff to check it against the person's ID card. The app applies the server's ID rule before sending, and the server refuses a taken ID in any letter case. Nothing in the app can rename a person afterwards.
+Revisit if: wrong IDs show up in practice. Then add a second entry of the ID, or a scan of the ID card.

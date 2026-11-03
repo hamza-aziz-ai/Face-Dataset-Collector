@@ -28,6 +28,11 @@ fun messageForCode(code: String): String? = when (code) {
     "role_cannot_enrol" -> "This account cannot enrol people."
     "enrolment_open" -> "This person already has an enrolment being checked. Cancel and wait for its result."
     "reason_required" -> "This person is already enrolled. Cancel and use Re-enrol on the roster."
+    "no_notice" -> "This server has no notice yet, so no one can be enrolled. Ask your administrator."
+    "not_jpeg" -> "A photo could not be read. Cancel and take them again."
+    "person_exists" -> "This ID is already registered. Find the person in the list."
+    "invalid_person_id" -> "The server refused this ID. Check it and try again."
+    "invalid_name" -> "The server refused this name. Check it and try again."
     else -> null
 }
 
@@ -35,15 +40,6 @@ fun messageForCode(code: String): String? = when (code) {
 fun poseNameFor(wireName: String): String {
     val pose = Pose.entries.firstOrNull { it.wireName == wireName } ?: return wireName
     return if (pose.withGlasses) "${pose.label}, with glasses" else pose.label
-}
-
-/** What to do about a server photo problem. An unknown code still gives useful advice, because the contract is provisional. */
-fun adviceFor(problem: String): String = when (problem) {
-    "face_too_small" -> "Face too small. Move closer to the camera."
-    "too_blurry" -> "Too blurry. Hold still until the photo is taken."
-    "no_face", "multiple_faces" -> "One face must be clearly visible."
-    "wrong_pose" -> "The head position did not match. Follow the on-screen prompt."
-    else -> "This photo did not pass. Try again in even light."
 }
 
 /** What staff read. Says what happened and what to do, and never exposes server detail. */

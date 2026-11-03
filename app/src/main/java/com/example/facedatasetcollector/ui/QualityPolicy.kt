@@ -4,7 +4,7 @@ package com.example.facedatasetcollector.ui
  * Every capture quality threshold lives here so a change is one reviewable diff. Bump [VERSION] when any value changes.
  */
 object QualityPolicy {
-    const val VERSION = 2
+    const val VERSION = 3
 
     // ponytail: kept from the old whole-frame check, not calibrated for a face crop yet. Calibrate on both devices before capture depends on them.
     const val MIN_FACE_LUMA = 100
@@ -44,8 +44,9 @@ object QualityPolicy {
     const val CROP_FACE_FRACTION = 0.45f
     const val CROP_TOP_MARGIN = 0.14f
 
-    // Server limit is 2 MB per photo. Tried in order until a photo fits.
-    const val MAX_PHOTO_BYTES = 2 * 1024 * 1024
+    // Server limits (CCTV 8c): 2,000,000 bytes per photo, and a short side of at least 480 px. Qualities are tried in order until a photo fits.
+    const val MAX_PHOTO_BYTES = 2_000_000
+    const val MIN_PHOTO_SIDE = 480
     val JPEG_QUALITIES = listOf(90, 80, 70)
 
     // Glasses warning (D-021). Edge score across the nose bridge, from the owner's face only: 1.5 to 2.1 without glasses, 2.3 to 4.4 with, on CPH2381 and OPD2203. Chin up scored lowest with glasses on both, so one photo alone is not trusted.

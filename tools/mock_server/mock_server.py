@@ -32,12 +32,14 @@ from urllib.parse import parse_qs, urlparse
 
 BASE_POSES = ("front", "chin_up", "chin_down", "left_30", "right_30")
 GLASSES_POSES = tuple(f"{pose}_glasses" for pose in BASE_POSES)
-MAX_PHOTO_BYTES = 2 * 1024 * 1024
+MAX_PHOTO_BYTES = 2_000_000
 MAX_BODY_BYTES = 25 * 1024 * 1024
 TOKEN_SECONDS = 8 * 60 * 60
 CHECK_SECONDS = 2.0
 SCENARIOS = {"normal", "reject", "server_error", "slow", "drop", "timeout", "poll_drop"}
 REENROL_REASONS = {"appearance_changed", "poor_photos", "other"}
+PERSON_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+WINDOWS_DEVICE = re.compile(r"(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?", re.IGNORECASE)
 SLOW_SECONDS = 20
 # Longer than the app's 30 s read timeout.
 TIMEOUT_SECONDS = 35
@@ -240,10 +242,12 @@ class Handler(BaseHTTPRequestHandler):
             })
         if route == ("GET", "/api/v1/notice"):
             return self.reply(200, self.state.client["notice"])
-        if route == ("POST", "/api/v1/auth/login"):
+        if route == ("POST", "/api/auth/token"):
             return self.login()
         if route == ("GET", "/api/v1/persons"):
             return self.persons()
+        if route == ("POST", "/api/v1/persons"):
+            return self.register_person()
         if route == ("POST", "/api/v1/consents"):
             return self.create_consent()
         if self.command == "DELETE" and path.startswith("/api/v1/consents/"):
@@ -272,7 +276,9 @@ class Handler(BaseHTTPRequestHandler):
             self.state.sessions[token] = {
                 "username": body["username"], "role": user["role"], "expires": time.monotonic() + TOKEN_SECONDS,
             }
-        self.reply(200, {"token": token})
+        # Any role gets a token, as on CCTV. A viewer is refused later, with 403.
+        expires_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() + TOKEN_SECONDS))
+        self.reply(200, {"token": token, "role": user["role"], "expires_at": expires_at})
 
     def persons(self):
         self.session()
@@ -282,10 +288,31 @@ class Handler(BaseHTTPRequestHandler):
         start = int(params.get("cursor", ["0"])[0])
         matches = [
             person for person in self.state.client["persons"]
-            if query in person["name"].casefold() or query in person["employee_code"].casefold()
+            if any(query in (person.get(field) or "").casefold() for field in ("person_id", "name", "employee_code"))
         ]
         end = start + limit
         self.reply(200, {"persons": matches[start:end], "next_cursor": str(end) if end < len(matches) else None})
+
+    def register_person(self):
+        """CCTV 8c rules: the ID becomes a folder name on a Windows host, and is unique in any letter case."""
+        self.enrolling_session()
+        body = self.read_json()
+        person_id = body.get("person_id")
+        name = body.get("name")
+        department = body.get("department")
+        if not isinstance(person_id, str) or not PERSON_ID.fullmatch(person_id) or WINDOWS_DEVICE.fullmatch(person_id):
+            raise Reject(422, "invalid_person_id")
+        if not isinstance(name, str) or not 1 <= len(name.strip()) <= 120:
+            raise Reject(422, "invalid_name")
+        with self.state.lock:
+            if any(person["person_id"].lower() == person_id.lower() for person in self.state.client["persons"]):
+                raise Reject(409, "person_exists")
+            self.state.client["persons"].append({
+                "person_id": person_id, "name": name.strip(), "employee_code": None,
+                "department": department.strip() if isinstance(department, str) and department.strip() else None,
+                "enrolment_status": "none",
+            })
+        self.reply(201, {"person_id": person_id})
 
     def create_consent(self):
         session = self.enrolling_session()
@@ -390,9 +417,10 @@ class Handler(BaseHTTPRequestHandler):
                 # A rejected replacement leaves the old enrolment untouched.
                 self.person(job["person_id"])["enrolment_status"] = job["previous"] if job["reject"] else "enrolled"
         if job["reject"]:
+            # Plain-English problems, as CCTV sends them. A null pose is a problem with the whole set.
             problems = [
-                {"pose": job["poses"][0], "problem": "face_too_small"},
-                {"pose": job["poses"][-1], "problem": "too_blurry"},
+                {"pose": job["poses"][0], "problem": "the face is blurred (sharpness 14, below 40)"},
+                {"pose": None, "problem": "does not match this person's other photos (0.41 is below 0.5)"},
             ]
             return self.reply(200, {"status": "rejected", "problems": problems})
         self.reply(200, {"status": "accepted", "problems": []})

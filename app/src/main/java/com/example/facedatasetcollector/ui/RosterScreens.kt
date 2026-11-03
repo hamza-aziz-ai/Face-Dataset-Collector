@@ -40,11 +40,15 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.facedatasetcollector.data.EnrolmentStatus
 import com.example.facedatasetcollector.data.Notice
 import com.example.facedatasetcollector.data.Person
 import com.example.facedatasetcollector.data.ReEnrolReason
+import com.example.facedatasetcollector.data.cleanPersonName
+import com.example.facedatasetcollector.data.isValidPersonId
 import com.example.facedatasetcollector.ui.theme.LocalStatusColors
 import kotlinx.coroutines.delay
 
@@ -88,10 +92,11 @@ private fun PersonRow(person: Person, onSelect: () -> Unit, onReEnrol: () -> Uni
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // The ID large and the name beneath, as on the display (owner, 2026-11-03).
         Column(Modifier.weight(1f)) {
-            Text(person.name, style = MaterialTheme.typography.titleMedium)
+            Text(person.personId, style = MaterialTheme.typography.titleMedium)
             Text(
-                listOfNotNull(person.employeeCode, person.department).joinToString(", "),
+                listOfNotNull(person.name, person.department).joinToString(", "),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -101,7 +106,7 @@ private fun PersonRow(person: Person, onSelect: () -> Unit, onReEnrol: () -> Uni
             if (person.status == EnrolmentStatus.ENROLLED) {
                 TextButton(
                     onClick = onReEnrol,
-                    modifier = Modifier.semantics { contentDescription = "Re-enrol ${person.name}" },
+                    modifier = Modifier.semantics { contentDescription = "Re-enrol ${person.personId}, ${person.name}" },
                 ) { Text("Re-enrol") }
             }
         }
@@ -114,7 +119,7 @@ fun ReEnrolDialog(person: Person, onContinue: (ReEnrolReason) -> Unit, onDismiss
     var reason by rememberSaveable { mutableStateOf<ReEnrolReason?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Re-enrol ${person.name}?") },
+        title = { Text("Re-enrol ${person.personId}, ${person.name}?") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("The current enrolment stays in use until the new photos are accepted. The person sees the notice again and agrees again.")
@@ -144,6 +149,7 @@ fun PersonScreen(
     onLoadMore: () -> Unit,
     onSelect: (Person) -> Unit,
     onReEnrol: (Person, ReEnrolReason) -> Unit,
+    onRegister: () -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -174,6 +180,7 @@ fun PersonScreen(
             Text("Select person", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
             TextButton(onClick = onSignOut, enabled = !busy) { Text("Sign out") }
         }
+        TextButton(onClick = onRegister, enabled = !busy) { Text("Register a new person") }
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
@@ -202,12 +209,99 @@ fun PersonScreen(
         }
         if (hasMore) TextButton(onClick = onLoadMore, enabled = !busy) { Text("Show more") }
         Text(
-            "Only people on your organisation's roster appear here. Ask your admin to add anyone who is missing.",
+            "Only people on your organisation's roster appear here. Register anyone missing with their organisation ID.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         }
     }
+}
+
+/**
+ * Adds a person by their organisational or institutional ID (D-023). A typo would enrol photos under the wrong ID, so it ends on a confirm step that shows the ID large.
+ */
+@Composable
+fun RegisterScreen(
+    isMock: Boolean,
+    busy: Boolean,
+    error: String?,
+    onRegister: (personId: String, name: String, department: String?) -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var id by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var department by rememberSaveable { mutableStateOf("") }
+    var confirming by rememberSaveable { mutableStateOf(false) }
+    val cleanId = id.trim()
+    val idOk = isValidPersonId(cleanId)
+    val cleanName = cleanPersonName(name)
+    val cleanDepartment = department.trim().ifEmpty { null }
+
+    if (confirming && idOk && cleanName != null) {
+        RegisterConfirmDialog(
+            cleanId, cleanName, cleanDepartment,
+            onConfirm = {
+                confirming = false
+                onRegister(cleanId, cleanName, cleanDepartment)
+            },
+            onDismiss = { confirming = false },
+        )
+    }
+
+    StaffPage(modifier, centred = true) {
+        MockChip(isMock)
+        Text("Register a new person", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+        OutlinedTextField(
+            value = id,
+            onValueChange = { id = it },
+            label = { Text("Organisation ID") },
+            supportingText = { Text("Letters, digits, dot, underscore or hyphen, starting with a letter or digit. Up to 64.") },
+            isError = cleanId.isNotEmpty() && !idOk,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Next, autoCorrectEnabled = false),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Full name") },
+            isError = name.isNotBlank() && cleanName == null,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next, autoCorrectEnabled = false),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = department,
+            onValueChange = { department = it },
+            label = { Text("Department (optional)") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        ErrorMessage(error)
+        PrimaryButton("Continue", busy, enabled = idOk && cleanName != null) { confirming = true }
+        TextButton(onClick = onCancel, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+    }
+}
+
+/** The ID large, because a wrong ID is the mistake that matters, and it cannot be changed in the app. */
+@Composable
+fun RegisterConfirmDialog(personId: String, name: String, department: String?, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Register this person?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(personId, style = MaterialTheme.typography.headlineMedium)
+                Text(name, style = MaterialTheme.typography.bodyLarge)
+                department?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                Text("Check the ID against their ID card. It cannot be changed in the app.", style = MaterialTheme.typography.bodyMedium)
+            }
+        },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Register") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Edit") } },
+    )
 }
 
 @Composable
@@ -246,7 +340,7 @@ fun ConsentScreen(
         Column {
             Text("Notice and consent", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
             Text(
-                "${person.name}, ${person.employeeCode}",
+                "${person.personId}, ${person.name}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

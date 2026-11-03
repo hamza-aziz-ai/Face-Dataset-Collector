@@ -42,7 +42,7 @@ flowchart TD
 1. **Pull request.** One logical change per PR, stacked in order.
 2. **Local build.** `assembleDebug`, unit tests, and lint.
 3. **Device check.** Tested on a CPH2381 phone (API 34) and an OPD2203 tablet (API 36).
-4. **CI.** Defined in `.github/workflows/ci.yml`, but it has not run yet because of an account billing block. Deployment is deferred.
+4. **CI.** `.github/workflows/ci.yml` builds, tests, and lints every code change, and `secrets.yml` scans every change for secrets. Docs-only changes skip the build. Deployment is deferred.
 
 ## Quick start
 

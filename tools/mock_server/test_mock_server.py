@@ -48,7 +48,7 @@ class MockServerTest(unittest.TestCase):
         return response.status, json.loads(response.read() or b"{}")
 
     def login(self, username="enrol.operator"):
-        status, body = self.call("POST", "/api/v1/auth/login", {"username": username, "password": "mock-only-password"})
+        status, body = self.call("POST", "/api/auth/token", {"username": username, "password": "mock-only-password"})
         self.assertEqual(200, status)
         return body["token"]
 
@@ -73,9 +73,36 @@ class MockServerTest(unittest.TestCase):
         self.assertEqual("0.2-mock", body["notice_version"])
 
     def test_bad_password_and_missing_token_are_refused(self):
-        status, _ = self.call("POST", "/api/v1/auth/login", {"username": "enrol.operator", "password": "wrong"})
+        status, _ = self.call("POST", "/api/auth/token", {"username": "enrol.operator", "password": "wrong"})
         self.assertEqual(401, status)
         self.assertEqual(401, self.call("GET", "/api/v1/persons")[0])
+
+    def test_token_reply_has_role_and_expiry(self):
+        status, body = self.call("POST", "/api/auth/token", {"username": "viewer.user", "password": "mock-only-password"})
+        self.assertEqual(200, status)
+        self.assertEqual("viewer", body["role"])
+        self.assertRegex(body["expires_at"], r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+
+    def test_register_person(self):
+        token = self.login()
+        status, body = self.call("POST", "/api/v1/persons", {"person_id": "INST-77.a_b", "name": "  Sample Person D ", "department": " "}, token)
+        self.assertEqual((201, "INST-77.a_b"), (status, body["person_id"]))
+        _, body = self.call("GET", "/api/v1/persons?query=inst-77", token=token)
+        self.assertEqual([{"person_id": "INST-77.a_b", "name": "Sample Person D", "employee_code": None, "department": None, "enrolment_status": "none"}], body["persons"])
+        status, body = self.call("POST", "/api/v1/persons", {"person_id": "inst-77.A_B", "name": "Someone"}, token)
+        self.assertEqual((409, "person_exists"), (status, body["error"]))
+
+    def test_register_person_refuses_unsafe_ids_and_names(self):
+        token = self.login()
+        for person_id in [".hidden", "..", "-x", "CON", "con.txt", "COM1", "a b", "a/b", "x" * 65, "", 7]:
+            status, body = self.call("POST", "/api/v1/persons", {"person_id": person_id, "name": "N"}, token)
+            self.assertEqual((422, "invalid_person_id"), (status, body["error"]), person_id)
+        for name in ["", "   ", "n" * 121, None]:
+            status, body = self.call("POST", "/api/v1/persons", {"person_id": "ok1", "name": name}, token)
+            self.assertEqual((422, "invalid_name"), (status, body["error"]), name)
+        self.assertEqual(201, self.call("POST", "/api/v1/persons", {"person_id": "x" * 64, "name": "n" * 120}, token)[0])
+        status, body = self.call("POST", "/api/v1/persons", {"person_id": "v1", "name": "N"}, self.login("viewer.user"))
+        self.assertEqual((403, "role_cannot_enrol"), (status, body["error"]))
 
     def test_viewer_cannot_enrol(self):
         token = self.login("viewer.user")
@@ -159,7 +186,7 @@ class MockServerTest(unittest.TestCase):
         _, body = self.upload(token, consent_id)
         status, body = self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)
         self.assertEqual("rejected", body["status"])
-        self.assertTrue(body["problems"])
+        self.assertIn(None, [problem["pose"] for problem in body["problems"]])
         self.call("POST", "/mock/scenario", {"scenario": "normal"})
         self.assertEqual(202, self.upload(token, consent_id)[0])
 

@@ -2,8 +2,11 @@ package com.example.facedatasetcollector.ui
 
 import androidx.compose.ui.unit.dp
 import com.example.facedatasetcollector.data.ApiFailure
+import com.example.facedatasetcollector.data.cleanPersonName
+import com.example.facedatasetcollector.data.isValidPersonId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -32,12 +35,24 @@ class SessionRulesTest {
     }
 
     @Test
-    fun poseNamesAndAdviceStayReadable() {
+    fun poseNamesStayReadable() {
         assertEquals("Left 30", poseNameFor("left_30"))
         assertEquals("Chin up, with glasses", poseNameFor("chin_up_glasses"))
         assertEquals("something_new", poseNameFor("something_new"))
-        assertEquals("Face too small. Move closer to the camera.", adviceFor("face_too_small"))
-        assertTrue(adviceFor("a_code_added_later").endsWith("."))
+    }
+
+    @Test
+    fun personIdsFollowTheServerRule() {
+        listOf("INST-7", "a", "0.b_c-d", "x".repeat(64), "CONSOLE", "COM10", "LPT").forEach { assertTrue(it, isValidPersonId(it)) }
+        listOf("", ".hidden", "..", "-x", "_x", "a b", "a/b", "é1", "x".repeat(65), "CON", "con", "nul.txt", "COM1", "lpt9.log").forEach { assertFalse(it, isValidPersonId(it)) }
+    }
+
+    @Test
+    fun namesAreTrimmedAndLimited() {
+        assertEquals("Sample Person", cleanPersonName("  Sample Person "))
+        assertNull(cleanPersonName("   "))
+        assertEquals(120, cleanPersonName("n".repeat(120))!!.length)
+        assertNull(cleanPersonName("n".repeat(121)))
     }
 
     @Test

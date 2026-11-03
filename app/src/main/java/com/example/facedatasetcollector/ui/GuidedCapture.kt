@@ -209,6 +209,7 @@ fun blurScore(buffer: ByteBuffer, rowStride: Int, pixelStride: Int, bufferWidth:
  * The 4:5 portrait crop to keep, in upright image coordinates: head and shoulders, matching the target photo in docs/features/FEATURE-001-enrolment.md. Stays inside the frame, so a face near an edge sits off-centre rather than being padded.
  */
 fun portraitCrop(face: Box, frameWidth: Int, frameHeight: Int): Box {
+    // The width is the short side, because the crop is portrait.
     val faceWidth = face.right - face.left
     val idealWidth = (faceWidth / QualityPolicy.CROP_FACE_FRACTION).roundToInt()
     // A multiple of 4 keeps the ratio exactly 4:5.

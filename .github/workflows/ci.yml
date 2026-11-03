@@ -1,9 +1,17 @@
 name: CI
 
+# Docs-only changes skip the Android build, to save the shared Actions minutes. The secret scan in secrets.yml still runs on them.
 on:
   pull_request:
+    paths-ignore: ["**.md", "docs/**"]
   push:
     branches: [main]
+    paths-ignore: ["**.md", "docs/**"]
+
+# A newer push to the same PR stops the older run. Runs on main always finish, because notify-cctv follows them.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Read-only on purpose: this workflow never deploys. Its only secret is the token in notify-cctv.
 permissions:
@@ -34,28 +42,10 @@ jobs:
       - name: Build, unit test, lint
         run: ./gradlew assembleDebug testDebugUnitTest lintDebug
 
-  secrets:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    # The action lists a PR's commits through the API. Read-only, and comments are off so it never needs write.
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      # Personal-account repo: no GITLEAKS_LICENSE needed.
-      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
-          GITLEAKS_ENABLE_COMMENTS: false
-
   # After main passes, asks CCTV to move its submodule pin to this commit (owner's rule, CCTV PR #95). A daily CCTV run catches anything missed, including [skip ci] pushes.
   notify-cctv:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [checks, secrets]
+    needs: [checks]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Its own fine-grained token does the work, so GITHUB_TOKEN gets nothing.

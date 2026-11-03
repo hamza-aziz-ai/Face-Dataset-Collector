@@ -9,7 +9,7 @@ Staff at a client organisation use this Android app to enrol people from their r
 ## How it works
 
 1. Staff set up the device once, by signed QR code, and sign in.
-2. They pick a person from the roster, show the notice, and record consent.
+2. They pick a person from the roster, or register them by their organisation ID (D-023), then show the notice and record consent.
 3. The camera checks each frame on the device and keeps the frame that passes.
 4. Photos stay in memory until staff review and upload them.
 5. The server accepts them with a 202, the app clears them, and the server runs its own checks.

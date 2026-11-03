@@ -4,10 +4,11 @@ A change is done only when these pass and the real output was seen.
 
 ## Automatic, on every PR
 
-`.github/workflows/ci.yml` runs:
+`.github/workflows/secrets.yml` runs `gitleaks`, the same pinned action as the CCTV repo, on every change, docs included: passes when no secret is found in the commits scanned.
+
+`.github/workflows/ci.yml` runs on every change except one that touches only `**.md` and `docs/**`, to save the Actions minutes the three repos share. A newer push to the same PR cancels the older run:
 
 1. `python3 -m unittest discover -s tools/setup_codes`: passes on `OK`.
-1. `gitleaks`, the same pinned action as the CCTV repo, in its own `secrets` job: passes when no secret is found in the commits scanned.
 1. `bash tools/ci/check_images.sh`: passes when every image is in `tools/ci/image-allowlist.txt`.
 2. Gradle wrapper validation.
 3. `./gradlew assembleDebug testDebugUnitTest lintDebug`: passes on `BUILD SUCCESSFUL`.
