@@ -6,6 +6,8 @@ A change is done only when these pass and the real output was seen.
 
 `.github/workflows/secrets.yml` runs `gitleaks`, the same pinned action as the CCTV repo, on every change, docs included: passes when no secret is found in the commits scanned.
 
+Ruleset `main: CI must pass` (owner, 2026-11-05) requires `checks` and `secrets` before a PR merges, and blocks force pushes and deleting `main`. Auto-merge is on, and merged branches are deleted. The admin role bypasses it, so docs-only commits still go straight to `main` with `[skip ci]`; a docs-only PR would wait forever for `checks`, which skips `.md` changes.
+
 `.github/workflows/ci.yml` runs on every change except one that touches only `**.md` and `docs/**`, to save the Actions minutes the three repos share. A newer push to the same PR cancels the older run:
 
 1. `python3 -m unittest discover -s tools/setup_codes`: passes on `OK`.
