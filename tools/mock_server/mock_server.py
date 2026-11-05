@@ -28,7 +28,7 @@ import threading
 import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 BASE_POSES = ("front", "chin_up", "chin_down", "left_30", "right_30")
 GLASSES_POSES = tuple(f"{pose}_glasses" for pose in BASE_POSES)
@@ -36,7 +36,8 @@ MAX_PHOTO_BYTES = 2_000_000
 MAX_BODY_BYTES = 25 * 1024 * 1024
 TOKEN_SECONDS = 8 * 60 * 60
 CHECK_SECONDS = 2.0
-SCENARIOS = {"normal", "reject", "server_error", "slow", "drop", "timeout", "poll_drop"}
+SCENARIOS = {"normal", "reject", "duplicate", "server_error", "slow", "drop", "timeout", "poll_drop"}
+REMOVAL_REASONS = {"withdrawn", "left"}
 REENROL_REASONS = {"appearance_changed", "poor_photos", "other"}
 PERSON_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 WINDOWS_DEVICE = re.compile(r"(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?", re.IGNORECASE)
@@ -143,7 +144,8 @@ def parse_multipart(content_type, body):
 
 def loggable_path(raw):
     """Path only: a query string could hold a person's name, and the last segment of these routes is a record ID."""
-    return re.sub(r"(/api/v1/(?:enrolments|consents))/[^/]+$", r"\1/{id}", urlparse(raw).path)
+    path = re.sub(r"(/api/v1/(?:enrolments|consents))/[^/]+$", r"\1/{id}", urlparse(raw).path)
+    return re.sub(r"^/api/v1/persons/[^/]+/enrolment$", "/api/v1/persons/{id}/enrolment", path)
 
 
 def check_pose_set(files):
@@ -239,6 +241,7 @@ class Handler(BaseHTTPRequestHandler):
                 "client_name": client["client_name"],
                 "notice_version": client["notice_version"],
                 "notice_url": "/api/v1/notice",
+                "deletion_days": 90,
             })
         if route == ("GET", "/api/v1/notice"):
             return self.reply(200, self.state.client["notice"])
@@ -252,6 +255,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.create_consent()
         if self.command == "DELETE" and path.startswith("/api/v1/consents/"):
             return self.withdraw_consent(path.rsplit("/", 1)[1])
+        if self.command == "DELETE" and re.fullmatch(r"/api/v1/persons/[^/]+/enrolment", path):
+            return self.remove_person(unquote(path.split("/")[4]))
         if route == ("POST", "/api/v1/enrolments"):
             return self.create_enrolment()
         if self.command == "GET" and path.startswith("/api/v1/enrolments/"):
@@ -339,8 +344,29 @@ class Handler(BaseHTTPRequestHandler):
             # An open job under this consent is cancelled. Any earlier enrolment stays as it was (CCTV, provisional 8c).
             for job in self.state.jobs.values():
                 if job["consent_id"] == consent_id and not job["finished"]:
-                    job["finished"] = job["reject"] = True
+                    job["finished"] = True
+                    job["reject"] = "withdrawn"
+                    job["ready_at"] = 0
                     self.person(job["person_id"])["enrolment_status"] = job["previous"]
+        self.reply(202, {"deletion_id": str(uuid.uuid4())})
+
+    def remove_person(self, person_id):
+        """CCTV 8e. ponytail: deletes at once, so this mock never answers deletion_pending; the real worker runs after the 202."""
+        self.enrolling_session()
+        reason = parse_qs(urlparse(self.path).query).get("reason", [None])[0]
+        with self.state.lock:
+            person = self.person(person_id)
+            if reason not in REMOVAL_REASONS:
+                raise Reject(422, "invalid_reason")
+            for consent in self.state.consents.values():
+                if consent["person_id"] == person_id:
+                    consent["active"] = False
+            for job in self.state.jobs.values():
+                if job["person_id"] == person_id and not job["finished"]:
+                    job["finished"] = True
+                    job["reject"] = "withdrawn"
+                    job["ready_at"] = 0
+            self.state.client["persons"].remove(person)
         self.reply(202, {"deletion_id": str(uuid.uuid4())})
 
     def create_enrolment(self):
@@ -392,7 +418,7 @@ class Handler(BaseHTTPRequestHandler):
             job_id = str(uuid.uuid4())
             self.state.jobs[job_id] = {
                 "person_id": person_id, "consent_id": fields.get("consent_id"), "poses": sorted(files), "reason": reason, "previous": person["enrolment_status"],
-                "reject": self.state.scenario == "reject", "ready_at": time.monotonic() + CHECK_SECONDS, "finished": False,
+                "reject": self.state.scenario if self.state.scenario in ("reject", "duplicate") else None, "ready_at": time.monotonic() + CHECK_SECONDS, "finished": False,
             }
             person["enrolment_status"] = "pending"
             self.state.idempotency[key] = {"digest": digest, "job_id": job_id}
@@ -417,11 +443,15 @@ class Handler(BaseHTTPRequestHandler):
                 # A rejected replacement leaves the old enrolment untouched.
                 self.person(job["person_id"])["enrolment_status"] = job["previous"] if job["reject"] else "enrolled"
         if job["reject"]:
-            # Plain-English problems, as CCTV sends them. A null pose is a problem with the whole set.
-            problems = [
-                {"pose": job["poses"][0], "problem": "the face is blurred (sharpness 14, below 40)"},
-                {"pose": None, "problem": "does not match this person's other photos (0.41 is below 0.5)"},
-            ]
+            # Plain-English problems with a stable code, as CCTV sends them. A null pose is a problem with the whole set.
+            problems = {
+                "reject": [
+                    {"pose": job["poses"][0], "problem": "the face is blurred (sharpness 14, below 40)", "code": "blurred"},
+                    {"pose": None, "problem": "does not match this person's other photos (0.41 is below 0.5)", "code": "mismatch"},
+                ],
+                "duplicate": [{"pose": None, "problem": "matches someone already enrolled (0.74)", "code": "already_enrolled"}],
+                "withdrawn": [{"pose": None, "problem": "consent was withdrawn", "code": "withdrawn"}],
+            }[job["reject"]]
             return self.reply(200, {"status": "rejected", "problems": problems})
         self.reply(200, {"status": "accepted", "problems": []})
 

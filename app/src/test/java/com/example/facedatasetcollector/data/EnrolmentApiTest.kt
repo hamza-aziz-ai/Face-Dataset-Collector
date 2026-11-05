@@ -67,6 +67,8 @@ class EnrolmentApiTest {
     fun serverInfoIsParsed() {
         respond(200, """{"client_id":"c1","client_name":"Client","notice_version":"1","notice_url":"/n"}""")
         assertEquals(ServerInfo("c1", "Client", "1", "/n"), api.serverInfo())
+        respond(200, """{"client_id":"c1","client_name":"Client","notice_version":"1","notice_url":"/n","deletion_days":90}""")
+        assertEquals(90, api.serverInfo().deletionDays)
     }
 
     @Test
@@ -165,6 +167,23 @@ class EnrolmentApiTest {
         assertEquals("DELETE", request.method)
         assertEquals("/api/v1/consents/c1", request.url.encodedPath)
         assertTrue(request.headers["Authorization"]!!.startsWith("Bearer "))
+    }
+
+    @Test
+    fun removalSendsTheReasonAndReturnsTheDeletionId() {
+        signedIn()
+        respond(202, """{"deletion_id":"d1"}""")
+        assertEquals("d1", api.removeEnrolment("INST.0477", RemovalReason.LEFT))
+        val request = server.takeRequest()
+        assertEquals("DELETE", request.method)
+        assertEquals("/api/v1/persons/INST.0477/enrolment", request.url.encodedPath)
+        assertEquals("left", request.url.queryParameter("reason"))
+        assertTrue(request.headers["Authorization"]!!.startsWith("Bearer "))
+
+        respond(409, """{"error":"deletion_pending"}""")
+        val failure = assertThrows(ApiException::class.java) { api.createConsent("INST.0477", "1.2", "2026-11-05T00:00:00Z") }
+        assertEquals(ApiFailure.CONFLICT, failure.failure)
+        assertEquals("deletion_pending", failure.code)
     }
 
     @Test
@@ -272,10 +291,10 @@ class EnrolmentApiTest {
     fun awaitJobPollsUntilDone() {
         signedIn()
         respond(200, """{"status":"pending","problems":[]}""")
-        respond(200, """{"status":"rejected","problems":[{"pose":"left_30","problem":"the face is blurred (sharpness 14, below 40)"},{"pose":null,"problem":"missing photo"}]}""")
+        respond(200, """{"status":"rejected","problems":[{"pose":"left_30","problem":"the face is blurred (sharpness 14, below 40)","code":"blurred"},{"pose":null,"problem":"missing photo"}]}""")
         val result = api.awaitJob("j1")
         assertEquals(JobStatus.REJECTED, result.status)
-        assertEquals(listOf(PoseProblem("left_30", "the face is blurred (sharpness 14, below 40)"), PoseProblem(null, "missing photo")), result.problems)
+        assertEquals(listOf(PoseProblem("left_30", "the face is blurred (sharpness 14, below 40)", "blurred"), PoseProblem(null, "missing photo")), result.problems)
         assertEquals(listOf(2_000L), sleeps)
     }
 

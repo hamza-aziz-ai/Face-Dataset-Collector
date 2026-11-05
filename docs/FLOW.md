@@ -61,6 +61,8 @@ flowchart TD
     classDef outside fill:#f3f4f6,stroke:#4b5563,color:#111827
     A["`**1** Search the roster`"]:::way --> B{"`**2** Status?`"}:::choice
     A -->|Not on the roster| R["`**11** Register: ID, name, confirm`"]:::way
+    A -->|Withdrew or left| X["`**13** Remove: confirm, choose reason`"]:::seen
+    X --> Y["`**14** Delete on server`"]:::outside
     R --> S["`**12** Add person on server`"]:::outside
     S --> D
     B -->|Checking| C["`**3** Shown, not selectable`"]:::seen
@@ -86,6 +88,9 @@ flowchart TD
 10. An enrolled row has a `Re-enrol` button. `ReEnrolDialog` needs a reason, which is held until the upload. The person still sees the notice and agrees again (D-012).
 11. `Register a new person` opens `RegisterScreen`. `isValidPersonId` applies the server's rule as staff type, and `RegisterConfirmDialog` shows the ID large before anything is sent (D-023). Rows show the ID large and the name beneath.
 12. `POST /api/v1/persons`. On 201 the person goes straight to the notice. If the notice then fails, they wait on the roster, so they are never registered twice. A taken ID shows `This ID is already registered. Find the person in the list.`
+
+13. Every row has `Remove`. `RemoveDialog` says what is deleted and what stays, and needs a reason (D-026).
+14. `DELETE /api/v1/persons/{person_id}/enrolment?reason=withdrawn|left`. On 202 the roster is fetched again and staff read the server's promise from `deletion_days`. A consent for that person meanwhile gets `deletion_pending`.
 
 A `401` on any of these calls signs staff out and shows `Your session ended. Sign in again.`
 
@@ -162,7 +167,7 @@ flowchart TD
 6. `awaitJob`, every 2 s, up to 30 polls.
 7. A poll that loses the connection is not a failed enrolment, because the server already has the photos.
 8. `Enrol next person` returns to a refreshed roster.
-9. The server deleted the set. Its problems are shown as the server wrote them, with whole-set problems first under `Whole set`. `retakeAll` restarts capture under a new key with the same consent. A re-enrolment keeps its reason, and the old enrolment stays in use.
+9. The server deleted the set. Its problems are shown as the server wrote them, with whole-set problems first under `Whole set`. `retakeAll` restarts capture under a new key with the same consent. A re-enrolment keeps its reason, and the old enrolment stays in use. A problem with code `already_enrolled` replaces the retake with `Back to roster`.
 10. The result appears on the roster.
 
 ## F3: Teardown

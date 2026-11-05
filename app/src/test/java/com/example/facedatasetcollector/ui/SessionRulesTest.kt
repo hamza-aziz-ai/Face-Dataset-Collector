@@ -68,6 +68,13 @@ class SessionRulesTest {
     fun onlyKnownCodesGetASpecificMessage() {
         assertTrue(messageForCode("no_active_consent")!!.contains("consent"))
         assertEquals(null, messageForCode("anything_else"))
+        assertTrue(messageForCode("deletion_pending")!!.contains("being removed"))
+    }
+
+    @Test
+    fun removalPromiseComesFromTheServer() {
+        assertEquals("Removal requested. Their photos and face data are deleted within 90 days.", removalMessage(90))
+        assertFalse(removalMessage(null).contains("days"))
     }
 
     @Test

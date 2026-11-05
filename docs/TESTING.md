@@ -39,7 +39,7 @@ Pass for step 4: `OK (1 test)` and 0 crash lines.
 
 ## Whole flow, no camera
 
-With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (20 tests)`, in about 2 minutes. Each test starts with `POST /mock/reset`. The device must be awake and unlocked, or every test fails with `No compose hierarchies found` or hangs. The test keeps an empty activity open, because these OnePlus devices freeze a process with nothing on screen after about 27 s, and the run then hangs with no failure.
+With the mock running and `adb reverse tcp:8081 tcp:8081` set, run `EnrolmentFlowTest` with `am instrument`. It uses synthetic gradients and composes no screen, so the camera never opens. Pass: `OK (23 tests)`, in about 2 minutes. Each test starts with `POST /mock/reset`. The device must be awake and unlocked, or every test fails with `No compose hierarchies found` or hangs. The test keeps an empty activity open, because these OnePlus devices freeze a process with nothing on screen after about 27 s, and the run then hangs with no failure.
 
 ## Signed setup codes, no camera
 
@@ -57,7 +57,7 @@ Opens the back camera. Tell the owner first. Show a code for `{"base_url":"http:
 
 A code with a different `client_id` must return to the connect screen with a message and store nothing.
 
-`ScreenGalleryTest` with `-e screen connect` or `-e screen scan` checks these layouts with no camera. `review-glasses` shows the glasses warning. `roster`, `reenrol`, and `rejected-reenrol` do the same for re-enrolment. `register` and `register-confirm` show registration (D-023). `consent` shows the notice at the length of the owner's site notice 1.1, which must fit on one tablet screen in both orientations.
+`ScreenGalleryTest` with `-e screen connect` or `-e screen scan` checks these layouts with no camera. `review-glasses` shows the glasses warning. `roster`, `reenrol`, and `rejected-reenrol` do the same for re-enrolment. `register` and `register-confirm` show registration (D-023). `remove` shows the removal dialog and `rejected-duplicate` a rejection with code `already_enrolled` (D-026). `consent` shows the notice at the length of the owner's site notice 1.1, which must fit on one tablet screen in both orientations.
 
 Result on 2026-11-03, OPD2203: `EnrolmentFlowTest` `OK (22 tests)` against the mock, including registration, a full upload for the new person, and a taken ID in another letter case refused with `This ID is already registered. Find the person in the list.` `register`, `register-confirm`, `roster`, and `rejected` seen in light and dark, portrait and landscape. 0 crash lines, and no JPEG on the device.
 

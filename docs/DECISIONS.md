@@ -389,3 +389,12 @@ Not signed off: enrolling anyone but the owner.
 Why: no lawyer has reviewed the legal basis or notice 1.2 (D-005), and the 90-day deletion that the notice promises is not automated until CCTV 8e exists.
 Trade-off: staff trials wait. The settled items will not need deciding again.
 Revisit when: legal advice is in, including the open end date for attendance records and whether the owner's company is controller or processor in central deployments, and 8e is on CCTV main.
+
+## D-026: Staff remove a person from the roster
+
+Date: 2026-11-05. Model: Claude Opus 5.5 (claude-opus-5-5). Built on CCTV v2.15.0 (8e). The owner approved the staff wording on 2026-11-05.
+Context: notice 1.2 promises deletion within 90 days of withdrawing or leaving. CCTV 8e automates it with `DELETE /api/v1/persons/{person_id}/enrolment?reason=withdrawn|left`. Until now the app could only withdraw the consent of an attempt in progress.
+Decision: every roster row has `Remove`, whatever its status. `RemoveDialog` names the person by ID and name, says what is deleted, what stays, and that it cannot be undone, and needs a reason before `Remove` is enabled. On 202 the roster is fetched again and staff read `Removal requested. Their photos and face data are deleted within N days.`, with N from server-info `deletion_days`. A rejection with code `already_enrolled` offers no retake, only `Back to roster`.
+Why: a person who withdraws or leaves should not wait for an administrator. Both roles that may enrol may remove (CCTV's rule), so staff who took the consent can end it.
+Trade-off: one mistaken tap plus a confirm removes a person for good; the reason choice and the wording are the only guard. The server keeps the request with the person's ID only.
+Revisit when: staff trials show mistaken removals, or a client wants removal limited to `client_admin`.

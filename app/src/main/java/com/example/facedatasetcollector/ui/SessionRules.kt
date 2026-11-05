@@ -14,7 +14,14 @@ fun isSameClient(expected: String, actual: String): Boolean = expected == actual
 fun isMockAddress(baseUrl: String): Boolean = baseUrl.startsWith("http://127.0.0.1") || baseUrl.startsWith("http://localhost")
 
 /** Withdrawing during a re-enrolment ends that attempt only (CCTV 8c). */
-const val RE_ENROL_STAYS = "This cancels this re-enrolment only. Their existing enrolment stays until they ask for it to be removed, through the withdrawal contact in the notice."
+const val RE_ENROL_STAYS = "This cancels this re-enrolment only. Their existing enrolment stays. If they want it removed too, use Remove on the roster."
+
+/** What staff read once the server accepts a removal (CCTV 8e). The number is the server's promise, never the app's. */
+fun removalMessage(deletionDays: Int?): String =
+    if (deletionDays == null) "Removal requested. Their photos and face data will be deleted." else "Removal requested. Their photos and face data are deleted within $deletionDays days."
+
+/** The server's code for a match with someone already enrolled: a retake cannot fix it. */
+const val ALREADY_ENROLLED = "already_enrolled"
 
 /** ISO-8601 in UTC. SimpleDateFormat because java.time needs API 26 and minSdk is 23. */
 fun utcTimestamp(millis: Long): String =
@@ -36,6 +43,8 @@ fun messageForCode(code: String): String? = when (code) {
     "person_exists" -> "This ID is already registered. Find the person in the list."
     "invalid_person_id" -> "The server refused this ID. Check it and try again."
     "invalid_name" -> "The server refused this name. Check it and try again."
+    "person_not_found" -> "This person is no longer on the roster. Search again."
+    "deletion_pending" -> "This person is being removed. Once they leave the roster, they can be registered again."
     else -> null
 }
 
