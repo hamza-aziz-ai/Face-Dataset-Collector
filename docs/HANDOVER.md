@@ -9,11 +9,13 @@ Done:
 - Mock: `deletion_days`, removal, a `duplicate` scenario, and codes on problems. It deletes at once, so it never answers `deletion_pending`.
 - `EnrolmentFlowTest` passes on CPH2381 against the mock: `OK (23 tests)`.
 
+- Owner approved the new staff wording, listed in PR #36. `Remove` stays disabled while another call runs (Codex finding).
+
 In progress:
-- Owner approval of the new staff wording, listed in the PR.
+- Nothing.
 
 Next:
-- See removal and notice 1.2 against the real server at the next run, the owner's own face only.
+- See removal and notice 1.2 against the real server at the next run, the owner's own face only. Never remove `hamza_aziz`: CCTV deletes at once. Register a throwaway ID with no consent or photos, remove it with `left`, and check the 202 and that it leaves the roster.
 
 ## Earlier session: 2026-11-03, CCTV 8c client (model: Claude Opus 5.5, claude-opus-5-5)
 

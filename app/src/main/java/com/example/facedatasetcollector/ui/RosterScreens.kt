@@ -123,7 +123,7 @@ private fun PersonRow(person: Person, onSelect: () -> Unit, onReEnrol: () -> Uni
 
 /** Removal cannot be undone, so no reason is preselected and the button says what it does. */
 @Composable
-fun RemoveDialog(person: Person, deletionDays: Int?, onRemove: (RemovalReason) -> Unit, onDismiss: () -> Unit) {
+fun RemoveDialog(person: Person, deletionDays: Int?, busy: Boolean, onRemove: (RemovalReason) -> Unit, onDismiss: () -> Unit) {
     var reason by rememberSaveable { mutableStateOf<RemovalReason?>(null) }
     val within = deletionDays?.let { " within $it days" }.orEmpty()
     AlertDialog(
@@ -143,7 +143,8 @@ fun RemoveDialog(person: Person, deletionDays: Int?, onRemove: (RemovalReason) -
         confirmButton = {
             TextButton(
                 onClick = { reason?.let(onRemove) },
-                enabled = reason != null,
+                // A removal sent while another call runs would be dropped without a word, so it waits.
+                enabled = reason != null && !busy,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
             ) { Text("Remove") }
         },
@@ -211,6 +212,7 @@ fun PersonScreen(
         RemoveDialog(
             person,
             deletionDays,
+            busy,
             onRemove = { reason ->
                 removingId = null
                 onRemove(person, reason)

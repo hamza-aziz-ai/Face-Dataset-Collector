@@ -86,7 +86,7 @@ class ScreenGalleryTest {
                             "register" -> RegisterScreen(true, false, null, { _, _, _ -> }, {}, modifier)
                             "register-confirm" -> RegisterConfirmDialog("INST-0477", "Sample Person D", "Stores", {}, {})
                             "reenrol" -> ReEnrolDialog(people[1], {}, {})
-                            "remove" -> RemoveDialog(people[1], 90, {}, {})
+                            "remove" -> RemoveDialog(people[1], 90, false, {}, {})
                             "glasses-on" -> GlassesStepScreen(true, false, {}, {}, {}, modifier)
                             "glasses-off" -> GlassesStepScreen(false, false, {}, {}, {}, modifier)
                             "readout" -> ReadoutPanel(readoutText(FrameReading(0, 1, 12.3f, -2f, 1f, 130, 88.0, 0.42f, 0.03f, 120f)), modifier)
