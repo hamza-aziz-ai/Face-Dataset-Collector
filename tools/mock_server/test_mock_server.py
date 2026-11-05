@@ -71,6 +71,7 @@ class MockServerTest(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertEqual("mock-dedicated", body["client_id"])
         self.assertEqual("0.2-mock", body["notice_version"])
+        self.assertEqual(90, body["deletion_days"])
 
     def test_bad_password_and_missing_token_are_refused(self):
         status, _ = self.call("POST", "/api/auth/token", {"username": "enrol.operator", "password": "wrong"})
@@ -187,6 +188,7 @@ class MockServerTest(unittest.TestCase):
         status, body = self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)
         self.assertEqual("rejected", body["status"])
         self.assertIn(None, [problem["pose"] for problem in body["problems"]])
+        self.assertEqual({"blurred", "mismatch"}, {problem["code"] for problem in body["problems"]})
         self.call("POST", "/mock/scenario", {"scenario": "normal"})
         self.assertEqual(202, self.upload(token, consent_id)[0])
 
@@ -280,6 +282,7 @@ class MockServerTest(unittest.TestCase):
         self.assertEqual("/api/v1/enrolments/{id}", mock_server.loggable_path("/api/v1/enrolments/abc-123"))
         self.assertEqual("/api/v1/consents/{id}", mock_server.loggable_path("/api/v1/consents/abc-123"))
         self.assertEqual("/api/v1/persons", mock_server.loggable_path("/api/v1/persons?query=name"))
+        self.assertEqual("/api/v1/persons/{id}/enrolment", mock_server.loggable_path("/api/v1/persons/p-0412/enrolment?reason=left"))
 
     def test_poll_drop_keeps_the_job(self):
         token = self.login()
@@ -288,6 +291,28 @@ class MockServerTest(unittest.TestCase):
         with self.assertRaises((ConnectionError, http.client.HTTPException)):
             self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)
         self.assertIn(body["job_id"], self.state.jobs)
+
+    def test_duplicate_face_is_rejected_with_its_code(self):
+        token = self.login()
+        self.call("POST", "/mock/scenario", {"scenario": "duplicate"})
+        _, body = self.upload(token, self.consent(token))
+        _, body = self.call("GET", f"/api/v1/enrolments/{body['job_id']}", token=token)
+        self.assertEqual([{"pose": None, "problem": "matches someone already enrolled (0.74)", "code": "already_enrolled"}], body["problems"])
+
+    def test_removal_ends_consent_cancels_the_job_and_drops_the_row(self):
+        mock_server.CHECK_SECONDS = 30
+        token = self.login()
+        consent_id = self.consent(token)
+        _, job = self.upload(token, consent_id)
+        self.assertEqual((422, "invalid_reason"), (lambda r: (r[0], r[1]["error"]))(self.call("DELETE", "/api/v1/persons/p-0412/enrolment?reason=bored", token=token)))
+        status, body = self.call("DELETE", "/api/v1/persons/p-0412/enrolment?reason=withdrawn", token=token)
+        self.assertEqual(202, status)
+        self.assertIn("deletion_id", body)
+        _, body = self.call("GET", f"/api/v1/enrolments/{job['job_id']}", token=token)
+        self.assertEqual("withdrawn", body["problems"][0]["code"])
+        self.assertFalse(self.state.consents[consent_id]["active"])
+        self.assertEqual(404, self.call("DELETE", "/api/v1/persons/p-0412/enrolment?reason=left", token=token)[0])
+        self.assertEqual(404, self.call("POST", "/api/v1/consents", {"person_id": "p-0412", "notice_version": "0.2-mock", "captured_at": "2026-11-05T00:00:00Z", "method": "staff_attested_in_app"}, token=token)[0])
 
     def test_withdrawal_cancels_the_open_job_and_keeps_the_old_enrolment(self):
         mock_server.CHECK_SECONDS = 30

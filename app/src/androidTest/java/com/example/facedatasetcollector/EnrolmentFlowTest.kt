@@ -15,6 +15,7 @@ import com.example.facedatasetcollector.data.EnrolmentApi
 import com.example.facedatasetcollector.data.EnrolmentStatus
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.ReEnrolReason
+import com.example.facedatasetcollector.data.RemovalReason
 import com.example.facedatasetcollector.ui.EnrolmentViewModel
 import com.example.facedatasetcollector.ui.FrameReading
 import com.example.facedatasetcollector.ui.RE_ENROL_STAYS
@@ -319,6 +320,15 @@ class EnrolmentFlowTest {
         val check = EnrolmentApi(MOCK).apply { login("enrol.operator", "mock-only-password") }
         val refused = assertThrows(ApiException::class.java) { check.upload(person.personId, consent, set) }
         assertEquals("no_active_consent", refused.code)
+    }
+
+    @Test
+    fun removedPerson_leavesTheRosterWithTheServersPromise() {
+        val person = read { model.persons[1] }
+        onMain { model.removePerson(person, RemovalReason.WITHDRAWN) }
+        awaitUntil { model.withdrawalMessage != null && !model.busy }
+        assertEquals("Removal requested. Their photos and face data are deleted within 90 days.", read { model.withdrawalMessage })
+        awaitUntil { model.persons.none { it.personId == person.personId } }
     }
 
     @Test

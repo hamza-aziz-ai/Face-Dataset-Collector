@@ -14,7 +14,8 @@ import java.io.IOException
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-data class ServerInfo(val clientId: String, val clientName: String, val noticeVersion: String, val noticeUrl: String)
+/** [deletionDays] is the notice's promise for removal (CCTV 8e). Null on a server older than 8e. */
+data class ServerInfo(val clientId: String, val clientName: String, val noticeVersion: String, val noticeUrl: String, val deletionDays: Int? = null)
 data class NoticeSection(val heading: String, val body: String)
 data class NoticeContact(val name: String, val email: String, val phone: String?)
 
@@ -32,14 +33,23 @@ enum class EnrolmentStatus { NONE, PENDING, ENROLLED }
 /** [personId] is the organisational or institutional ID staff typed at registration (D-023). [employeeCode] is set only by an admin import. */
 data class Person(val personId: String, val name: String, val employeeCode: String?, val department: String?, val status: EnrolmentStatus)
 data class PersonPage(val persons: List<Person>, val nextCursor: String?)
-/** [pose] is null for a problem with the whole set, such as a missing photo. [problem] is the server's plain-English text, shown as it is. */
-data class PoseProblem(val pose: String?, val problem: String)
+/**
+ * [pose] is null for a problem with the whole set, such as a missing photo. [problem] is the server's plain-English text, shown as it is.
+ * [code] is stable for the app to act on, such as `already_enrolled`. Null on jobs from before 2026-11-04.
+ */
+data class PoseProblem(val pose: String?, val problem: String, val code: String? = null)
 
 /** Why an enrolled person is being enrolled again. The server keeps the old enrolment until the new job is accepted. */
 enum class ReEnrolReason(val wireName: String, val label: String) {
     APPEARANCE_CHANGED("appearance_changed", "Appearance changed"),
     POOR_PHOTOS("poor_photos", "Poor photos"),
     OTHER("other", "Other"),
+}
+
+/** Why a person leaves the roster (CCTV 8e). Every consent ends and their photos and face data are deleted; attendance records stay. */
+enum class RemovalReason(val wireName: String, val label: String) {
+    WITHDRAWN("withdrawn", "They withdrew consent"),
+    LEFT("left", "They left the organisation"),
 }
 
 enum class JobStatus { PENDING, ACCEPTED, REJECTED }
@@ -67,7 +77,10 @@ class EnrolmentApi(
     fun serverInfo(): ServerInfo {
         val json = send(request("/api/v1/server-info").get().build())
         return parsed {
-            ServerInfo(json.getString("client_id"), cleanClientName(json.getString("client_name")), json.getString("notice_version"), json.getString("notice_url"))
+            ServerInfo(
+                json.getString("client_id"), cleanClientName(json.getString("client_name")), json.getString("notice_version"), json.getString("notice_url"),
+                if (json.isNull("deletion_days")) null else json.getInt("deletion_days"),
+            )
         }
     }
 
@@ -155,6 +168,17 @@ class EnrolmentApi(
         send(authorized(request("/api/v1/consents/$consentId")).delete().build())
     }
 
+    /** Removes the person: the server ends every consent, cancels an open job and deletes their face data. Asking again while it runs returns the same ID. */
+    fun removeEnrolment(personId: String, reason: RemovalReason): String {
+        val url = "$baseUrl/api/v1/persons".toHttpUrl().newBuilder()
+            .addPathSegment(personId)
+            .addPathSegment("enrolment")
+            .addQueryParameter("reason", reason.wireName)
+            .build()
+        val json = send(authorized(Request.Builder().url(url)).delete().build())
+        return parsed { json.getString("deletion_id") }
+    }
+
     /**
      * Uploads one set and retries only when the outcome is unknown or the server failed. Every retry reuses the same key, so a request that did land cannot create a second job.
      *
@@ -206,7 +230,7 @@ class EnrolmentApi(
                 },
                 List(problems.length()) { index ->
                     val problem = problems.getJSONObject(index)
-                    PoseProblem(problem.optionalString("pose"), problem.getString("problem"))
+                    PoseProblem(problem.optionalString("pose"), problem.getString("problem"), problem.optionalString("code"))
                 },
             )
         }

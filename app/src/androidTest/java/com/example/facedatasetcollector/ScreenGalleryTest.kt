@@ -29,6 +29,7 @@ import com.example.facedatasetcollector.ui.RegisterConfirmDialog
 import com.example.facedatasetcollector.ui.RegisterScreen
 import com.example.facedatasetcollector.ui.ReadoutPanel
 import com.example.facedatasetcollector.ui.RejectedScreen
+import com.example.facedatasetcollector.ui.RemoveDialog
 import com.example.facedatasetcollector.ui.ReviewScreen
 import com.example.facedatasetcollector.ui.readoutText
 import com.example.facedatasetcollector.ui.UploadScreen
@@ -41,7 +42,7 @@ import java.io.ByteArrayOutputStream
 /**
  * Shows one screen with synthetic data for a person to look at, or for `adb screencap`. The real app blocks screenshots on review, and real photos must never be used to check a layout.
  *
- * Pick the screen with `-e screen consent|glasses-on|glasses-off|readout|roster|reenrol|register|register-confirm|connect|connect-release|scan|review|sending|checking|accepted|rejected|rejected-reenrol`. `scan` shows an empty panel, so no camera opens.
+ * Pick the screen with `-e screen consent|glasses-on|glasses-off|readout|roster|reenrol|remove|register|register-confirm|connect|connect-release|scan|review|sending|checking|accepted|rejected|rejected-reenrol|rejected-duplicate`. `scan` shows an empty panel, so no camera opens.
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenGalleryTest {
@@ -81,10 +82,11 @@ class ScreenGalleryTest {
                         val modifier = Modifier.fillMaxSize()
                         when (screen) {
                             "consent" -> ConsentScreen(people[0], notice, false, null, {}, {}, modifier)
-                            "roster" -> PersonScreen(people, false, true, false, null, {}, {}, {}, { _, _ -> }, {}, {}, modifier)
+                            "roster" -> PersonScreen(people, false, true, false, null, {}, {}, {}, { _, _ -> }, 90, { _, _ -> }, {}, {}, modifier)
                             "register" -> RegisterScreen(true, false, null, { _, _, _ -> }, {}, modifier)
                             "register-confirm" -> RegisterConfirmDialog("INST-0477", "Sample Person D", "Stores", {}, {})
                             "reenrol" -> ReEnrolDialog(people[1], {}, {})
+                            "remove" -> RemoveDialog(people[1], 90, {}, {})
                             "glasses-on" -> GlassesStepScreen(true, false, {}, {}, {}, modifier)
                             "glasses-off" -> GlassesStepScreen(false, false, {}, {}, {}, modifier)
                             "readout" -> ReadoutPanel(readoutText(FrameReading(0, 1, 12.3f, -2f, 1f, 130, 88.0, 0.42f, 0.03f, 120f)), modifier)
@@ -99,10 +101,14 @@ class ScreenGalleryTest {
                             else -> RejectedScreen(
                                 "Sample Person A",
                                 10,
-                                listOf(
-                                    PoseProblem("left_30", "the face is blurred (sharpness 14, below 40)"),
-                                    PoseProblem(null, "does not match this person's other photos (0.41 is below 0.5)"),
-                                ),
+                                if (screen == "rejected-duplicate") {
+                                    listOf(PoseProblem(null, "matches someone already enrolled (0.74)", "already_enrolled"))
+                                } else {
+                                    listOf(
+                                        PoseProblem("left_30", "the face is blurred (sharpness 14, below 40)", "blurred"),
+                                        PoseProblem(null, "does not match this person's other photos (0.41 is below 0.5)", "mismatch"),
+                                    )
+                                },
                                 screen == "rejected-reenrol",
                                 {},
                                 {},

@@ -20,6 +20,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -47,6 +48,7 @@ import com.example.facedatasetcollector.data.EnrolmentStatus
 import com.example.facedatasetcollector.data.Notice
 import com.example.facedatasetcollector.data.Person
 import com.example.facedatasetcollector.data.ReEnrolReason
+import com.example.facedatasetcollector.data.RemovalReason
 import com.example.facedatasetcollector.data.cleanPersonName
 import com.example.facedatasetcollector.data.isValidPersonId
 import com.example.facedatasetcollector.ui.theme.LocalStatusColors
@@ -79,7 +81,7 @@ private fun StatusChip(status: EnrolmentStatus) {
 }
 
 @Composable
-private fun PersonRow(person: Person, onSelect: () -> Unit, onReEnrol: () -> Unit, modifier: Modifier = Modifier) {
+private fun PersonRow(person: Person, onSelect: () -> Unit, onReEnrol: () -> Unit, onRemove: () -> Unit, modifier: Modifier = Modifier) {
     // Pending stays blocked: one open job per person. Enrolled needs the explicit action, so a stray tap cannot start a replacement.
     val selectable = person.status == EnrolmentStatus.NONE
     Row(
@@ -109,8 +111,44 @@ private fun PersonRow(person: Person, onSelect: () -> Unit, onReEnrol: () -> Uni
                     modifier = Modifier.semantics { contentDescription = "Re-enrol ${person.personId}, ${person.name}" },
                 ) { Text("Re-enrol") }
             }
+            // Any status: a registered person with no photos yet can leave too, and an open check is cancelled.
+            TextButton(
+                onClick = onRemove,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.semantics { contentDescription = "Remove ${person.personId}, ${person.name}" },
+            ) { Text("Remove") }
         }
     }
+}
+
+/** Removal cannot be undone, so no reason is preselected and the button says what it does. */
+@Composable
+fun RemoveDialog(person: Person, deletionDays: Int?, onRemove: (RemovalReason) -> Unit, onDismiss: () -> Unit) {
+    var reason by rememberSaveable { mutableStateOf<RemovalReason?>(null) }
+    val within = deletionDays?.let { " within $it days" }.orEmpty()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Remove ${person.personId}, ${person.name}?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Their consent ends, and their photos and face data are deleted$within. Attendance records stay. This cannot be undone.")
+                Text("Why are they being removed?", style = MaterialTheme.typography.labelMedium)
+                Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RemovalReason.entries.forEach { choice ->
+                        ChoiceButton(choice.label, reason == choice, { reason = choice }, Modifier.fillMaxWidth())
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { reason?.let(onRemove) },
+                enabled = reason != null,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) { Text("Remove") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 /** The confirm step. No choice is preselected, so the reason on record is one staff actually made. */
@@ -149,6 +187,8 @@ fun PersonScreen(
     onLoadMore: () -> Unit,
     onSelect: (Person) -> Unit,
     onReEnrol: (Person, ReEnrolReason) -> Unit,
+    deletionDays: Int?,
+    onRemove: (Person, RemovalReason) -> Unit,
     onRegister: () -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
@@ -164,6 +204,18 @@ fun PersonScreen(
                 onReEnrol(person, reason)
             },
             onDismiss = { confirmingId = null },
+        )
+    }
+    var removingId by rememberSaveable { mutableStateOf<String?>(null) }
+    persons.firstOrNull { it.personId == removingId }?.let { person ->
+        RemoveDialog(
+            person,
+            deletionDays,
+            onRemove = { reason ->
+                removingId = null
+                onRemove(person, reason)
+            },
+            onDismiss = { removingId = null },
         )
     }
     // Waits for a pause in typing, so each keystroke does not hit the server.
@@ -200,7 +252,7 @@ fun PersonScreen(
                 // IntrinsicSize, so a row with a Re-enrol button does not stand taller than its neighbour.
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     row.forEach { person ->
-                        PersonRow(person, { onSelect(person) }, { confirmingId = person.personId }, Modifier.weight(1f).fillMaxHeight())
+                        PersonRow(person, { onSelect(person) }, { confirmingId = person.personId }, { removingId = person.personId }, Modifier.weight(1f).fillMaxHeight())
                     }
                     // Keeps a lone last person at the same width as the others.
                     if (wide && row.size == 1) Spacer(Modifier.weight(1f))

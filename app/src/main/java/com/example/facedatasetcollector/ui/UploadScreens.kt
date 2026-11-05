@@ -163,7 +163,12 @@ fun RejectedScreen(
             )
             Text(personName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text("The server deleted this set. Take all $photoCount photos again.", style = MaterialTheme.typography.bodyLarge)
+        // A match with someone already enrolled: new photos of the same face would fail the same way.
+        val alreadyEnrolled = problems.any { it.code == ALREADY_ENROLLED }
+        Text(
+            if (alreadyEnrolled) "The server deleted this set. This person looks already enrolled under another ID. Check the roster." else "The server deleted this set. Take all $photoCount photos again.",
+            style = MaterialTheme.typography.bodyLarge,
+        )
         if (problems.isNotEmpty()) {
             Column(
                 Modifier
@@ -187,12 +192,16 @@ fun RejectedScreen(
             }
         }
         if (stillEnrolled) Text("Their current enrolment stays in use.", style = MaterialTheme.typography.bodyMedium)
-        Text(
-            "Consent is still on record, so the person does not need to agree again.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        PrimaryButton("Take all $photoCount photos again", busy = false, onClick = onRetakeAll)
-        TextButton(onClick = onBackToRoster, modifier = Modifier.fillMaxWidth()) { Text("Back to roster") }
+        if (alreadyEnrolled) {
+            PrimaryButton("Back to roster", busy = false, onClick = onBackToRoster)
+        } else {
+            Text(
+                "Consent is still on record, so the person does not need to agree again.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            PrimaryButton("Take all $photoCount photos again", busy = false, onClick = onRetakeAll)
+            TextButton(onClick = onBackToRoster, modifier = Modifier.fillMaxWidth()) { Text("Back to roster") }
+        }
     }
 }

@@ -2,7 +2,20 @@
 
 Newest entry on top. Read this first every session and update it last.
 
-## Latest session: 2026-11-03, CCTV 8c client (model: Claude Opus 5.5, claude-opus-5-5)
+## Latest session: 2026-11-05, CCTV 8e client (model: Claude Opus 5.5, claude-opus-5-5)
+
+Done:
+- Client follows CCTV v2.15.0: problem codes, `Remove` on every roster row with a reason (D-026), and the removal promise from server-info `deletion_days`. `already_enrolled` offers no retake.
+- Mock: `deletion_days`, removal, a `duplicate` scenario, and codes on problems. It deletes at once, so it never answers `deletion_pending`.
+- `EnrolmentFlowTest` passes on CPH2381 against the mock: `OK (23 tests)`.
+
+In progress:
+- Owner approval of the new staff wording, listed in the PR.
+
+Next:
+- See removal and notice 1.2 against the real server at the next run, the owner's own face only.
+
+## Earlier session: 2026-11-03, CCTV 8c client (model: Claude Opus 5.5, claude-opus-5-5)
 
 Done:
 - CI tells CCTV after a green `main` (PR #32), and only warns if CCTV refuses (PR #33). The owner's re-saved `SUBMODULES_TOKEN` works: CCTV ran `submodules` from the dispatch.
@@ -20,13 +33,11 @@ Broken or risky:
 - Nothing checks a typed ID against a real ID card. A wrong ID enrols photos under it, and nothing in the app can rename a person.
 - Only one real-server run, on one device, with one face. The phone has not been tried.
 - Debug builds trust user-installed CAs (D-024). The owner removed Caddy's certificate from the tablet on 2026-11-03, and CCTV removed its test site name, account, and tunnel.
-- Retaking cannot fix `matches someone already enrolled`, but the app offers it. CCTV agreed to add a `code` to each problem; the app will use it once it is on CCTV main.
 - The release keystore and its password file stay in `~/.ssh` by the owner's choice, backed up on other drives (D-022 update). Never open either file.
 - The tablet now has the debug app. Uninstall it before installing a release build.
 
 Next:
 - Owner policy sign-off is done (D-025): new consent per re-enrolment, withdrawal during re-enrolment ends only that attempt, contact and retention as in notice 1.2. Enrolment stays limited to the owner until legal advice and CCTV 8e.
-- Use the problem `code` and build 8e removal from the roster, once CCTV ships them together.
 - See notice 1.2 in the app at the next real-server run. CCTV serves it since 2026-11-04, measured to fit OPD2203 in both orientations.
 - Codex review of PR #25 onward from 2026-11-04.
 - Glasses warning check with the glasses-off set taken on purpose with glasses on.

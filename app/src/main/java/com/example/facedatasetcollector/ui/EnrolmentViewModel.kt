@@ -21,6 +21,7 @@ import com.example.facedatasetcollector.data.Person
 import com.example.facedatasetcollector.data.Pose
 import com.example.facedatasetcollector.data.PoseProblem
 import com.example.facedatasetcollector.data.ReEnrolReason
+import com.example.facedatasetcollector.data.RemovalReason
 import com.example.facedatasetcollector.data.ServerSetup
 import com.example.facedatasetcollector.data.ServerStore
 import com.example.facedatasetcollector.data.StoredServer
@@ -79,6 +80,10 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     var selectedPerson by mutableStateOf<Person?>(null)
         private set
     var notice by mutableStateOf<Notice?>(null)
+        private set
+
+    /** The server's removal promise, from server-info at sign-in. Null on a server older than CCTV 8e. */
+    var deletionDays by mutableStateOf<Int?>(null)
         private set
 
     /** Kept apart from [error], because refreshing the roster clears that, and staff must see this. */
@@ -186,7 +191,10 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
             return@run
         }
         client.login(username, password)
-        onMain { screen = Screen.SelectPerson }
+        onMain {
+            deletionDays = info.deletionDays
+            screen = Screen.SelectPerson
+        }
     }
 
     /** Replaces any running search, so an older answer can never overwrite a newer one. */
@@ -229,6 +237,17 @@ class EnrolmentViewModel(application: Application) : AndroidViewModel(applicatio
     fun selectPerson(person: Person, reason: ReEnrolReason? = null) = run {
         withdrawalMessage = null
         openConsent(person, reason)
+    }
+
+    /** The person withdrew or left. The server deletes their face data; the roster is fetched again so the row shows what the server now holds. */
+    fun removePerson(person: Person, reason: RemovalReason) = run {
+        val client = api ?: return@run
+        withdrawalMessage = null
+        client.removeEnrolment(person.personId, reason)
+        onMain {
+            withdrawalMessage = removalMessage(deletionDays)
+            search(lastQuery)
+        }
     }
 
     fun startRegistration() {
